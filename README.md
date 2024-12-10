@@ -106,8 +106,6 @@ Streams live progress updates of video generation. This feature does not require
 
 ## TODOs
 
-- Implement user authentication for private videos.
-- Integrate a database for better video and user management.
 - Fix font styling issues in generated videos.
 
 ## Contributing
