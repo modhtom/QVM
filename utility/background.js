@@ -7,16 +7,13 @@ import path from 'path';
 export async function getBackgroundPath(newBackground, videoNumber, len) {
   const backgroundVideoPath = "Data/Background_Video/";
   const backgroundVideos = ["CarDrive.mp4"];
-  console.log(`custom background : ${newBackground}`);
 
   if (newBackground) {
-    console.log("Custom BG selected");
     const url = videoNumber;
     const start = 0;
 
     try {
       const downloadedPath = await downloadVideoFromYoutube(url, start, len);
-      console.log(`Video downloaded successfully to: ${downloadedPath}`);
       return await createBackgroundVideo(downloadedPath, len);
     } catch (error) {
       console.error("Error downloading video:", error.message);
@@ -24,12 +21,12 @@ export async function getBackgroundPath(newBackground, videoNumber, len) {
     }
   } else {
     const defaultVideoPath = backgroundVideoPath + backgroundVideos[videoNumber - 1];
-    console.log(defaultVideoPath);
     if (fs.existsSync(defaultVideoPath)) {
       console.log(`Using existing default background video: ${defaultVideoPath}`);
       return await createBackgroundVideo(defaultVideoPath, len);
     } else {
       console.log("Downloading default background video from YouTube...");
+      alert("Downloading default background video from YouTube...\nit may take a while...");
       try {
         const fallbackPath = await downloadVideoFromYoutube(
           "https://youtu.be/nABR88G_2cE?si=vHPIVmRCbZGWg8X7",
@@ -58,15 +55,13 @@ function downloadVideoFromYoutube(url, start, length, name = "temp") {
     const outputName = `video_${name || url.slice(0, 9)}.mp4`;
     const outputPath = path.join(outputDir, outputName);
 
-    // Ensure the output directory exists
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    // youtube-dl options
     const options = {
       output: outputPath,
-      format: 'best[ext=mp4]/mp4', // Get best quality mp4
+      format: 'best[ext=mp4]/mp4',
       noCheckCertificates: true,
       noWarnings: true,
       preferFreeFormats: true,
@@ -75,12 +70,11 @@ function downloadVideoFromYoutube(url, start, length, name = "temp") {
         'user-agent:Mozilla/5.0'
       ],
       postprocessorArgs: [
-        '-ss', start.toString(), // Start time
-        '-t', length.toString() // Duration
+        '-ss', start.toString(),
+        '-t', length.toString() 
       ]
     };
 
-    console.log(`Downloading ${length}s of video from ${start}s at ${url} to ${outputPath}...`);
 
     youtubedl(url, options)
       .then(() => {
@@ -115,7 +109,6 @@ function createBackgroundVideo(videoPath, len) {
       .noAudio()
       .videoCodec("libx264")
       .on("end", () => {
-        console.log(`Background video saved as ${outputPath}`);
         resolve(outputPath);
       })
       .on("error", (err) => {

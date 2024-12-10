@@ -5,49 +5,12 @@ import { partAudioAndText } from "./utility/data.js";
 import { getBackgroundPath } from "./utility/background.js";
 import { deleteVidData, deleteOldVideos } from "./utility/delete.js";
 import { generateSubtitles } from "./utility/subtitle.js";
-import { pickColor } from "./utility/color.js";
 import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
 
-// Parameters
-// const surahNumber = 1;
-// const edition = "ar.alafasy";
-// const useCustomBackground = false; 
-// const videoNumber = 1;
-// const removeFilesAfterCreation = true;
-// const downloadType = "p";
-// const startVerse = 1;
-// const endVerse = 2;
-// const color = pickColor(videoNumber, useCustomBackground);
 const fontPath = "Data/Font/QCF_P440.ttf";
-const position = "1920,1080";
-
-// (async () => {
-//   if (downloadType.toLowerCase() === "p") {
-//     await generatePartialVideo(
-//       surahNumber,
-//       startVerse,
-//       endVerse,
-//       removeFilesAfterCreation,
-//       color,
-//       useCustomBackground,
-//       videoNumber,
-//       edition,
-//     );
-//   } else {
-//     await generateFullVideo(
-//       surahNumber,
-//       removeFilesAfterCreation,
-//       color,
-//       useCustomBackground,
-//       videoNumber,
-//       edition,
-//     );
-//   }
-
-//   deleteOldVideos();
-// })();
+const font_position = "1920,1080";
 
 export async function generateFullVideo(
   surahNumber,
@@ -84,7 +47,6 @@ export async function generatePartialVideo(
   edition,
   progressCallback = () => {}
 ) {
-  let startTime = Date.now();
   progressCallback({ step: 'Starting video generation', percent: 0 });
 
   const limit = await getEndVerse(surahNumber);
@@ -120,7 +82,6 @@ export async function generatePartialVideo(
   let audioLen;
   if (!audioHeld) {
     audioLen = await getAudioDuration(audioPath);
-
     if (audioLen == -1) {
       console.log("Error: Invalid audio file.");
       return null;
@@ -142,12 +103,6 @@ export async function generatePartialVideo(
     videoNumber,
     audioLen,
   );
-  
-  if (!fs.existsSync(backgroundPath)) {
-    console.log(
-      `Output file Data/Background_Video/CarDrive${len}.mp4 doesn't exists.`,
-    );
-  }
 
   progressCallback({ step: 'Generating subtitles', percent: 50 });
   const subPath = `Data/subtitles/Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.srt`;
@@ -157,7 +112,7 @@ export async function generatePartialVideo(
     endVerse,
     fontPath,
     color,
-    position,
+    font_position,
   );
 
   if (ret != 1) {
@@ -172,11 +127,6 @@ export async function generatePartialVideo(
     `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}.mp4`
   );
 
-  // console.log('Paths used by ffmpeg:');
-  // console.log(`Background Path: ${backgroundPath}`);
-  // console.log(`Audio Path: ${audioPath}`);
-  // console.log(`Subtitle Path: ${subPath}`);
-  // console.log(`Output Path: ${outputPath}`);
   progressCallback({ step: 'Rendering final video', percent: 60 });
     await new Promise((resolve, reject) => {
       let progress = 60;

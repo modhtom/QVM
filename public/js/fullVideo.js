@@ -29,7 +29,7 @@ export async function handleFullVideoSubmit(e) {
 
     if (response.ok) {
       alert("Full video generated successfully!");
-      loadVideos(); // Refresh videos list
+      loadVideos();
     } else {
       throw new Error(data.message || "Failed to generate full video");
     }

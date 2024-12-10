@@ -5,14 +5,12 @@ import { surahs } from "./data/surahs.js";
 import { editions } from "./data/editions.js";
 
 
-// Populate select dropdowns
 function populateSelects() {
   const surahSelects = document.querySelectorAll(
     "#surahNumber, #fullSurahNumber",
   );
   const editionSelects = document.querySelectorAll("#edition, #fullEdition");
 
-  // Populate Surah selects
   const surahOptions = surahs
     .map((surah) => `<option value="${surah.number}">${surah.name}</option>`)
     .join("");
@@ -21,7 +19,6 @@ function populateSelects() {
     select.innerHTML = `<option value="">Select a Surah</option>${surahOptions}`;
   });
 
-  // Populate Edition selects
   const editionOptions = editions
     .map(
       (edition) =>
@@ -34,7 +31,6 @@ function populateSelects() {
   });
 }
 
-// Tab switching functionality
 const tabs = document.querySelectorAll(".tab-btn");
 const tabContents = document.querySelectorAll(".tab-content");
 
@@ -71,7 +67,7 @@ tabs.forEach((tab) => {
     document.querySelector(`#${tab.dataset.tab}-form`).classList.add("active");
   });
 });
-// Form submissions
+
 document
   .getElementById("partial-video-form")
   .addEventListener("submit", async (e) => {
@@ -88,7 +84,6 @@ document
 //   await handleFullVideoSubmit(e);
 // });
 
-// Add progress bar HTML elements
 function addProgressBar() {
   const progressContainer = document.createElement('div');
   progressContainer.id = 'progress-container';
@@ -104,7 +99,6 @@ function addProgressBar() {
   document.body.appendChild(progressContainer);
 }
 
-// Update progress bar
 function updateProgressBar(progress) {
   const progressContainer = document.getElementById('progress-container');
   const progressFill = progressContainer.querySelector('.progress-fill');
@@ -121,7 +115,6 @@ function updateProgressBar(progress) {
   }
 }
 
-// Connect to SSE endpoint
 function connectToProgressUpdates() {
   const evtSource = new EventSource('/progress');
   
@@ -137,11 +130,8 @@ function connectToProgressUpdates() {
   return evtSource;
 }
 
-// Initialize progress bar and SSE connection
 addProgressBar();
 const progressEventSource = connectToProgressUpdates();
 
-// Initialize
 populateSelects();
 loadVideos();
-

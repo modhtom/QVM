@@ -5,11 +5,9 @@ export async function handlePartialVideoSubmit(e) {
   let videoData;
   if (document.getElementById("back").checked){
     videoData = document.getElementById("url").value;
-    console.log(`setting video data: ${videoData}`);
   }
   else videoData = 1;
 
-  console.log(`\n\n\nVIDEO DATA : ${videoData}\n\n\n`);
 
   const formData = {
     surahNumber: parseInt(document.getElementById("surahNumber").value),
@@ -36,7 +34,7 @@ export async function handlePartialVideoSubmit(e) {
 
     if (response.ok) {
       alert("Video generated successfully!");
-      loadVideos(); // Refresh videos list
+      loadVideos(); 
     } else {
       throw new Error(data.message || "Failed to generate video");
     }
