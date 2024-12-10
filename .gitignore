@@ -1,0 +1,6 @@
+Data/Background_Video/*
+Data/audio/*
+Data/subtitles/*
+Data/text/*
+node_modules
+Output_Video/*
