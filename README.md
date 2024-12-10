@@ -143,4 +143,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 ## Acknowledgements
 
 - [Fluent-FFMPEG](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) for video generation.
-- [Al-Quran Cloud API](http://api.alquran.cloud/) for Quranic data.
+- [Al-Quran Cloud API](http://alquran.cloud/) for Quranic data.
