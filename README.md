@@ -106,8 +106,6 @@ Streams live progress updates of video generation. This feature does not require
 
 ## TODOs
 
-- Implement user authentication for private videos.
-- Integrate a database for better video and user management.
 - Fix font styling issues in generated videos.
 
 ## Contributing
@@ -143,4 +141,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 ## Acknowledgements
 
 - [Fluent-FFMPEG](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) for video generation.
-- [Al-Quran Cloud API](http://api.alquran.cloud/) for Quranic data.
+- [Al-Quran Cloud API](http://alquran.cloud/) for Quranic data.
