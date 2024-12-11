@@ -4,6 +4,10 @@ import { generatePartialVideo, generateFullVideo } from "./video.js";
 import fs from "fs";
 import path from "path";
 import { EventEmitter } from 'events';
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3001;
@@ -11,16 +15,7 @@ const progressEmitter = new EventEmitter();
 
 app.use(express.json());
 
-const OUTPUT_VIDEO_FOLDER = path.join(
-  "C:/Users/moham/OneDrive/Desktop/QVM",
-  "Output_Video",
-);
-
-const PUBLIC_FOLDER = path.join(
-  "C:/Users/moham/OneDrive/Desktop/QVM",
-  "public",
-);
-app.use(express.static(PUBLIC_FOLDER));
+app.use(express.static(path.resolve(__dirname, "public")));
 
 app.get('/progress', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -38,10 +33,10 @@ app.get('/progress', (req, res) => {
   });
 });
 
-app.use("/videos", express.static(OUTPUT_VIDEO_FOLDER));
+app.use("/videos", express.static(path.resolve(__dirname, "Output_Video")));
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(PUBLIC_FOLDER, "index.html"));
+  res.sendFile(path.resolve(__dirname, "public/index.html"));
 });
 
 app.get("/videos", (req, res) => {

@@ -1,7 +1,22 @@
 export const editions = [
+    { identifier: "ar.abdulbasitmurattal", name: "Abdul Basit (عبد الباسط عبد الصمد المرتل)" },
+    { identifier: "ar.abdullahbasfar", name: "Abdullah Basfar (عبد الله بصفر)" },
+    { identifier: "ar.abdurrahmaansudais", name: "Abdurrahmaan As-Sudais (عبدالرحمن السديس)" },
+    { identifier: "ar.abdulsamad", name: "Abdul Samad (عبدالباسط عبدالصمد)" },
+    { identifier: "ar.shaatree", name: "Abu Bakr Ash-Shaatree (أبو بكر الشاطري)" },
+    { identifier: "ar.ahmedajamy", name: "Ahmed ibn Ali al-Ajamy (أحمد بن علي العجمي)" },
     { identifier: "ar.alafasy", name: "Alafasy (مشاري العفاسي)" },
+    { identifier: "ar.hanirifai", name: "Hani Rifai (هاني الرفاعي)" },
     { identifier: "ar.husary", name: "Husary (محمود خليل الحصري)" },
+    { identifier: "ar.husarymujawwad", name: "Husary (Mujawwad) (محمود خليل الحصري (المجود))" },
+    { identifier: "ar.hudhaify", name: "Hudhaify (علي بن عبدالرحمن الحذيفي)" },
+    { identifier: "ar.ibrahimakhbar", name: "Ibrahim Akhdar (إبراهيم الأخضر)" },
+    { identifier: "ar.mahermuaiqly", name: "Maher Al Muaiqly (ماهر المعيقلي)" },
     { identifier: "ar.minshawi", name: "Minshawi (محمد صديق المنشاوي)" },
+    { identifier: "ar.minshawimujawwad", name: "Minshawy (Mujawwad) (محمد صديق المنشاوي (المجود))" },
     { identifier: "ar.muhammadayyoub", name: "Muhammad Ayyoub (محمد أيوب)" },
-    { identifier: "ar.abdulbasitmurattal", name: "Abdul Basit (عبد الباسط عبد الصمد المرتل)" }
+    { identifier: "ar.muhammadjibreel", name: "Muhammad Jibreel (محمد جبريل)" },
+    { identifier: "ar.saoodshuraym", name: "Saood bin Ibraaheem Ash-Shuraym (سعود الشريم)" },
+    { identifier: "ar.parhizgar", name: "Parhizgar (شهریار پرهیزگار)" },
+    { identifier: "ar.aymanswoaid", name: "Ayman Sowaid (أيمن سويد)" }
 ];

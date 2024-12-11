@@ -83,7 +83,7 @@ export async function generatePartialVideo(
   if (!audioHeld) {
     audioLen = await getAudioDuration(audioPath);
     if (audioLen == -1) {
-      console.log("Error: Invalid audio file.");
+      console.error("Error: Invalid audio file.");
       return null;
     } else if (audioLen == NaN) {
       setTimeout(() => {
@@ -172,24 +172,10 @@ export async function generatePartialVideo(
   );
   deleteOldVideos();
 
-  let elapsedTime = (Date.now() - startTime) / 1000;
-  if (elapsedTime > 60) {
-    console.log(
-      `Time taken to Make the video : ${(elapsedTime / 60).toFixed(2)} minutes.`,
-    );
-  } else {
-    console.log(
-      `Time taken to Make the video : ${elapsedTime.toFixed(2)} seconds.`,
-    );
-  }
   progressCallback({ step: 'Complete', percent: 100 });
-  console.log(
-    `Video at location :Output_Video/Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}.mp4`,
-  );
 }
 
 async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition) {
-  console.log(`Fetching audio and text`)
   const audioPath = `Data/audio/Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`;
   const textPath = `Data/text/Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`;
   const durationsFile = `Data/text/Surah_${surahNumber}_Durations_from_${startVerse}_to_${endVerse}.json`;
@@ -209,7 +195,6 @@ async function getAudioDuration(audioPath) {
   try {
     const metadata = await mm.parseFile(audioPath);
     const durationInSeconds = metadata.format.duration;
-    console.log(`Audio length: ${durationInSeconds} seconds`);
     return Math.round(durationInSeconds);
   } catch (error) {
     console.error("Error reading audio file:", error);
@@ -218,7 +203,6 @@ async function getAudioDuration(audioPath) {
 }
 
 async function getEndVerse(surahNumber) {
-console.log(`getting end verse to surah number: ${surahNumber}`);
   try {
     const response = await axios.get(
       `http://api.alquran.cloud/v1/surah/${surahNumber}`,
