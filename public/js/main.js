@@ -54,6 +54,11 @@ backgroundCheckbox.addEventListener("change", () => {
       </label>
       <textarea rows="5" cols="50" id="url" required></textarea>
     `;
+    color.innerHTML = `
+              <div class="form-group">
+                <label for="color">لون النص:</label>
+                <input type="color" id="color" value="#ffffff" />
+              </div>`;
   } else {
     urlPlace.innerHTML = ""; 
   }
