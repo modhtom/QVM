@@ -18,6 +18,7 @@ export async function handlePartialVideoSubmit(e) {
     useCustomBackground: document.getElementById("back").checked,
     removeFilesAfterCreation: true,
     videoNumber: videoData,
+    size:document.getElementById("size").value,
   };
 
   try {

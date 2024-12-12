@@ -45,12 +45,16 @@ export async function generatePartialVideo(
   useCustomBackground,
   videoNumber,
   edition,
+  size,
   progressCallback = () => {}
 ) {
   progressCallback({ step: 'Starting video generation', percent: 0 });
 
   const limit = await getEndVerse(surahNumber);
   if (endVerse > limit) endVerse = limit;
+
+  if(color===undefined)
+    color = "#ffffff";
 
   progressCallback({ step: 'Fetching audio and text', percent: 10 });
   const { audioPath, textPath, durationsFile } = await fetchAudioAndText(
@@ -138,7 +142,7 @@ export async function generatePartialVideo(
         .videoCodec("libx264")
         .outputOptions(
           "-vf",
-          `scale='if(gte(iw/ih,9/16), 1080, -1)':'if(gte(iw/ih,9/16), -1, 1920)',pad=1080:1920:(ow-iw)/2:(oh-ih)/2,subtitles=${subPath}:fontsdir=${fontPath}:force_style='FontName=QCF_P440,FontSize=9,MarginV=90,Alignment=2,PrimaryColour=${aColor}'`,
+          `scale='if(gte(iw/ih,9/16), 1080, -1)':'if(gte(iw/ih,9/16), -1, 1920)',pad=1080:1920:(ow-iw)/2:(oh-ih)/2,subtitles=${subPath}:fontsdir=${fontPath}:force_style='FontName=QCF_P440,FontSize=${size},MarginV=90,Alignment=2,PrimaryColour=${aColor}'`,
         )
         .outputOptions("-preset", "fast")
         .output(

@@ -40,7 +40,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/videos", (req, res) => {
-  fs.readdir(OUTPUT_VIDEO_FOLDER, (err, files) => {
+  fs.readdir(path.resolve(__dirname, "Output_Video"), (err, files) => {
     if (err) {
       console.error("Error reading video directory:", err);
       return res.status(500).send("Failed to retrieve videos.");
@@ -62,6 +62,7 @@ app.post("/generate-partial-video", async (req, res) => {
     useCustomBackground,
     videoNumber,
     edition,
+    size,
   } = req.body;
 
   try {
@@ -74,6 +75,7 @@ app.post("/generate-partial-video", async (req, res) => {
       useCustomBackground,
       videoNumber,
       edition,
+      size,
       (progress) => progressEmitter.emit('progress', progress)
     );
     res.status(200).json({
@@ -93,6 +95,7 @@ app.post("/generate-full-video", async (req, res) => {
     useCustomBackground,
     videoNumber,
     edition,
+    size,
   } = req.body;
   
   try {
@@ -103,6 +106,7 @@ app.post("/generate-full-video", async (req, res) => {
       useCustomBackground,
       videoNumber,
       edition,
+      size,
       (progress) => progressEmitter.emit('progress', progress)
     );
     res.status(200).json({
