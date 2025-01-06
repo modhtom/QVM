@@ -38,7 +38,22 @@ app.use("/videos", express.static(path.resolve(__dirname, "Output_Video")));
 app.get("/", (req, res) => {
   res.sendFile(path.resolve(__dirname, "public/index.html"));
 });
+app.post('/upload-image', (req, res) => {
+  if (!req.files || !req.files.image) {
+    return res.status(400).send('No image uploaded.');
+  }
 
+  const image = req.files.image;
+  const imagePath = path.join(__dirname, 'Data/Background_Images', image.name);
+
+  image.mv(imagePath, (err) => {
+    if (err) {
+      return res.status(500).send(err);
+    }
+
+    res.json({ imagePath });
+  });
+});
 app.get("/videos", (req, res) => {
   fs.readdir(path.resolve(__dirname, "Output_Video"), (err, files) => {
     if (err) {
@@ -90,14 +105,13 @@ app.post("/generate-partial-video", async (req, res) => {
 app.post("/generate-full-video", async (req, res) => {
   const {
     surahNumber,
-    removeFilesAfterCreation,
+    edition,
     color,
     useCustomBackground,
+    removeFilesAfterCreation,
     videoNumber,
-    edition,
     size,
   } = req.body;
-  
   try {
     const vidPath = await generateFullVideo(
       surahNumber,

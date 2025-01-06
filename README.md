@@ -107,6 +107,7 @@ Streams live progress updates of video generation. This feature does not require
 ## TODOs
 
 - Fix font styling issues in generated videos.
+- Implement Pexels API to get video from user description.
 
 ## Contributing
 

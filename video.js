@@ -10,7 +10,8 @@ import * as mm from "music-metadata";
 import path from "path";
 
 const fontPath = "Data/Font/QCF_P440.ttf";
-const font_position = "1920,1080";
+const fontPosition = "1920,1080";
+const fontName = "QCF_P440"
 
 export async function generateFullVideo(
   surahNumber,
@@ -19,6 +20,7 @@ export async function generateFullVideo(
   useCustomBackground,
   videoNumber,
   edition,
+  size,
   progressCallback = () => {}
 ) {
   const endVerse = await getEndVerse(surahNumber);
@@ -32,6 +34,7 @@ export async function generateFullVideo(
     useCustomBackground,
     videoNumber,
     edition,
+    size,
     progressCallback
   );
 }
@@ -49,7 +52,7 @@ export async function generatePartialVideo(
   progressCallback = () => {}
 ) {
   progressCallback({ step: 'Starting video generation', percent: 0 });
-
+  console.log("\n\nSTART PROCESS.\n\n")
   const limit = await getEndVerse(surahNumber);
   if (endVerse > limit) endVerse = limit;
 
@@ -82,7 +85,8 @@ export async function generatePartialVideo(
       }
     }, 500);
   });
-
+  
+  progressCallback({ step: 'Processing audio', percent: 30 });
   let audioLen;
   if (!audioHeld) {
     audioLen = await getAudioDuration(audioPath);
@@ -99,8 +103,9 @@ export async function generatePartialVideo(
       console.log("waiting for audio len");
     }, 10000);
   }
-  progressCallback({ step: 'Processing audio', percent: 30 });
-
+  if (audioLen == NaN)
+    console.error(`Audio length: ${audioLen}`);
+  
   progressCallback({ step: 'Preparing background video', percent: 40 });
   const backgroundPath = await getBackgroundPath(
     useCustomBackground,
@@ -109,15 +114,17 @@ export async function generatePartialVideo(
   );
 
   progressCallback({ step: 'Generating subtitles', percent: 50 });
-  const subPath = `Data/subtitles/Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.srt`;
+  const subPath = `Data/subtitles/Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`;
   const ret = await generateSubtitles(
     surahNumber,
     startVerse,
     endVerse,
     fontPath,
     color,
-    font_position,
-  );
+    fontPosition,
+    fontName,
+    size
+);
 
   if (ret != 1) {
     console.log(`no subtitle file at ${subPath}`);
@@ -126,44 +133,53 @@ export async function generatePartialVideo(
 
   const aColor = cssColorToASS(color);
 
+  const outputDir = path.resolve("Output_Video");
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  
   const outputPath = path.join(
-    "Output_Video/",
+    outputDir,
     `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}.mp4`
   );
+  
+  if (!fs.existsSync(subPath)) {
+    console.error(`Subtitle file does not exist at ${subPath}`);
+    return;
+  }
+  
 
   progressCallback({ step: 'Rendering final video', percent: 60 });
     await new Promise((resolve, reject) => {
-      let progress = 60;
       ffmpeg()
-        .input(backgroundPath)
-        .input(audioPath)
-        .audioCodec("aac")
-        .audioFilters("aformat=sample_fmts=fltp:channel_layouts=stereo")
-        .videoCodec("libx264")
-        .outputOptions(
-          "-vf",
-          `scale='if(gte(iw/ih,9/16), 1080, -1)':'if(gte(iw/ih,9/16), -1, 1920)',pad=1080:1920:(ow-iw)/2:(oh-ih)/2,subtitles=${subPath}:fontsdir=${fontPath}:force_style='FontName=QCF_P440,FontSize=${size},MarginV=90,Alignment=2,PrimaryColour=${aColor}'`,
-        )
-        .outputOptions("-preset", "fast")
-        .output(
-          outputPath,
-        )
-        .on('progress', (progress) => {
-          const mappedProgress = 60 + (progress.percent * 0.3);
-          progressCallback({ 
-            step: 'Rendering video', 
-            percent: Math.min(90, mappedProgress)
-          });
-        })
-        .on("end", async () => {
-          console.log("Video created successfully.");
-          resolve();
-        })
-        .on("error", (err) => {
-          console.error("Error processing video: ", err);
-          reject(err);
-        })
-        .run();
+      .input(backgroundPath)
+      .input(audioPath)
+      .audioCodec("aac")
+      .audioFilters("aformat=sample_fmts=fltp:channel_layouts=stereo")
+      .videoCodec("libx264")
+      .outputOptions(
+        "-vf",
+        `scale='if(gte(iw/ih,9/16), 1080, -1)':'if(gte(iw/ih,9/16), -1, 1920)',pad=1080:1920:(ow-iw)/2:(oh-ih)/2,subtitles=${subPath}:fontsdir=${path.dirname(fontPath)}`
+      )
+      .outputOptions("-preset", "fast")
+      .output(outputPath)
+      .on('progress', (progress) => {
+        const mappedProgress = 60 + (progress.percent * 0.3);
+        progressCallback({ 
+          step: 'Rendering video', 
+          percent: Math.min(90, mappedProgress)
+        });
+      })
+      .on("end", async () => {
+        console.log("Video created successfully.");
+        resolve();
+      })
+      .on("error", (err, stdout, stderr) => {
+        console.error("Error processing video: ", err);
+        console.error("FFmpeg stderr: ", stderr); // Log stderr for more details
+        reject(err);
+      })
+      .run();
   });
   progressCallback({ step: 'Cleaning up', percent: 98 });
   deleteVidData(
