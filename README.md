@@ -6,7 +6,7 @@ The Quran Video Generator is a versatile web application designed to help users 
 
 - **Generate Partial Videos**: Select specific verses to generate a video.
 - **Generate Full Surah Videos**: Generate videos for entire chapters.
-- **Customization**: Choose text color, background, and Quranic recitation edition.
+- **Customization**: Choose text color, background (Video/Image), and Quranic recitation edition.
 - **Live Progress Updates**: Real-time updates on video generation progress.
 - **Video Management**: List and access generated videos.
 
