@@ -45,7 +45,7 @@ async function getSurahData(
   textEdition,
 ) {
   const baseUrl = `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${reciterEdition}`;
-
+  console.log(`Base URL: ${baseUrl}`)
   if (
     audioCache.has(`${surahNumber}-${verseNumber}`) &&
     textCache.has(`${surahNumber}-${verseNumber}`)
@@ -84,20 +84,31 @@ async function getSurahData(
 }
 
 async function getAudioDurationFromBuffer(buffer) {
-  const tempFile = path.join("Data/audio/", "temp_audio.mp3");
-  fs.writeFileSync(tempFile, buffer);
+  const audioDir = path.resolve("Data/audio");
+  fs.mkdirSync(audioDir, { recursive: true });
+  const tempFile = path.join(audioDir, `temp_audio_${Date.now()}.mp3`);
 
   try {
+    fs.writeFileSync(tempFile, buffer);
+
     const metadata = await mm.parseFile(tempFile);
     const duration = metadata.format.duration;
-    fs.unlinkSync(tempFile);
+
     return Math.round(duration);
   } catch (error) {
     console.error("Error calculating audio duration:", error);
-    fs.unlinkSync(tempFile);
     return 0;
+  } finally {
+    try {
+      if (fs.existsSync(tempFile)) {
+        fs.unlinkSync(tempFile);
+      }
+    } catch (unlinkError) {
+      console.error(`Error deleting temporary file ${tempFile}:`, unlinkError);
+    }
   }
 }
+
 
 export async function partAudioAndText(
   surahNumber,

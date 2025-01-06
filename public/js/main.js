@@ -4,6 +4,62 @@ import { loadVideos } from "./videos.js";
 import { surahs } from "./data/surahs.js";
 import { editions } from "./data/editions.js";
 
+const tabs = document.querySelectorAll(".tab-btn");
+const tabContents = document.querySelectorAll(".tab-content");
+
+const backgroundCheckbox = document.getElementById("back");
+const urlPlace = document.getElementById("urlPlace");
+const imagePlace = document.getElementById("image");
+
+const backgroundCheckboxff = document.getElementById("backff");
+const urlPlaceff = document.getElementById("urlPlaceff");
+const imagePlaceff = document.getElementById("imageff");
+
+// Add event listener for partial video form submission
+document.getElementById("partial-video-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const progressContainer = document.getElementById("progress-container");
+  progressContainer.style.display = "block";
+  
+  await handlePartialVideoSubmit(e);
+
+  // Reset after submission
+  resetForm("partial-video-form");
+});
+
+// Add event listener for full video form submission
+document.getElementById("full-video-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const progressContainer = document.getElementById("progress-container");
+  progressContainer.style.display = "block";
+
+  await handleFullVideoSubmit(e);
+
+  // Reset after submission
+  resetForm("full-video-form");
+});
+
+// Function to reset the form and hide progress bar
+function resetForm(formId) {
+  const form = document.getElementById(formId);
+  form.reset();
+
+  urlPlace.innerHTML = ""; 
+  color.innerHTML = "";
+  imagePlace.innerHTML="";
+
+  urlPlaceff.innerHTML = ""; 
+  colorff.innerHTML = "";
+  imagePlaceff.innerHTML="";
+
+  const progressContainer = document.getElementById("progress-container");
+  const progressFill = progressContainer.querySelector(".progress-fill");
+  const progressText = progressContainer.querySelector(".progress-text");
+
+  progressFill.style.width = "0%";
+  progressText.textContent = "Starting... (0%)";
+  progressContainer.style.display = "none";
+}
 
 function populateSelects() {
   const surahSelects = document.querySelectorAll(
@@ -31,38 +87,62 @@ function populateSelects() {
   });
 }
 
-const tabs = document.querySelectorAll(".tab-btn");
-const tabContents = document.querySelectorAll(".tab-content");
-
-const backgroundCheckbox = document.getElementById("back");
-const urlPlace = document.getElementById("urlPlace");
-
 document.getElementById("endVerse").addEventListener("change", ()=>{
-  
-if(document.getElementById("startVerse").value>document.getElementById("endVerse").value){
-  alert("end verse must be greater than or equal to " + document.getElementById("startVerse").value);
-}
-
-}
-);
+  if(document.getElementById("startVerse").value > document.getElementById("endVerse").value){
+    alert("end verse must be greater than or equal to " + document.getElementById("startVerse").value);
+  }
+});
 
 backgroundCheckbox.addEventListener("change", () => {
   if (backgroundCheckbox.checked) {
     urlPlace.innerHTML = `
       <label for="url">
-        رابط يوتيوب لخلفية الفيديو (إذا اخترت خلفية مخصصة):
+        رابط يوتيوب لخلفية الفيديو  :
       </label>
-      <textarea rows="5" cols="50" id="url" required></textarea>
+      <textarea rows="5" cols="50" id="url"  ></textarea>
     `;
     color.innerHTML = `
               <div class="form-group">
                 <label for="color">لون النص:</label>
                 <input type="color" id="color" value="#ffffff" />
               </div>`;
+    imagePlace.innerHTML=`
+    أو يمكنك أستخدام صورة
+        <label for="imageUrl">رابط الصورة:</label>
+        <input type="text" rows="5" cols="5" id="imageUrl" placeholder=" " />
+    `
   } else {
     urlPlace.innerHTML = ""; 
+    color.innerHTML = "";
+    imagePlace.innerHTML="";
   }
 });
+
+backgroundCheckboxff.addEventListener("change", () => {
+  if (backgroundCheckboxff.checked) {
+    urlPlaceff.innerHTML = `
+      <label for="url">
+        رابط يوتيوب لخلفية الفيديو  :
+      </label>
+      <textarea rows="5" cols="50" id="urlff"  ></textarea>
+    `;
+    colorff.innerHTML = `
+              <div class="form-group">
+                <label for="color">لون النص:</label>
+                <input type="color" id="colorff" value="#ffffff" />
+              </div>`;
+    imagePlaceff.innerHTML=`
+        أو يمكنك أستخدام صورة
+        <label for="imageUrl">رابط الصورة:</label>
+        <input type="text" rows="5" cols="5" id="imageUrlff" placeholder=" " />
+    `
+  } else {
+    urlPlaceff.innerHTML = ""; 
+    colorff.innerHTML = "";
+    imagePlaceff.innerHTML="";
+  }
+});
+
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
     tabs.forEach((t) => t.classList.remove("active"));
@@ -72,22 +152,6 @@ tabs.forEach((tab) => {
     document.querySelector(`#${tab.dataset.tab}-form`).classList.add("active");
   });
 });
-
-document
-  .getElementById("partial-video-form")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const progressContainer = document.getElementById('progress-container');
-    progressContainer.style.display = 'block';
-    await handlePartialVideoSubmit(e);
-  });
-
-// document.getElementById("full-video-form").addEventListener("submit", async (e) => {
-//   e.preventDefault();
-//   const progressContainer = document.getElementById('progress-container');
-//   progressContainer.style.display = 'block';
-//   await handleFullVideoSubmit(e);
-// });
 
 function addProgressBar() {
   const progressContainer = document.createElement('div');
@@ -108,14 +172,20 @@ function updateProgressBar(progress) {
   const progressContainer = document.getElementById('progress-container');
   const progressFill = progressContainer.querySelector('.progress-fill');
   const progressText = progressContainer.querySelector('.progress-text');
-  
+
+  const resetProgress = () => {
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Starting... (0%)';
+    progressContainer.style.display = 'none';
+  };
+
   progressContainer.style.display = 'block';
   progressFill.style.width = `${progress.percent}%`;
   progressText.textContent = `${progress.step} (${Math.round(progress.percent)}%)`;
-  
-  if (progress.percent === 100) {
+
+  if (progress.percent >= 100 || progress.error ) {
     setTimeout(() => {
-      progressContainer.style.display = 'none';
+      resetProgress();
     }, 2000);
   }
 }

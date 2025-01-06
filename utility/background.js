@@ -7,17 +7,21 @@ import path from 'path';
 export async function getBackgroundPath(newBackground, videoNumber, len) {
   const backgroundVideoPath = "Data/Background_Video/";
   const backgroundVideos = ["CarDrive.mp4"];
-
   if (newBackground) {
-    const url = videoNumber;
-    const start = 0;
-
-    try {
-      const downloadedPath = await downloadVideoFromYoutube(url, start, len);
-      return await createBackgroundVideo(downloadedPath, len);
-    } catch (error) {
-      console.error("Error downloading video:", error.message);
-      throw new Error("Failed to download and process custom background video.");
+    if (typeof videoNumber === 'string' && (videoNumber.endsWith('.jpg') || videoNumber.endsWith('.png') || videoNumber.endsWith('.jpeg'))) {
+      // Handle image background
+      return await createBackgroundFromImage(videoNumber, len);
+    } else {
+      // Handle video background
+      const url = videoNumber;
+      const start = 0;
+      try {
+        const downloadedPath = await downloadVideoFromYoutube(url, start, len);
+        return await createBackgroundVideo(downloadedPath, len);
+      } catch (error) {
+        console.error("Error downloading video:", error.message);
+        throw new Error("Failed to download and process custom background video.");
+      }
     }
   } else {
     const defaultVideoPath = backgroundVideoPath + backgroundVideos[videoNumber - 1];
@@ -26,7 +30,6 @@ export async function getBackgroundPath(newBackground, videoNumber, len) {
       return await createBackgroundVideo(defaultVideoPath, len);
     } else {
       console.log("Downloading default background video from YouTube...");
-      alert("Downloading default background video from YouTube...\nit may take a while...");
       try {
         const fallbackPath = await downloadVideoFromYoutube(
           "https://youtu.be/nABR88G_2cE?si=vHPIVmRCbZGWg8X7",
@@ -42,7 +45,27 @@ export async function getBackgroundPath(newBackground, videoNumber, len) {
   }
 }
 
+async function createBackgroundFromImage(imagePath, len) {
+  const outputPath = `Data/Background_Video/processed_image_${Date.now()}.mp4`;
 
+  return new Promise((resolve, reject) => {
+    ffmpeg()
+      .input(imagePath)
+      .inputOptions(['-loop 1'])
+      .output(outputPath)
+      .duration(len)
+      .noAudio()
+      .videoCodec("libx264")
+      .on("end", () => {
+        resolve(outputPath);
+      })
+      .on("error", (err) => {
+        console.error("FFMPEG Error: ", err.message);
+        reject(new Error("Failed to create background video from image."));
+      })
+      .run();
+  });
+}
 async function downloadVideoFromPexels(description, length) {
   // TODO: Implement Pexels API integration
   throw new Error("Pexels download not implemented yet");

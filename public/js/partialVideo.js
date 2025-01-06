@@ -3,11 +3,16 @@ export async function handlePartialVideoSubmit(e) {
   e.preventDefault();
 
   let videoData;
-  if (document.getElementById("back").checked){
-    videoData = document.getElementById("url").value;
+  if (document.getElementById("back").checked) {
+    const imageUrl = document.getElementById("imageUrl").value;
+    if (imageUrl) {
+      videoData = imageUrl;
+    } else {
+      videoData = document.getElementById("url").value;
+    }
+  } else {
+    videoData = 1;
   }
-  else videoData = 1;
-
 
   const formData = {
     surahNumber: parseInt(document.getElementById("surahNumber").value),
@@ -18,11 +23,10 @@ export async function handlePartialVideoSubmit(e) {
     useCustomBackground: document.getElementById("back").checked,
     removeFilesAfterCreation: true,
     videoNumber: videoData,
-    size:document.getElementById("size").value,
+    size: document.getElementById("size").value,
   };
 
   try {
-    alert("Start creating video plz wait");
     const response = await fetch("/generate-partial-video", {
       method: "POST",
       headers: {
@@ -40,6 +44,6 @@ export async function handlePartialVideoSubmit(e) {
       throw new Error(data.message || "Failed to generate video");
     }
   } catch (error) {
-    alert(`Error: ${error.message}`);
+    alert(`Error: something went wrong, please try again.`);
   }
 }

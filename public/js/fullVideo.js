@@ -2,21 +2,28 @@ import { loadVideos } from "./videos.js";
 export async function handleFullVideoSubmit(e) {
   e.preventDefault();
   let videoData;
-  if (document.getElementById("back").checked)
-    videoData = document.getElementById("url").value;
-  else 
+  if (document.getElementById("backff").checked) {
+    const imageUrl = document.getElementById("imageUrlff").value;
+    if (imageUrl) {
+      videoData = imageUrl;
+    } else {
+      videoData = document.getElementById("urlff").value;
+    }
+  } else {
     videoData = 1;
+  }
+  const CustomBackground = document.getElementById("backff").checked;
   const formData = {
     surahNumber: parseInt(document.getElementById("fullSurahNumber").value),
     edition: document.getElementById("fullEdition").value,
-    color: document.getElementById("fullColor").value,
-    useCustomBackground:document.getElementById("back").checked,
+    color: document.getElementById("colorff").value,
+    useCustomBackground:CustomBackground,
     removeFilesAfterCreation: true,
     videoNumber: videoData,
+    size: document.getElementById("size").value,
   };
 
   try {
-    alert("Started creating video");
     const response = await fetch("/generate-full-video", {
       method: "POST",
       headers: {
@@ -28,12 +35,12 @@ export async function handleFullVideoSubmit(e) {
     const data = await response.json();
 
     if (response.ok) {
-      alert("Full video generated successfully!");
       loadVideos();
+      alert("Video Created.")
     } else {
       throw new Error(data.message || "Failed to generate full video");
     }
   } catch (error) {
-    alert(`Error: ${error.message}`);
+    alert(`Error: something went wrong, please try again.`);
   }
 }
