@@ -5,7 +5,11 @@ export async function handlePartialVideoSubmit(e) {
   let videoData;
   if (document.getElementById("back").checked) {
     const imageUrl = document.getElementById("imageUrl").value;
-    if (imageUrl) {
+    const pexelsQuery = document.getElementById("pexelsQuery").value;
+    if (pexelsQuery) {
+      videoData = `pexels:${pexelsQuery}`;
+    }
+    else if (imageUrl) {
       videoData = imageUrl;
     } else {
       videoData = document.getElementById("url").value;

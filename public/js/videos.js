@@ -6,7 +6,7 @@ export async function loadVideos() {
         const data = await response.json();
         
         videosContainer.innerHTML = data.videos.map(video => `
-            <div class="video-card">
+            <div class="video-card vertical-video">
                 <video controls>
                     <source src="/videos/${video}" type="video/mp4">
                     Your browser does not support the video tag.

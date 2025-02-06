@@ -1,13 +1,18 @@
 import fs from "fs";
 import ffmpeg from "fluent-ffmpeg";
-import { exec } from "child_process";
 import youtubedl from "youtube-dl-exec";
 import path from 'path';
+import axios from 'axios';
 
 export async function getBackgroundPath(newBackground, videoNumber, len) {
   const backgroundVideoPath = "Data/Background_Video/";
   const backgroundVideos = ["CarDrive.mp4"];
   if (newBackground) {
+    if (typeof videoNumber === 'string' && videoNumber.startsWith('pexels:')) {
+      // Handle background using pexels 
+      const query = videoNumber.split(':')[1];
+      return await downloadVideoFromPexels(query, len);
+    }
     if (typeof videoNumber === 'string' && (videoNumber.endsWith('.jpg') || videoNumber.endsWith('.png') || videoNumber.endsWith('.jpeg'))) {
       // Handle image background
       return await createBackgroundFromImage(videoNumber, len);
@@ -53,6 +58,11 @@ async function createBackgroundFromImage(imagePath, len) {
       .input(imagePath)
       .inputOptions(['-loop 1'])
       .output(outputPath)
+      .videoFilters([
+        'scale=-1:1920',
+        'crop=1080:1920',
+        'setsar=1:1'
+      ])
       .duration(len)
       .noAudio()
       .videoCodec("libx264")
@@ -66,9 +76,45 @@ async function createBackgroundFromImage(imagePath, len) {
       .run();
   });
 }
-async function downloadVideoFromPexels(description, length) {
-  // TODO: Implement Pexels API integration
-  throw new Error("Pexels download not implemented yet");
+async function downloadVideoFromPexels(query, length) {
+  const PEXELS_API_KEY = 'V5r0CFeFOnjtoWoe515SJd8ZgN2KZRbAp2aX6vdOowplbDOmxzYCecWy'; //TODO: add your api key here
+  try {
+    const searchResponse = await axios.get(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=1`, {
+      headers: { Authorization: PEXELS_API_KEY }
+    });
+    const video = searchResponse.data.videos[0];
+    if (!video) throw new Error('No videos found');
+    
+    // Get best quality MP4
+    const videoFile = video.video_files
+      .filter(file => file.file_type === 'video/mp4')
+      .sort((a, b) => b.width - a.width)[0];
+
+    // Download video
+    const tempPath = `Data/Background_Video/pexels_temp_${Date.now()}.mp4`;
+    const writer = fs.createWriteStream(tempPath);
+    
+    const downloadResponse = await axios({
+      url: videoFile.link,
+      method: 'GET',
+      responseType: 'stream'
+    });
+    downloadResponse.data.pipe(writer);
+
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+
+    // Process video
+    const finalPath = await createBackgroundVideo(tempPath, length);
+    fs.unlinkSync(tempPath);
+    return finalPath;
+
+  } catch (error) {
+    console.error('Pexels Error:', error);
+    throw new Error('Failed to download from Pexels');
+  }
 }
 
 
@@ -128,6 +174,11 @@ function createBackgroundVideo(videoPath, len) {
     ffmpeg()
       .input(videoPath)
       .output(outputPath)
+      .videoFilters([
+        'scale=-1:1920',
+        'crop=1080:1920',
+        'setsar=1:1'
+      ])
       .duration(len)
       .noAudio()
       .videoCodec("libx264")
