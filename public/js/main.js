@@ -10,10 +10,12 @@ const tabContents = document.querySelectorAll(".tab-content");
 const backgroundCheckbox = document.getElementById("back");
 const urlPlace = document.getElementById("urlPlace");
 const imagePlace = document.getElementById("image");
+const pexels = document.getElementById("pexels");
 
 const backgroundCheckboxff = document.getElementById("backff");
 const urlPlaceff = document.getElementById("urlPlaceff");
 const imagePlaceff = document.getElementById("imageff");
+const pexelsff = document.getElementById("pexelsff");
 
 // Add event listener for partial video form submission
 document.getElementById("partial-video-form").addEventListener("submit", async (e) => {
@@ -47,7 +49,9 @@ function resetForm(formId) {
   urlPlace.innerHTML = ""; 
   color.innerHTML = "";
   imagePlace.innerHTML="";
+  document.getElementById('pexelsQuery').value = '';
 
+  document.getElementById('pexelsQueryff').value = '';
   urlPlaceff.innerHTML = ""; 
   colorff.innerHTML = "";
   imagePlaceff.innerHTML="";
@@ -110,7 +114,12 @@ backgroundCheckbox.addEventListener("change", () => {
     أو يمكنك أستخدام صورة
         <label for="imageUrl">رابط الصورة:</label>
         <input type="text" rows="5" cols="5" id="imageUrl" placeholder=" " />
-    `
+    `;
+    pexels.innerHTML += `
+      أو يمكنك البحث في Pexels
+      <label for="pexelsQuery">كلمات البحث:</label>
+      <input type="text" id="pexelsQuery" placeholder="مثال: nature" />
+    `;
   } else {
     urlPlace.innerHTML = ""; 
     color.innerHTML = "";
@@ -135,7 +144,12 @@ backgroundCheckboxff.addEventListener("change", () => {
         أو يمكنك أستخدام صورة
         <label for="imageUrl">رابط الصورة:</label>
         <input type="text" rows="5" cols="5" id="imageUrlff" placeholder=" " />
-    `
+    `;
+    pexelsff.innerHTML += `
+    أو يمكنك البحث في Pexels
+    <label for="pexelsQueryff">كلمات البحث:</label>
+    <input type="text" id="pexelsQueryff" placeholder="مثال: nature" />
+  `;
   } else {
     urlPlaceff.innerHTML = ""; 
     colorff.innerHTML = "";

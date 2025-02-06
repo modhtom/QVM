@@ -6,7 +6,8 @@ The Quran Video Generator is a versatile web application designed to help users 
 
 - **Generate Partial Videos**: Select specific verses to generate a video.
 - **Generate Full Surah Videos**: Generate videos for entire chapters.
-- **Customization**: Choose text color, background (Video/Image), and Quranic recitation edition.
+- **Customization**: Choose text color, background (Video/Image/Pexels search), and Quranic recitation edition.
+- **Pexels Integration**: Search and use high-quality background videos using descriptive keywords related to verses or custom queries.
 - **Live Progress Updates**: Real-time updates on video generation progress.
 - **Video Management**: List and access generated videos.
 
@@ -14,6 +15,7 @@ The Quran Video Generator is a versatile web application designed to help users 
 
 - Node.js and npm installed on your system.
 - FFMPEG installed and available in the system PATH.
+- Pexels API key (free) - [Get it here](https://www.pexels.com/api/)
 
 ## Installation
 
@@ -31,6 +33,12 @@ The Quran Video Generator is a versatile web application designed to help users 
    ```
 
 3. Install the **DecoType Thuluth II** font on your system to apply it to the subtitle in the final video.
+
+4. Get Pexels API Key:
+   a.Visit [Pexels API Portal](https://www.pexels.com/api/)
+   b.Create a free account
+   c.Create a new application to get your API key
+   d.Open background.js and set your API key for the PEXELS_API_KEY variable.
 
 ## Running the Application
 
@@ -133,3 +141,4 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 - [Fluent-FFMPEG](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) for video generation.
 - [Al-Quran Cloud API](http://alquran.cloud/) for Quranic data.
+- [Pexels](https://www.pexels.com/) for providing high-quality video content through their API.

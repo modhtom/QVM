@@ -4,7 +4,10 @@ export async function handleFullVideoSubmit(e) {
   let videoData;
   if (document.getElementById("backff").checked) {
     const imageUrl = document.getElementById("imageUrlff").value;
-    if (imageUrl) {
+    const pexelsQuery = document.getElementById("pexelsQueryff").value;
+    if (pexelsQuery) {
+      videoData = `pexels:${pexelsQuery}`;
+    } else if (imageUrl) {
       videoData = imageUrl;
     } else {
       videoData = document.getElementById("urlff").value;

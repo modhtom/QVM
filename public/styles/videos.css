@@ -31,3 +31,19 @@
     margin-bottom: 0.5rem;
     color: var(--text-color);
 }
+
+.video-card.vertical-video {
+    width: 360px;
+    height: 640px;
+}
+
+.video-card.vertical-video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.videos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+}
