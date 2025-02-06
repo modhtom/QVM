@@ -45,7 +45,6 @@ async function getSurahData(
   textEdition,
 ) {
   const baseUrl = `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${reciterEdition}`;
-  console.log(`Base URL: ${baseUrl}`)
   if (
     audioCache.has(`${surahNumber}-${verseNumber}`) &&
     textCache.has(`${surahNumber}-${verseNumber}`)
@@ -61,9 +60,13 @@ async function getSurahData(
 
   try {
     const response = await axios.get(baseUrl);
-    const data = response.data.data;
+    const audioData = response.data.data;
 
-    const audioUrl = data.audio;
+    const baseUrl2 = `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${textEdition}`;
+    const response2 = await axios.get(baseUrl2);
+    const textData = response2.data.data;
+
+    const audioUrl = audioData.audio;
     const audioContent = await axios.get(audioUrl, {
       responseType: "arraybuffer",
     });
@@ -71,9 +74,9 @@ async function getSurahData(
     const duration = await getAudioDurationFromBuffer(audioBuffer);
 
     audioCache.set(`${surahNumber}-${verseNumber}`, audioBuffer);
-    textCache.set(`${surahNumber}-${verseNumber}`, data.text);
+    textCache.set(`${surahNumber}-${verseNumber}`, textData.text);
 
-    return { audio: audioBuffer, text: data.text, duration };
+    return { audio: audioBuffer, text: textData.text, duration };
   } catch (error) {
     console.error(
       `Failed to fetch data for Surah ${surahNumber}, Verse ${verseNumber}:`,
