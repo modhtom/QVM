@@ -35,10 +35,38 @@ The Quran Video Generator is a versatile web application designed to help users 
 3. Install the **DecoType Thuluth II** font on your system to apply it to the subtitle in the final video.
 
 4. Get Pexels API Key:
-   a.Visit [Pexels API Portal](https://www.pexels.com/api/)
-   b.Create a free account
-   c.Create a new application to get your API key
-   d.Open background.js and set your API key for the PEXELS_API_KEY variable.
+   - Visit [Pexels API Portal](https://www.pexels.com/api/)
+   - Create a free account
+   - Create a new application to get your API key
+   - Open `background.js` and set your API key for the `PEXELS_API_KEY` variable.
+
+## Using Docker
+
+This project comes with a pre-configured `Dockerfile`, which allows you to run the application in a containerized environment. Follow the steps below to use Docker:
+
+1. **Build the Docker image**:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   This will build the Docker image and set up the application inside a container.
+
+2. **Run the application in a container**:
+
+   After building the image, you can run the application using:
+
+   ```bash
+   docker compose up
+   ```
+
+   This will start the application and expose it on port `3001`. You can access it at:
+
+   ```plaintext
+   http://localhost:3001
+   ```
+
+   Docker handles all dependencies and environment configurations, so you do not need to worry about local setup.
 
 ## Running the Application
 
@@ -49,7 +77,7 @@ The Quran Video Generator is a versatile web application designed to help users 
    ```
 
 2. Access the application in your browser at:
-   ```
+   ```plaintext
    http://localhost:3001
    ```
 
