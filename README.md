@@ -30,16 +30,7 @@ The Quran Video Generator is a versatile web application designed to help users 
    npm install
    ```
 
-3. Install required FFMPEG dependencies:
-
-   ```bash
-   npm install fluent-ffmpeg axios cachetools music-metadata youtube-dl-exec
-   ```
-
-4. Ensure the necessary directories and files are in place:
-   - `Data/Font/QCF_P440.ttf`
-   - `public/` (for static assets like `index.html` and styles)
-   - `Output_Video/` (for storing generated videos)
+3. Install the **DecoType Thuluth II** font on your system to apply it to the subtitle in the final video.
 
 ## Running the Application
 
@@ -106,8 +97,7 @@ Streams live progress updates of video generation. This feature does not require
 
 ## TODOs
 
-- Fix font styling issues in generated videos.
-- Implement Pexels API to get video from user description.
+- Implement Pexels API to get video from user description/Aya Meaning.
 
 ## Contributing
 

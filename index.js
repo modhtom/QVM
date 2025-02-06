@@ -1,4 +1,3 @@
-//TODO: login / private videos / use DB ? 
 import express from "express";
 import { generatePartialVideo, generateFullVideo } from "./video.js";
 import fs from "fs";

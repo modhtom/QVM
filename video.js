@@ -1,4 +1,3 @@
-//TODO: FONT IS NOT APPLIED
 import axios from "axios";
 import ffmpeg from "fluent-ffmpeg";
 import { partAudioAndText } from "./utility/data.js";
@@ -9,9 +8,8 @@ import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
 
-const fontPath = "Data/Font/QCF_P440.ttf";
 const fontPosition = "1920,1080";
-const fontName = "QCF_P440"
+const fontName = "DecoType Thuluth II"
 
 export async function generateFullVideo(
   surahNumber,
@@ -52,7 +50,6 @@ export async function generatePartialVideo(
   progressCallback = () => {}
 ) {
   progressCallback({ step: 'Starting video generation', percent: 0 });
-  console.log("\n\nSTART PROCESS.\n\n")
   const limit = await getEndVerse(surahNumber);
   if (endVerse > limit) endVerse = limit;
 
@@ -115,12 +112,14 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Generating subtitles', percent: 50 });
   const subPath = `Data/subtitles/Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`;
+  
+  const aColor = cssColorToASS(color);
+
   const ret = await generateSubtitles(
     surahNumber,
     startVerse,
     endVerse,
-    fontPath,
-    color,
+    aColor,
     fontPosition,
     fontName,
     size
@@ -131,7 +130,6 @@ export async function generatePartialVideo(
     return;
   }
 
-  const aColor = cssColorToASS(color);
 
   const outputDir = path.resolve("Output_Video");
   if (!fs.existsSync(outputDir)) {
@@ -148,7 +146,6 @@ export async function generatePartialVideo(
     return;
   }
   
-
   progressCallback({ step: 'Rendering final video', percent: 60 });
     await new Promise((resolve, reject) => {
       ffmpeg()
@@ -159,7 +156,7 @@ export async function generatePartialVideo(
       .videoCodec("libx264")
       .outputOptions(
         "-vf",
-        `scale='if(gte(iw/ih,9/16), 1080, -1)':'if(gte(iw/ih,9/16), -1, 1920)',pad=1080:1920:(ow-iw)/2:(oh-ih)/2,subtitles=${subPath}:fontsdir=${path.dirname(fontPath)}`
+        `subtitles='${subPath}:force_style=Fontname=${fontName},Encoding=1,format=yuv444p'`
       )
       .outputOptions("-preset", "fast")
       .output(outputPath)
@@ -169,6 +166,7 @@ export async function generatePartialVideo(
           step: 'Rendering video', 
           percent: Math.min(90, mappedProgress)
         });
+        console.log(`Rendered video progress ${progress.percent}% complete`);
       })
       .on("end", async () => {
         console.log("Video created successfully.");
