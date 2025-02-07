@@ -17,7 +17,6 @@ const urlPlaceff = document.getElementById("urlPlaceff");
 const imagePlaceff = document.getElementById("imageff");
 const pexelsff = document.getElementById("pexelsff");
 
-// Add event listener for partial video form submission
 document.getElementById("partial-video-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const progressContainer = document.getElementById("progress-container");
@@ -25,11 +24,9 @@ document.getElementById("partial-video-form").addEventListener("submit", async (
   
   await handlePartialVideoSubmit(e);
 
-  // Reset after submission
   resetForm("partial-video-form");
 });
 
-// Add event listener for full video form submission
 document.getElementById("full-video-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const progressContainer = document.getElementById("progress-container");
@@ -37,11 +34,9 @@ document.getElementById("full-video-form").addEventListener("submit", async (e) 
 
   await handleFullVideoSubmit(e);
 
-  // Reset after submission
   resetForm("full-video-form");
 });
 
-// Function to reset the form and hide progress bar
 function resetForm(formId) {
   const form = document.getElementById(formId);
   form.reset();
