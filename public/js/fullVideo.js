@@ -1,6 +1,9 @@
 import { loadVideos } from "./videos.js";
 export async function handleFullVideoSubmit(e) {
   e.preventDefault();
+  let crop = "vertical";
+  if (document.getElementById("cropff").checked)
+    crop = "horizontal";
   let videoData;
   if (document.getElementById("backff").checked) {
     const imageUrl = document.getElementById("imageUrlff").value;
@@ -24,6 +27,7 @@ export async function handleFullVideoSubmit(e) {
     removeFilesAfterCreation: true,
     videoNumber: videoData,
     size: document.getElementById("size").value,
+    crop,
   };
 
   try {

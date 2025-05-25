@@ -9,7 +9,7 @@ import * as mm from "music-metadata";
 import path from "path";
 
 const fontPosition = "1920,1080";
-const fontName = "DecoType Thuluth II"
+const fontName = "Tasees Regular"
 
 export async function generateFullVideo(
   surahNumber,
@@ -33,6 +33,7 @@ export async function generateFullVideo(
     videoNumber,
     edition,
     size,
+    crop,
     progressCallback
   );
 }
@@ -47,6 +48,8 @@ export async function generatePartialVideo(
   videoNumber,
   edition,
   size,
+  crop,
+   customAudioPath = null,
   progressCallback = () => {}
 ) {
   progressCallback({ step: 'Starting video generation', percent: 0 });
@@ -56,14 +59,18 @@ export async function generatePartialVideo(
   if(color===undefined)
     color = "#ffffff";
 
-  progressCallback({ step: 'Fetching audio and text', percent: 10 });
-  const { audioPath, textPath, durationsFile } = await fetchAudioAndText(
-    surahNumber,
-    startVerse,
-    endVerse,
-    edition,
-  );
-
+  let audioPath, textPath, durationsFile;
+  if(customAudioPath) {
+    audioPath = customAudioPath;
+  } else {
+    progressCallback({ step: 'Fetching audio and text', percent: 10 });
+     audioPath, textPath, durationsFile = await fetchAudioAndText(
+      surahNumber,
+      startVerse,
+      endVerse,
+      edition,
+    );
+  }
   let audioHeld = false;
   await new Promise((resolve, reject) => {
     audioHeld = true;
@@ -108,6 +115,7 @@ export async function generatePartialVideo(
     useCustomBackground,
     videoNumber,
     audioLen,
+    crop,
   );
 
   progressCallback({ step: 'Generating subtitles', percent: 50 });

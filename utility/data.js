@@ -61,7 +61,6 @@ async function getSurahData(
   try {
     const response = await axios.get(baseUrl);
     const audioData = response.data.data;
-
     const baseUrl2 = `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${textEdition}`;
     const response2 = await axios.get(baseUrl2);
     const textData = response2.data.data;

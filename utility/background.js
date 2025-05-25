@@ -4,25 +4,22 @@ import youtubedl from "youtube-dl-exec";
 import path from 'path';
 import axios from 'axios';
 
-export async function getBackgroundPath(newBackground, videoNumber, len) {
+export async function getBackgroundPath(newBackground, videoNumber, len,crop) {
   const backgroundVideoPath = "Data/Background_Video/";
   const backgroundVideos = ["CarDrive.mp4"];
   if (newBackground) {
     if (typeof videoNumber === 'string' && videoNumber.startsWith('pexels:')) {
-      // Handle background using pexels 
       const query = videoNumber.split(':')[1];
-      return await downloadVideoFromPexels(query, len);
+      return await downloadVideoFromPexels(query, len,crop);
     }
     if (typeof videoNumber === 'string' && (videoNumber.endsWith('.jpg') || videoNumber.endsWith('.png') || videoNumber.endsWith('.jpeg'))) {
-      // Handle image background
-      return await createBackgroundFromImage(videoNumber, len);
+      return await createBackgroundFromImage(videoNumber, len,crop);
     } else {
-      // Handle video background
       const url = videoNumber;
       const start = 0;
       try {
-        const downloadedPath = await downloadVideoFromYoutube(url, start, len);
-        return await createBackgroundVideo(downloadedPath, len);
+        const downloadedPath = await downloadVideoFromYoutube(url, start, len,crop);
+        return await createBackgroundVideo(downloadedPath, len,crop);
       } catch (error) {
         console.error("Error downloading video:", error.message);
         throw new Error("Failed to download and process custom background video.");
@@ -32,7 +29,7 @@ export async function getBackgroundPath(newBackground, videoNumber, len) {
     const defaultVideoPath = backgroundVideoPath + backgroundVideos[videoNumber - 1];
     if (fs.existsSync(defaultVideoPath)) {
       console.log(`Using existing default background video: ${defaultVideoPath}`);
-      return await createBackgroundVideo(defaultVideoPath, len);
+      return await createBackgroundVideo(defaultVideoPath, len,crop);
     } else {
       console.log("Downloading default background video from YouTube...");
       try {
@@ -41,7 +38,7 @@ export async function getBackgroundPath(newBackground, videoNumber, len) {
           20,
           len
         );
-        return await createBackgroundVideo(fallbackPath, len);
+        return await createBackgroundVideo(fallbackPath, len,crop);
       } catch (error) {
         console.error("Error downloading default background video:", error.message);
         throw new Error("Failed to download and process default background video.");
@@ -50,7 +47,7 @@ export async function getBackgroundPath(newBackground, videoNumber, len) {
   }
 }
 
-async function createBackgroundFromImage(imagePath, len) {
+async function createBackgroundFromImage(imagePath, len,crop) {
   const outputPath = `Data/Background_Video/processed_image_${Date.now()}.mp4`;
 
   return new Promise((resolve, reject) => {
@@ -76,8 +73,8 @@ async function createBackgroundFromImage(imagePath, len) {
       .run();
   });
 }
-async function downloadVideoFromPexels(query, length) {
-  const PEXELS_API_KEY = 'YOUR-API-KEY'; //TODO: add your api key here
+async function downloadVideoFromPexels(query, length,crop) {
+  const PEXELS_API_KEY = 'KEY'; //TODO: add your api key here
   try {
     const searchResponse = await axios.get(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=1`, {
       headers: { Authorization: PEXELS_API_KEY }
@@ -107,7 +104,7 @@ async function downloadVideoFromPexels(query, length) {
     });
 
     // Process video
-    const finalPath = await createBackgroundVideo(tempPath, length);
+    const finalPath = await createBackgroundVideo(tempPath, length,crop);
     fs.unlinkSync(tempPath);
     return finalPath;
 
@@ -163,12 +160,15 @@ function downloadVideoFromYoutube(url, start, length, name = "temp") {
   });
 }
 
-function createBackgroundVideo(videoPath, len) {
+function createBackgroundVideo(videoPath, len,crop) {
   const outputPath = `Data/Background_Video/processed_${Date.now()}.mp4`;
 
   if (!fs.existsSync(videoPath)) {
     throw new Error(`Input video ${videoPath} does not exist`);
   }
+  let aspects = '1080:1920'
+  if(crop =="horizontal")
+    aspects = '1920:1080'; 
 
   return new Promise((resolve, reject) => {
     ffmpeg()
@@ -176,7 +176,7 @@ function createBackgroundVideo(videoPath, len) {
       .output(outputPath)
       .videoFilters([
         'scale=-1:1920',
-        'crop=1080:1920',
+        `crop=${aspects}`,
         'setsar=1:1'
       ])
       .duration(len)

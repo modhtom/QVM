@@ -11,11 +11,13 @@ const backgroundCheckbox = document.getElementById("back");
 const urlPlace = document.getElementById("urlPlace");
 const imagePlace = document.getElementById("image");
 const pexels = document.getElementById("pexels");
+const color = document.getElementById("color");
 
 const backgroundCheckboxff = document.getElementById("backff");
 const urlPlaceff = document.getElementById("urlPlaceff");
 const imagePlaceff = document.getElementById("imageff");
 const pexelsff = document.getElementById("pexelsff");
+const colorff = document.getElementById("colorff");
 
 document.getElementById("partial-video-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -44,12 +46,12 @@ function resetForm(formId) {
   urlPlace.innerHTML = ""; 
   color.innerHTML = "";
   imagePlace.innerHTML="";
-  document.getElementById('pexelsQuery').value = '';
+  pexels.innerHTML = "";
 
-  document.getElementById('pexelsQueryff').value = '';
   urlPlaceff.innerHTML = ""; 
   colorff.innerHTML = "";
   imagePlaceff.innerHTML="";
+  pexelsff.innerHTML = "";
 
   const progressContainer = document.getElementById("progress-container");
   const progressFill = progressContainer.querySelector(".progress-fill");
@@ -119,6 +121,7 @@ backgroundCheckbox.addEventListener("change", () => {
     urlPlace.innerHTML = ""; 
     color.innerHTML = "";
     imagePlace.innerHTML="";
+    pexels.innerHTML = "";
   }
 });
 
@@ -149,6 +152,7 @@ backgroundCheckboxff.addEventListener("change", () => {
     urlPlaceff.innerHTML = ""; 
     colorff.innerHTML = "";
     imagePlaceff.innerHTML="";
+    pexelsff.innerHTML = "";
   }
 });
 

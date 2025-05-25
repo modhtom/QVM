@@ -1,7 +1,9 @@
 import { loadVideos } from "./videos.js";
 export async function handlePartialVideoSubmit(e) {
   e.preventDefault();
-
+  let crop = "vertical";
+  if (document.getElementById("crop").checked)
+    crop = "horizontal";
   let videoData;
   if (document.getElementById("back").checked) {
     const imageUrl = document.getElementById("imageUrl").value;
@@ -28,6 +30,7 @@ export async function handlePartialVideoSubmit(e) {
     removeFilesAfterCreation: true,
     videoNumber: videoData,
     size: document.getElementById("size").value,
+    crop,
   };
 
   try {
