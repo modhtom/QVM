@@ -131,10 +131,6 @@ Generates a video for the full Surah.
 
 Streams live progress updates of video generation. This feature does not require additional setup, as it is fully integrated into the application's backend.
 
-## TODOs
-
-- Implement Pexels API to get video from user description/Aya Meaning.
-
 ## Contributing
 
 Contributions are welcome! Please follow these steps:

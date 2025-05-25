@@ -77,6 +77,7 @@ app.post("/generate-partial-video", async (req, res) => {
     videoNumber,
     edition,
     size,
+    crop,
   } = req.body;
 
   try {
@@ -90,6 +91,7 @@ app.post("/generate-partial-video", async (req, res) => {
       videoNumber,
       edition,
       size,
+      crop,
       (progress) => progressEmitter.emit('progress', progress)
     );
     res.status(200).json({
@@ -110,6 +112,7 @@ app.post("/generate-full-video", async (req, res) => {
     removeFilesAfterCreation,
     videoNumber,
     size,
+    crop,
   } = req.body;
   try {
     const vidPath = await generateFullVideo(
@@ -120,6 +123,7 @@ app.post("/generate-full-video", async (req, res) => {
       videoNumber,
       edition,
       size,
+      crop,
       (progress) => progressEmitter.emit('progress', progress)
     );
     res.status(200).json({
