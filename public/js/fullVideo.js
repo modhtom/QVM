@@ -1,33 +1,41 @@
-import { loadVideos } from "./videos.js";
 export async function handleFullVideoSubmit(e) {
   e.preventDefault();
-  let crop = "vertical";
-  if (document.getElementById("cropff").checked)
-    crop = "horizontal";
-  let videoData;
-  if (document.getElementById("backff").checked) {
-    const imageUrl = document.getElementById("imageUrlff").value;
-    const pexelsQuery = document.getElementById("pexelsQueryff").value;
-    if (pexelsQuery) {
-      videoData = `pexels:${pexelsQuery}`;
-    } else if (imageUrl) {
-      videoData = imageUrl;
-    } else {
-      videoData = document.getElementById("urlff").value;
-    }
-  } else {
-    videoData = 1;
+
+  // Use correct vertical video checkbox ID
+  const isVertical = document.getElementById("verticalVideoFull")?.checked;
+  const crop = isVertical ? "horizontal":"vertical";
+
+  const surahNumber = document.getElementById("fullSurahNumber").value;
+  const edition = document.getElementById("fullEdition").value;
+
+  // Use correct color and size IDs
+  const color = document.getElementById("fontColor").value;
+  const size = document.getElementById("fontSize").value;
+
+  let videoData = 1;
+
+  // Use correct background input IDs
+  const pexelsQuery = document.getElementById("pexelsVideo")?.value;
+  const imageUrl = document.getElementById("imageLink")?.value;
+  const youtubeUrl = document.getElementById("youtubeLink")?.value;
+
+  if (pexelsQuery) {
+    videoData = `pexels:${pexelsQuery}`;
+  } else if (imageUrl) {
+    videoData = imageUrl;
+  } else if (youtubeUrl) {
+    videoData = youtubeUrl;
   }
-  const CustomBackground = document.getElementById("backff").checked;
+
   const formData = {
-    surahNumber: parseInt(document.getElementById("fullSurahNumber").value),
-    edition: document.getElementById("fullEdition").value,
-    color: document.getElementById("colorff").value,
-    useCustomBackground:CustomBackground,
+    surahNumber,
+    edition,
+    color,
+    useCustomBackground: videoData !== 1,
     removeFilesAfterCreation: true,
     videoNumber: videoData,
-    size: document.getElementById("size").value,
-    crop,
+    size,
+    crop
   };
 
   try {
@@ -39,15 +47,21 @@ export async function handleFullVideoSubmit(e) {
       body: JSON.stringify(formData),
     });
 
-    const data = await response.json();
-
     if (response.ok) {
-      loadVideos();
-      alert("Video Created.")
+      const data = await response.json();
+      const videoElement = document.getElementById("previewVideo");
+      videoElement.src = `/videos/${data.vidPath}`;
+      videoElement.setAttribute('data-filename', data.vidPath);
+      // Make showPage accessible
+      if (window.showPage) {
+        window.showPage("videoPreview");
+      } else {
+        console.error("showPage function not found");
+      }
     } else {
-      throw new Error(data.message || "Failed to generate full video");
+      throw new Error("Failed to generate full video");
     }
   } catch (error) {
-    alert(`Error: something went wrong, please try again.`);
+    alert(`Error: ${error.message}`);
   }
 }

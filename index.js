@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { EventEmitter } from 'events';
 import { fileURLToPath } from "url";
+import cors from "cors";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,9 +13,14 @@ const app = express();
 const PORT = 3001;
 const progressEmitter = new EventEmitter();
 
+app.use(cors());
 app.use(express.json());
 
 app.use(express.static(path.resolve(__dirname, "public")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "public/index.html"));
+});
 
 app.get('/progress', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -32,11 +38,28 @@ app.get('/progress', (req, res) => {
   });
 });
 
+app.get("/api/videos", (req, res) => {
+  const videoDir = path.resolve(__dirname, "Output_Video");
+  fs.readdir(videoDir, (err, files) => {
+    if (err) {
+      console.error('Error reading video directory:', err);
+      return res.status(500).json({ error: 'Unable to read videos' });
+    }
+    // Filter for video files
+    const videoFiles = files.filter(file => 
+      ['.mp4', '.mov', '.avi'].includes(path.extname(file).toLowerCase())
+    );
+    res.json({ videos: videoFiles });
+  });
+});
+
 app.use("/videos", express.static(path.resolve(__dirname, "Output_Video")));
 
-app.get("/", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "public/index.html"));
+app.get("/video-preview/:video", (req, res) => {
+  const video = req.params.video;
+  res.sendFile(path.resolve(__dirname, "Output_Video", video));
 });
+
 app.post('/upload-image', (req, res) => {
   if (!req.files || !req.files.image) {
     return res.status(400).send('No image uploaded.');
@@ -53,17 +76,16 @@ app.post('/upload-image', (req, res) => {
     res.json({ imagePath });
   });
 });
-app.get("/videos", (req, res) => {
-  fs.readdir(path.resolve(__dirname, "Output_Video"), (err, files) => {
-    if (err) {
-      console.error("Error reading video directory:", err);
-      return res.status(500).send("Failed to retrieve videos.");
-    }
 
-    const videos = files.filter((file) => file.endsWith(".mp4"));
-
-    res.json({ videos });
-  });
+app.get("/videos/:video", (req, res) => {
+  const video = req.params.video;
+  const filePath = path.resolve(__dirname, "Output_Video", video);
+  
+  if (req.query.download) {
+    res.download(filePath);
+  } else {
+    res.sendFile(filePath);
+  }
 });
 
 app.post("/generate-partial-video", async (req, res) => {
@@ -92,11 +114,15 @@ app.post("/generate-partial-video", async (req, res) => {
       edition,
       size,
       crop,
-      (progress) => progressEmitter.emit('progress', progress)
+      null,
+      (progress) => {
+        console.log("Partial video progress:", progress);
+        progressEmitter.emit('progress', progress);
+      }
     );
     res.status(200).json({
       message: "Partial video generation completed successfully.",
-      vidPath,
+      vidPath: path.basename(vidPath),
     });
   } catch (error) {
     console.error("Error generating partial video:", error);
@@ -124,11 +150,14 @@ app.post("/generate-full-video", async (req, res) => {
       edition,
       size,
       crop,
-      (progress) => progressEmitter.emit('progress', progress)
+      (progress) => {
+        console.log("Full video progress:", progress);
+        progressEmitter.emit('progress', progress);
+      }
     );
     res.status(200).json({
       message: "Full video generation completed successfully.",
-      vidPath,
+      vidPath:path.basename(vidPath),
     });
   } catch (error) {
     console.error("Error generating full video:", error);

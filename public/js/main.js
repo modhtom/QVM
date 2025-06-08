@@ -4,178 +4,46 @@ import { loadVideos } from "./videos.js";
 import { surahs } from "./data/surahs.js";
 import { editions } from "./data/editions.js";
 
-const tabs = document.querySelectorAll(".tab-btn");
-const tabContents = document.querySelectorAll(".tab-content");
-
-const backgroundCheckbox = document.getElementById("back");
-const urlPlace = document.getElementById("urlPlace");
-const imagePlace = document.getElementById("image");
-const pexels = document.getElementById("pexels");
-const color = document.getElementById("color");
-
-const backgroundCheckboxff = document.getElementById("backff");
-const urlPlaceff = document.getElementById("urlPlaceff");
-const imagePlaceff = document.getElementById("imageff");
-const pexelsff = document.getElementById("pexelsff");
-const colorff = document.getElementById("colorff");
-
-document.getElementById("partial-video-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const progressContainer = document.getElementById("progress-container");
-  progressContainer.style.display = "block";
-  
-  await handlePartialVideoSubmit(e);
-
-  resetForm("partial-video-form");
-});
-
-document.getElementById("full-video-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const progressContainer = document.getElementById("progress-container");
-  progressContainer.style.display = "block";
-
-  await handleFullVideoSubmit(e);
-
-  resetForm("full-video-form");
-});
-
-function resetForm(formId) {
-  const form = document.getElementById(formId);
-  form.reset();
-
-  urlPlace.innerHTML = ""; 
-  color.innerHTML = "";
-  imagePlace.innerHTML="";
-  pexels.innerHTML = "";
-
-  urlPlaceff.innerHTML = ""; 
-  colorff.innerHTML = "";
-  imagePlaceff.innerHTML="";
-  pexelsff.innerHTML = "";
-
-  const progressContainer = document.getElementById("progress-container");
-  const progressFill = progressContainer.querySelector(".progress-fill");
-  const progressText = progressContainer.querySelector(".progress-text");
-
-  progressFill.style.width = "0%";
-  progressText.textContent = "Starting... (0%)";
-  progressContainer.style.display = "none";
-}
-
 function populateSelects() {
-  const surahSelects = document.querySelectorAll(
-    "#surahNumber, #fullSurahNumber",
-  );
-  const editionSelects = document.querySelectorAll("#edition, #fullEdition");
-
-  const surahOptions = surahs
-    .map((surah) => `<option value="${surah.number}">${surah.name}</option>`)
-    .join("");
-
-  surahSelects.forEach((select) => {
-    select.innerHTML = `<option value="">Select a Surah</option>${surahOptions}`;
+  // Surah dropdowns
+  const surahSelects = document.querySelectorAll("#surahNumber, #fullSurahNumber");
+  surahSelects.forEach(select => {
+    select.innerHTML = surahs.map(surah =>
+      `<option value="${surah.number}">${surah.name} (${surah.number})</option>`
+    ).join('');
   });
 
-  const editionOptions = editions
-    .map(
-      (edition) =>
-        `<option value="${edition.identifier}">${edition.name}</option>`,
-    )
-    .join("");
-
-  editionSelects.forEach((select) => {
-    select.innerHTML = `<option value="">Select an Edition</option>${editionOptions}`;
+  // Reciter dropdowns
+  const editionSelects = document.querySelectorAll("#edition, #fullEdition");
+  editionSelects.forEach(select => {
+    select.innerHTML = editions.map(edition =>
+      `<option value="${edition.identifier}">${edition.name}</option>`
+    ).join('');
   });
 }
-
-document.getElementById("endVerse").addEventListener("change", ()=>{
-  if(document.getElementById("startVerse").value > document.getElementById("endVerse").value){
-    alert("end verse must be greater than or equal to " + document.getElementById("startVerse").value);
-  }
-});
-
-backgroundCheckbox.addEventListener("change", () => {
-  if (backgroundCheckbox.checked) {
-    urlPlace.innerHTML = `
-      <label for="url">
-        رابط يوتيوب لخلفية الفيديو  :
-      </label>
-      <textarea rows="5" cols="50" id="url"  ></textarea>
-    `;
-    color.innerHTML = `
-              <div class="form-group">
-                <label for="color">لون النص:</label>
-                <input type="color" id="color" value="#ffffff" />
-              </div>`;
-    imagePlace.innerHTML=`
-    أو يمكنك أستخدام صورة
-        <label for="imageUrl">رابط الصورة:</label>
-        <input type="text" rows="5" cols="5" id="imageUrl" placeholder=" " />
-    `;
-    pexels.innerHTML += `
-      أو يمكنك البحث في Pexels
-      <label for="pexelsQuery">كلمات البحث:</label>
-      <input type="text" id="pexelsQuery" placeholder="مثال: nature" />
-    `;
-  } else {
-    urlPlace.innerHTML = ""; 
-    color.innerHTML = "";
-    imagePlace.innerHTML="";
-    pexels.innerHTML = "";
-  }
-});
-
-backgroundCheckboxff.addEventListener("change", () => {
-  if (backgroundCheckboxff.checked) {
-    urlPlaceff.innerHTML = `
-      <label for="url">
-        رابط يوتيوب لخلفية الفيديو  :
-      </label>
-      <textarea rows="5" cols="50" id="urlff"  ></textarea>
-    `;
-    colorff.innerHTML = `
-              <div class="form-group">
-                <label for="color">لون النص:</label>
-                <input type="color" id="colorff" value="#ffffff" />
-              </div>`;
-    imagePlaceff.innerHTML=`
-        أو يمكنك أستخدام صورة
-        <label for="imageUrl">رابط الصورة:</label>
-        <input type="text" rows="5" cols="5" id="imageUrlff" placeholder=" " />
-    `;
-    pexelsff.innerHTML += `
-    أو يمكنك البحث في Pexels
-    <label for="pexelsQueryff">كلمات البحث:</label>
-    <input type="text" id="pexelsQueryff" placeholder="مثال: nature" />
-  `;
-  } else {
-    urlPlaceff.innerHTML = ""; 
-    colorff.innerHTML = "";
-    imagePlaceff.innerHTML="";
-    pexelsff.innerHTML = "";
-  }
-});
-
-tabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    tabs.forEach((t) => t.classList.remove("active"));
-    tabContents.forEach((content) => content.classList.remove("active"));
-
-    tab.classList.add("active");
-    document.querySelector(`#${tab.dataset.tab}-form`).classList.add("active");
-  });
-});
 
 function addProgressBar() {
+  const existing = document.getElementById('progress-container');
+  if (existing) existing.remove();
   const progressContainer = document.createElement('div');
   progressContainer.id = 'progress-container';
   progressContainer.style.display = 'none';
+  progressContainer.style.position = 'fixed';
+  progressContainer.style.top = '20px';
+  progressContainer.style.right = '20px';
+  progressContainer.style.zIndex = '1000';
+  progressContainer.style.background = 'rgba(255,255,255,0.9)';
+  progressContainer.style.padding = '15px';
+  progressContainer.style.borderRadius = '10px';
+  progressContainer.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+
   progressContainer.innerHTML = `
     <div class="progress-wrapper">
-      <div class="progress-bar">
-        <div class="progress-fill"></div>
+      <h4>Generating Video</h4>
+      <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden">
+        <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%"></div>
       </div>
-      <div class="progress-text">Starting...</div>
+      <div class="progress-text" style="margin-top:10px">Starting...</div>
     </div>
   `;
   document.body.appendChild(progressContainer);
@@ -183,8 +51,17 @@ function addProgressBar() {
 
 function updateProgressBar(progress) {
   const progressContainer = document.getElementById('progress-container');
+  if (!progressContainer) {
+    console.error("Progress container not found!");
+    return;
+  }
+
   const progressFill = progressContainer.querySelector('.progress-fill');
   const progressText = progressContainer.querySelector('.progress-text');
+  if (!progressFill || !progressText) {
+    console.error("Progress elements missing!");
+    return;
+  }
 
   const resetProgress = () => {
     progressFill.style.width = '0%';
@@ -196,7 +73,7 @@ function updateProgressBar(progress) {
   progressFill.style.width = `${progress.percent}%`;
   progressText.textContent = `${progress.step} (${Math.round(progress.percent)}%)`;
 
-  if (progress.percent >= 100 || progress.error ) {
+  if (progress.percent >= 100 || progress.error) {
     setTimeout(() => {
       resetProgress();
     }, 2000);
@@ -204,22 +81,59 @@ function updateProgressBar(progress) {
 }
 
 function connectToProgressUpdates() {
-  const evtSource = new EventSource('/progress');
-  
-  evtSource.onmessage = function(event) {
-    const progress = JSON.parse(event.data);
-    updateProgressBar(progress);
+  if (window.evtSource) {
+    window.evtSource.close();
+  }
+
+  window.evtSource = new EventSource('/progress');
+
+  window.evtSource.onmessage = function (event) {
+    try {
+      const progress = JSON.parse(event.data);
+      updateProgressBar(progress);
+    } catch (error) {
+      console.error("Error parsing progress:", error);
+    }
   };
-  
-  evtSource.onerror = function() {
-    evtSource.close();
+
+  window.evtSource.onerror = function (error) {
+    console.error("EventSource error:", error);
+    window.evtSource.close();
   };
-  
-  return evtSource;
+
+  return window.evtSource;
 }
 
-addProgressBar();
-const progressEventSource = connectToProgressUpdates();
+window.addEventListener('beforeunload', () => {
+  if (window.evtSource) {
+    window.evtSource.close();
+  }
+});
 
-populateSelects();
-loadVideos();
+document.addEventListener('DOMContentLoaded', () => {
+  const fullFormBtn = document.querySelector('#fullForm .create-btn');
+  const partFormBtn = document.querySelector('#partForm .create-btn');
+  console.log("NOTHING")
+
+  if (fullFormBtn) {
+    fullFormBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log("FULL")
+      handleFullVideoSubmit(e);
+    });
+  }
+
+  if (partFormBtn) {
+    partFormBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log("PART")
+      handlePartialVideoSubmit(e);
+    });
+  }
+
+
+  addProgressBar();
+  connectToProgressUpdates();
+  populateSelects();
+  loadVideos();
+});
