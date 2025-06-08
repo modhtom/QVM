@@ -1,32 +1,35 @@
-# syntax=docker/dockerfile:1
+FROM node:24-alpine
 
-ARG NODE_VERSION=22.7.0
-FROM node:${NODE_VERSION}-alpine
+# Set environment variables
+ENV NODE_ENV=production
+ENV PYTHONUNBUFFERED=1
 
-# Set working directory
-WORKDIR /usr/src/app
+# Install system dependencies
+RUN apk update && apk add --no-cache \
+    ffmpeg \
+    python3 \
+    py3-pip \
+    make \
+    g++ \
+    git \
+    fontconfig \
+    yt-dlp \
+    && npm install -g npm@latest
 
-# Install Python and ffmpeg (required by youtube-dl-exec and fluent-ffmpeg)
-RUN apk add --no-cache python3 py3-pip ffmpeg
+# Clean npm cache to reduce image size
+RUN npm cache clean --force
 
-# Create directories and set permissions
-RUN mkdir -p Data/audio Data/text Data/subtitles Data/Background_Images Data/Background_Video Output_Video public
-RUN chown -R node:node /usr/src/app
+# Set a working directory 
+WORKDIR /app
 
-# Copy package files before installing dependencies
-COPY --chown=node:node package.json package-lock.json ./
+# Copy package.json and package-lock.json first for better caching
+COPY package*.json ./
 
-# Install dependencies
+# Install project dependencies
 RUN npm ci --omit=dev
 
-# Copy the rest of the application code (with ownership)
-COPY --chown=node:node . .
+# Copy the rest of your app
+COPY . .
 
-# Set non-root user for security
-USER node
-
-# Expose the port
-EXPOSE 3001
-
-# Run the application
+# set default command
 CMD ["node", "index.js"]

@@ -74,7 +74,7 @@ async function createBackgroundFromImage(imagePath, len,crop) {
   });
 }
 async function downloadVideoFromPexels(query, length,crop) {
-  const PEXELS_API_KEY = 'KEY'; //TODO: add your api key here
+  const PEXELS_API_KEY = 'API_KEY'; //TODO: add your api key here
   try {
     const searchResponse = await axios.get(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=1`, {
       headers: { Authorization: PEXELS_API_KEY }
@@ -166,8 +166,9 @@ function createBackgroundVideo(videoPath, len,crop) {
   if (!fs.existsSync(videoPath)) {
     throw new Error(`Input video ${videoPath} does not exist`);
   }
+
   let aspects = '1080:1920'
-  if(crop =="horizontal")
+  if(crop === "horizontal")
     aspects = '1920:1080'; 
 
   return new Promise((resolve, reject) => {
@@ -175,19 +176,21 @@ function createBackgroundVideo(videoPath, len,crop) {
       .input(videoPath)
       .output(outputPath)
       .videoFilters([
-        'scale=-1:1920',
+        'scale=-2:1920',
         `crop=${aspects}`,
         'setsar=1:1'
       ])
+      //.inputOptions([`-stream_loop ${Math.ceil(len/10)}`])//loop video for shorts?
       .duration(len)
       .noAudio()
       .videoCodec("libx264")
       .on("end", () => {
         resolve(outputPath);
       })
-      .on("error", (err) => {
-        console.error("FFMPEG Error: ", err.message);
-        reject(new Error("Failed to create background video."));
+      .on("error", (err, stdout, stderr) => {
+          console.error("FFMPEG Error: ", err.message);
+          console.error("FFmpeg stderr: ", stderr);
+          reject(new Error(`FFmpeg failed: ${stderr}`));
       })
       .run();
   });
