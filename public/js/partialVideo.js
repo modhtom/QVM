@@ -103,8 +103,10 @@ export async function handlePartialVideoSubmit(e) {
       }
     } else {
       throw new Error("Failed to generate video");
+      throw new Error("Failed to generate video");
     }
   } catch (error) {
+    alert(`Error: ${error.message}`);
     alert(`Error: ${error.message}`);
   }
 }

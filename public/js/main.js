@@ -35,10 +35,16 @@ function populateSelects() {
     select.innerHTML = editions.map(edition =>
       `<option value="${edition.identifier}">${edition.name}</option>`
     ).join('');
+  editionSelects.forEach(select => {
+    select.innerHTML = editions.map(edition =>
+      `<option value="${edition.identifier}">${edition.name}</option>`
+    ).join('');
   });
 }
 
 function addProgressBar() {
+  const existing = document.getElementById('progress-container');
+  if (existing) existing.remove();
   const existing = document.getElementById('progress-container');
   if (existing) existing.remove();
   const progressContainer = document.createElement('div');
@@ -53,12 +59,25 @@ function addProgressBar() {
   progressContainer.style.borderRadius = '10px';
   progressContainer.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
 
+  progressContainer.style.position = 'fixed';
+  progressContainer.style.top = '20px';
+  progressContainer.style.right = '20px';
+  progressContainer.style.zIndex = '1000';
+  progressContainer.style.background = 'rgba(255,255,255,0.9)';
+  progressContainer.style.padding = '15px';
+  progressContainer.style.borderRadius = '10px';
+  progressContainer.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+
   progressContainer.innerHTML = `
     <div class="progress-wrapper">
       <h4>Generating Video</h4>
       <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden">
         <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%"></div>
+      <h4>Generating Video</h4>
+      <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden">
+        <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%"></div>
       </div>
+      <div class="progress-text" style="margin-top:10px">Starting...</div>
       <div class="progress-text" style="margin-top:10px">Starting...</div>
     </div>
   `;
@@ -72,8 +91,17 @@ function updateProgressBar(progress) {
     return;
   }
 
+  if (!progressContainer) {
+    console.error("Progress container not found!");
+    return;
+  }
+
   const progressFill = progressContainer.querySelector('.progress-fill');
   const progressText = progressContainer.querySelector('.progress-text');
+  if (!progressFill || !progressText) {
+    console.error("Progress elements missing!");
+    return;
+  }
   if (!progressFill || !progressText) {
     console.error("Progress elements missing!");
     return;
@@ -89,6 +117,7 @@ function updateProgressBar(progress) {
   progressFill.style.width = `${progress.percent}%`;
   progressText.textContent = `${progress.step} (${Math.round(progress.percent)}%)`;
 
+  if (progress.percent >= 100 || progress.error) {
   if (progress.percent >= 100 || progress.error) {
     setTimeout(() => {
       resetProgress();
@@ -360,6 +389,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('finishSyncBtn')?.addEventListener('click', finishSyncAndGenerateVideo);
 
 
+  addProgressBar();
+  connectToProgressUpdates();
+  populateSelects();
+  loadVideos();
+});
   addProgressBar();
   connectToProgressUpdates();
   populateSelects();
