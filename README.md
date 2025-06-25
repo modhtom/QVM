@@ -32,7 +32,7 @@ The Quran Video Generator is a versatile web application designed to help users 
    npm install
    ```
 
-3. Install the **DecoType Thuluth II** font on your system to apply it to the subtitle in the final video.
+3. Install the **Tasees Regular** font on your system to apply it to the subtitle in the final video.
 
 4. Get Pexels API Key:
    - Visit [Pexels API Portal](https://www.pexels.com/api/)

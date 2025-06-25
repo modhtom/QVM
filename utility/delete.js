@@ -8,6 +8,7 @@ export function deleteVidData(
     backgroundPath,
     durationsFile,
     subFile,
+    customAudioPath  
   ) {
     if (removeFiles) {
       try {
@@ -45,6 +46,14 @@ export function deleteVidData(
             else console.log(`Deleted: ${subFile}`);
           });
         }
+
+        if (customAudioPath && fs.existsSync(customAudioPath)) {
+          unlink(customAudioPath, (err) => {
+              if (err) console.log("Error deleting custom audio", err);
+              else console.log(`Deleted: ${customAudioPath}`);
+            });
+          }
+
       } catch (err) {
         console.error("Error deleting files:", err);
       }
