@@ -98,5 +98,6 @@ export async function handleFullVideoSubmit(e) {
     }
   } catch (error) {
     alert(`Error: ${error.message}`);
+    alert(`Error: ${error.message}`);
   }
 }
