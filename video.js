@@ -92,7 +92,6 @@ export async function generatePartialVideo(
     
     progressCallback({ step: 'Fetching audio and text', percent: 10 });
     const result = await fetchAudioAndText(
-    const result = await fetchAudioAndText(
       surahNumber,
       startVerse,
       endVerse,
@@ -107,11 +106,7 @@ export async function generatePartialVideo(
   }
   let audioHeld = false;
   await new Promise((resolve, reject) => {
-    
-    
     audioHeld = true;
-    let attempts = 0;
-    const maxAttempts = 60;
     
     let attempts = 0;
     const maxAttempts = 60;
@@ -206,12 +201,10 @@ export async function generatePartialVideo(
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const outputFileName = `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}.mp4`;
 
   const outputFileName = `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}.mp4`;
   const outputPath = path.join(
     outputDir,
-    outputFileName
     outputFileName
   );
 
@@ -272,7 +265,7 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Complete', percent: 100 });
   return outputFileName;
-  return outputFileName;
+  }
 }
 
 async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition) {

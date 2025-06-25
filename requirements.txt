@@ -1,1 +1,1 @@
-npm install express fluent-ffmpeg axios cachetools music-metadata youtube-dl-exec 
+npm install express fluent-ffmpeg axios node-cache music-metadata youtube-dl-exec cors multer fontconfig
