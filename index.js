@@ -16,14 +16,9 @@ const PORT = 3001;
 const progressEmitter = new EventEmitter();
 
 app.use(cors());
-app.use(cors());
 app.use(express.json());
 
 app.use(express.static(path.resolve(__dirname, "public")));
-
-app.get("/", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "public/index.html"));
-});
 
 app.get("/", (req, res) => {
   res.sendFile(path.resolve(__dirname, "public/index.html"));
@@ -60,26 +55,8 @@ app.get("/api/videos", (req, res) => {
   });
 });
 
-app.get("/api/videos", (req, res) => {
-  const videoDir = path.resolve(__dirname, "Output_Video");
-  fs.readdir(videoDir, (err, files) => {
-    if (err) {
-      console.error('Error reading video directory:', err);
-      return res.status(500).json({ error: 'Unable to read videos' });
-    }
-    // Filter for video files
-    const videoFiles = files.filter(file => 
-      ['.mp4', '.mov', '.avi'].includes(path.extname(file).toLowerCase())
-    );
-    res.json({ videos: videoFiles });
-  });
-});
-
 app.use("/videos", express.static(path.resolve(__dirname, "Output_Video")));
 
-app.get("/video-preview/:video", (req, res) => {
-  const video = req.params.video;
-  res.sendFile(path.resolve(__dirname, "Output_Video", video));
 app.get("/video-preview/:video", (req, res) => {
   const video = req.params.video;
   res.sendFile(path.resolve(__dirname, "Output_Video", video));
@@ -102,16 +79,6 @@ app.post('/upload-image', (req, res) => {
     res.json({ imagePath });
   });
 });
-
-app.get("/videos/:video", (req, res) => {
-  const video = req.params.video;
-  const filePath = path.resolve(__dirname, "Output_Video", video);
-  
-  if (req.query.download) {
-    res.download(filePath);
-  } else {
-    res.sendFile(filePath);
-  }
 
 app.get("/videos/:video", (req, res) => {
   const video = req.params.video;

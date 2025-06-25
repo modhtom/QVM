@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   qvm:
     build: .
@@ -10,5 +8,4 @@ services:
       - ./Output_Video:/app/Output_Video
     environment:
       - NODE_ENV=production
-      - PEXELS_API_KEY=${PEXELS_API_KEY:-}
     restart: unless-stopped

@@ -35,30 +35,15 @@ function populateSelects() {
     select.innerHTML = editions.map(edition =>
       `<option value="${edition.identifier}">${edition.name}</option>`
     ).join('');
-  editionSelects.forEach(select => {
-    select.innerHTML = editions.map(edition =>
-      `<option value="${edition.identifier}">${edition.name}</option>`
-    ).join('');
   });
 }
 
 function addProgressBar() {
   const existing = document.getElementById('progress-container');
   if (existing) existing.remove();
-  const existing = document.getElementById('progress-container');
-  if (existing) existing.remove();
   const progressContainer = document.createElement('div');
   progressContainer.id = 'progress-container';
   progressContainer.style.display = 'none';
-  progressContainer.style.position = 'fixed';
-  progressContainer.style.top = '20px';
-  progressContainer.style.right = '20px';
-  progressContainer.style.zIndex = '1000';
-  progressContainer.style.background = 'rgba(255,255,255,0.9)';
-  progressContainer.style.padding = '15px';
-  progressContainer.style.borderRadius = '10px';
-  progressContainer.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
-
   progressContainer.style.position = 'fixed';
   progressContainer.style.top = '20px';
   progressContainer.style.right = '20px';
@@ -118,7 +103,6 @@ function updateProgressBar(progress) {
   progressText.textContent = `${progress.step} (${Math.round(progress.percent)}%)`;
 
   if (progress.percent >= 100 || progress.error) {
-  if (progress.percent >= 100 || progress.error) {
     setTimeout(() => {
       resetProgress();
     }, 2000);
@@ -148,6 +132,7 @@ function connectToProgressUpdates() {
 
   return window.evtSource;
 }
+
 let currentVersesText = [];
 let verseTimings = [];
 let currentVerseIndex = 0;
@@ -388,12 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('resetSyncBtn')?.addEventListener('click', resetSync);
   document.getElementById('finishSyncBtn')?.addEventListener('click', finishSyncAndGenerateVideo);
 
-
-  addProgressBar();
-  connectToProgressUpdates();
-  populateSelects();
-  loadVideos();
-});
   addProgressBar();
   connectToProgressUpdates();
   populateSelects();

@@ -13,8 +13,20 @@ RUN apk update && apk add --no-cache \
     g++ \
     git \
     fontconfig \
+    ttf-freefont \
+    ttf-dejavu \
+    ttf-liberation \
     yt-dlp \
     && npm install -g npm@latest
+
+# Create font directory for Arabic fonts
+RUN mkdir -p /usr/share/fonts/truetype/custom/
+
+# Copy custom fonts (if available)
+COPY Data/Font/*.ttf /usr/share/fonts/truetype/custom/
+
+# Update font cache
+RUN fc-cache -fv
 
 # Clean npm cache to reduce image size
 RUN npm cache clean --force
