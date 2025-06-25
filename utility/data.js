@@ -8,12 +8,13 @@ import NodeCache from "node-cache";
 const audioCache = new NodeCache({ stdTTL: 60 * 60 }); 
 const textCache = new NodeCache({ stdTTL: 60 * 60 });
 
-async function getSurahDataRange(
+export async function getSurahDataRange(
   surahNumber,
   startVerse,
   endVerse,
   reciterEdition,
   textEdition,
+  textOnly = false 
 ) {
   const audioBuffers = [];
   const durationPerAyah = [];
@@ -23,15 +24,20 @@ async function getSurahDataRange(
     const { audio, text, duration } = await getSurahData(
       surahNumber,
       verse,
-      reciterEdition,
+      textOnly ? null : reciterEdition, 
       textEdition,
+      textOnly
     );
-    if (audio && text) {
+    if (!textOnly && audio) {
       audioBuffers.push({ verse, audio });
-      durationPerAyah.push(duration);
+    }
+    
+    if (text) {
+      durationPerAyah.push(textOnly ? 1 : (duration || 0));
       combinedText += text + "\n";
     } else {
-      console.error(`Error fetching data for verse ${verse}`);
+      console.error(`No text found for Surah ${surahNumber}, Verse ${verse}`);
+      durationPerAyah.push(defaultDuration);
     }
   }
 
@@ -43,43 +49,58 @@ async function getSurahData(
   verseNumber,
   reciterEdition,
   textEdition,
+  textOnly = false
 ) {
-  const baseUrl = `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${reciterEdition}`;
-  if (
-    audioCache.has(`${surahNumber}-${verseNumber}`) &&
-    textCache.has(`${surahNumber}-${verseNumber}`)
-  ) {
-    const cachedAudio = audioCache.get(`${surahNumber}-${verseNumber}`);
-    const duration = await getAudioDurationFromBuffer(cachedAudio);
-    return {
-      audio: cachedAudio,
-      text: textCache.get(`${surahNumber}-${verseNumber}`),
-      duration,
-    };
+  const cacheKey = `${surahNumber}-${verseNumber}`;
+  
+  if (textCache.has(cacheKey)) {
+    const cachedText = textCache.get(cacheKey);
+    
+    if (textOnly) {
+      return { audio: null, text: cachedText, duration: 0 };
+    }
+    
+    if (audioCache.has(cacheKey)) {
+      const cachedAudio = audioCache.get(cacheKey);
+      const duration = await getAudioDurationFromBuffer(cachedAudio);
+      return { audio: cachedAudio, text: cachedText, duration };
+    }
   }
 
   try {
-    const response = await axios.get(baseUrl);
-    const audioData = response.data.data;
-    const baseUrl2 = `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${textEdition}`;
-    const response2 = await axios.get(baseUrl2);
-    const textData = response2.data.data;
+    let audioBuffer = null;
+    let duration = 0;
 
-    const audioUrl = audioData.audio;
-    const audioContent = await axios.get(audioUrl, {
-      responseType: "arraybuffer",
-    });
-    const audioBuffer = Buffer.from(audioContent.data, "binary");
-    const duration = await getAudioDurationFromBuffer(audioBuffer);
+    if (!textOnly) {
+      const response = await axios.get(
+        `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${reciterEdition}`
+      );
+      const audioData = response.data.data;
+      const audioUrl = audioData.audio;
+      const audioContent = await axios.get(audioUrl, {
+        responseType: "arraybuffer",
+      });
+      audioBuffer = Buffer.from(audioContent.data, "binary");
+      audioCache.set(cacheKey, audioBuffer);
+      duration = await getAudioDurationFromBuffer(audioBuffer);
+    }
 
-    audioCache.set(`${surahNumber}-${verseNumber}`, audioBuffer);
-    textCache.set(`${surahNumber}-${verseNumber}`, textData.text);
+    const textResponse = await axios.get(
+      `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${textEdition}`
+    );
+    const textData = textResponse.data.data;
+    const text = textData.text;
+    textCache.set(cacheKey, text);
 
-    return { audio: audioBuffer, text: textData.text, duration };
+    return {
+      audio: audioBuffer,
+      text: text,
+      duration: textOnly ? 1 : duration     
+    };
   } catch (error) {
     console.error(
       `Failed to fetch data for Surah ${surahNumber}, Verse ${verseNumber}:`,
-      error,
+      error
     );
     return { audio: null, text: null, duration: 0 };
   }

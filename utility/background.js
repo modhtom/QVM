@@ -7,6 +7,10 @@ import axios from 'axios';
 export async function getBackgroundPath(newBackground, videoNumber, len,crop) {
   const backgroundVideoPath = "Data/Background_Video/";
   const backgroundVideos = ["CarDrive.mp4"];
+  if (videoNumber < 1) {
+    videoNumber = 1;
+  }
+
   if (newBackground) {
     if (typeof videoNumber === 'string' && videoNumber.startsWith('pexels:')) {
       const query = videoNumber.split(':')[1];
@@ -74,7 +78,7 @@ async function createBackgroundFromImage(imagePath, len,crop) {
   });
 }
 async function downloadVideoFromPexels(query, length,crop) {
-  const PEXELS_API_KEY = 'KEY'; //TODO: add your api key here
+  const PEXELS_API_KEY = 'API_KEY'; //TODO: add your api key here
   try {
     const searchResponse = await axios.get(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=1`, {
       headers: { Authorization: PEXELS_API_KEY }
@@ -160,35 +164,74 @@ function downloadVideoFromYoutube(url, start, length, name = "temp") {
   });
 }
 
-function createBackgroundVideo(videoPath, len,crop) {
+function createBackgroundVideo(videoPath, len, crop) {
   const outputPath = `Data/Background_Video/processed_${Date.now()}.mp4`;
 
   if (!fs.existsSync(videoPath)) {
     throw new Error(`Input video ${videoPath} does not exist`);
   }
-  let aspects = '1080:1920'
-  if(crop =="horizontal")
-    aspects = '1920:1080'; 
 
   return new Promise((resolve, reject) => {
-    ffmpeg()
+    const command = ffmpeg()
       .input(videoPath)
-      .output(outputPath)
-      .videoFilters([
-        'scale=-1:1920',
-        `crop=${aspects}`,
-        'setsar=1:1'
-      ])
       .duration(len)
       .noAudio()
-      .videoCodec("libx264")
-      .on("end", () => {
-        resolve(outputPath);
-      })
-      .on("error", (err) => {
-        console.error("FFMPEG Error: ", err.message);
-        reject(new Error("Failed to create background video."));
-      })
-      .run();
+      .videoCodec("libx264");
+
+    // Get video metadata to handle different orientations
+    command.ffprobe((err, data) => {
+      if (err) return reject(err);
+
+      const videoStream = data.streams.find(s => s.codec_type === 'video');
+      if (!videoStream) return reject(new Error("No video stream found"));
+
+      const width = videoStream.width;
+      const height = videoStream.height;
+      const isVertical = height > width;
+
+      let filters = [];
+      
+      if (crop === "horizontal" && isVertical) {
+        // Vertical source to horizontal output: Rotate and scale
+        filters = [
+          'transpose=1', // Rotate 90 degrees clockwise
+          `scale=1920:1080:force_original_aspect_ratio=increase`,
+          `crop=1920:1080`,
+          'setsar=1:1'
+        ];
+      } else if (crop === "vertical" && !isVertical) {
+        // Horizontal source to vertical output: Rotate and scale
+        filters = [
+          'transpose=1', // Rotate 90 degrees clockwise
+          `scale=1080:1920:force_original_aspect_ratio=increase`,
+          `crop=1080:1920`,
+          'setsar=1:1'
+        ];
+      } else if (crop === "horizontal") {
+        // Horizontal source to horizontal output
+        filters = [
+          `scale=1920:1080:force_original_aspect_ratio=increase`,
+          `crop=1920:1080`,
+          'setsar=1:1'
+        ];
+      } else {
+        // Vertical source to vertical output
+        filters = [
+          `scale=1080:1920:force_original_aspect_ratio=increase`,
+          `crop=1080:1920`,
+          'setsar=1:1'
+        ];
+      }
+
+      command.videoFilters(filters)
+        .output(outputPath)
+        .on("end", () => resolve(outputPath))
+        .on("error", (err, stdout, stderr) => {
+          console.error("FFMPEG Error: ", err.message);
+          console.error("FFmpeg stderr: ", stderr);
+          reject(new Error(`FFmpeg failed: ${stderr}`));
+        })
+        .run();
+    });
   });
 }

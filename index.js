@@ -4,6 +4,9 @@ import fs from "fs";
 import path from "path";
 import { EventEmitter } from 'events';
 import { fileURLToPath } from "url";
+import cors from "cors";
+import multer from "multer";
+import {getSurahDataRange} from './utility/data.js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,9 +15,14 @@ const app = express();
 const PORT = 3001;
 const progressEmitter = new EventEmitter();
 
+app.use(cors());
 app.use(express.json());
 
 app.use(express.static(path.resolve(__dirname, "public")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "public/index.html"));
+});
 
 app.get('/progress', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -32,11 +40,28 @@ app.get('/progress', (req, res) => {
   });
 });
 
+app.get("/api/videos", (req, res) => {
+  const videoDir = path.resolve(__dirname, "Output_Video");
+  fs.readdir(videoDir, (err, files) => {
+    if (err) {
+      console.error('Error reading video directory:', err);
+      return res.status(500).json({ error: 'Unable to read videos' });
+    }
+    // Filter for video files
+    const videoFiles = files.filter(file => 
+      ['.mp4', '.mov', '.avi'].includes(path.extname(file).toLowerCase())
+    );
+    res.json({ videos: videoFiles });
+  });
+});
+
 app.use("/videos", express.static(path.resolve(__dirname, "Output_Video")));
 
-app.get("/", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "public/index.html"));
+app.get("/video-preview/:video", (req, res) => {
+  const video = req.params.video;
+  res.sendFile(path.resolve(__dirname, "Output_Video", video));
 });
+
 app.post('/upload-image', (req, res) => {
   if (!req.files || !req.files.image) {
     return res.status(400).send('No image uploaded.');
@@ -53,20 +78,22 @@ app.post('/upload-image', (req, res) => {
     res.json({ imagePath });
   });
 });
-app.get("/videos", (req, res) => {
-  fs.readdir(path.resolve(__dirname, "Output_Video"), (err, files) => {
-    if (err) {
-      console.error("Error reading video directory:", err);
-      return res.status(500).send("Failed to retrieve videos.");
-    }
 
-    const videos = files.filter((file) => file.endsWith(".mp4"));
-
-    res.json({ videos });
-  });
+app.get("/videos/:video", (req, res) => {
+  const video = req.params.video;
+  const filePath = path.resolve(__dirname, "Output_Video", video);
+  
+  if (req.query.download) {
+    res.download(filePath);
+  } else {
+    res.sendFile(filePath);
+  }
 });
 
 app.post("/generate-partial-video", async (req, res) => {
+
+  console.log("Incoming request body:", req.body);
+
   const {
     surahNumber,
     startVerse,
@@ -78,6 +105,8 @@ app.post("/generate-partial-video", async (req, res) => {
     edition,
     size,
     crop,
+    customAudioPath,
+    userVerseTimings 
   } = req.body;
 
   try {
@@ -92,11 +121,16 @@ app.post("/generate-partial-video", async (req, res) => {
       edition,
       size,
       crop,
-      (progress) => progressEmitter.emit('progress', progress)
+      customAudioPath || null,
+      (progress) => {
+        console.log("Partial video progress:", progress);
+        progressEmitter.emit('progress', progress);
+      },
+      userVerseTimings 
     );
     res.status(200).json({
       message: "Partial video generation completed successfully.",
-      vidPath,
+      vidPath: path.basename(vidPath),
     });
   } catch (error) {
     console.error("Error generating partial video:", error);
@@ -113,6 +147,8 @@ app.post("/generate-full-video", async (req, res) => {
     videoNumber,
     size,
     crop,
+    customAudioPath,
+    userVerseTimings 
   } = req.body;
   try {
     const vidPath = await generateFullVideo(
@@ -124,16 +160,67 @@ app.post("/generate-full-video", async (req, res) => {
       edition,
       size,
       crop,
-      (progress) => progressEmitter.emit('progress', progress)
+      customAudioPath  || null,
+      (progress) => {
+        console.log("Full video progress:", progress);
+        progressEmitter.emit('progress', progress);
+      },
+      userVerseTimings 
     );
     res.status(200).json({
       message: "Full video generation completed successfully.",
-      vidPath,
+      vidPath:path.basename(vidPath),
     });
   } catch (error) {
     console.error("Error generating full video:", error);
     res.status(500).send("Failed to generate full video.");
   }
+});
+
+app.get('/api/surah-verses-text', async (req, res) => {
+  const { surahNumber, startVerse, endVerse } = req.query;
+  if (!surahNumber || !startVerse || !endVerse) {
+    return res.status(400).json({ error: 'Missing surahNumber, startVerse, or endVerse' });
+  }
+
+  try {
+    const { combinedText } = await getSurahDataRange(
+      parseInt(surahNumber),
+      parseInt(startVerse),
+      parseInt(endVerse),
+      null,
+      "quran-simple", 
+      true 
+    );
+    const verses = combinedText.split('\n').filter(Boolean); 
+    res.json({ verses });
+  } catch (error) {
+    console.error("Error fetching surah verses text:", error);
+    res.status(500).json({ error: 'Failed to fetch verse text' });
+  }
+});
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'Data/audio/custom';
+    
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage });
+app.post('/upload-audio', upload.single('audio'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No audio uploaded.');
+  }
+  res.json({ audioPath: req.file.path });
 });
 
 app.listen(PORT, () => {

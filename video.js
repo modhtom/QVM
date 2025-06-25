@@ -4,6 +4,7 @@ import { partAudioAndText } from "./utility/data.js";
 import { getBackgroundPath } from "./utility/background.js";
 import { deleteVidData, deleteOldVideos } from "./utility/delete.js";
 import { generateSubtitles } from "./utility/subtitle.js";
+import {getSurahDataRange} from './utility/data.js'
 import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
@@ -19,7 +20,10 @@ export async function generateFullVideo(
   videoNumber,
   edition,
   size,
-  progressCallback = () => {}
+  crop,
+  customAudioPath,
+  progressCallback = () => { },
+  userVerseTimings = null
 ) {
   const endVerse = await getEndVerse(surahNumber);
   progressCallback({ step: 'Starting full video generation', percent: 0 });
@@ -34,7 +38,9 @@ export async function generateFullVideo(
     edition,
     size,
     crop,
-    progressCallback
+    customAudioPath,
+    progressCallback,
+    userVerseTimings
   );
 }
 
@@ -49,47 +55,76 @@ export async function generatePartialVideo(
   edition,
   size,
   crop,
-   customAudioPath = null,
-  progressCallback = () => {}
+  customAudioPath,
+  progressCallback = () => { },
+  userVerseTimings = null
 ) {
+  console.log("MAKING A VIDEO")
+  if (!surahNumber || !startVerse || !endVerse) {
+    progressCallback({ step: 'Validation failed', percent: 100, error: true });
+    throw new Error("Missing required parameters");
+  }
   progressCallback({ step: 'Starting video generation', percent: 0 });
   const limit = await getEndVerse(surahNumber);
   if (endVerse > limit) endVerse = limit;
-
-  if(color===undefined)
+  if (color === undefined)
     color = "#ffffff";
+  if (!crop) crop = "vertical";
 
   let audioPath, textPath, durationsFile;
-  if(customAudioPath) {
+  if (customAudioPath) {
     audioPath = customAudioPath;
+    progressCallback({ step: 'Using custom audio', percent: 10 });
+    
+    progressCallback({ step: 'Fetching text data', percent: 20 });
+    const result = await fetchTextOnly(
+      surahNumber,
+      startVerse,
+      endVerse,
+      edition
+    );
+    textPath = result.textPath;
+    durationsFile = result.durationsFile;
   } else {
+    
     progressCallback({ step: 'Fetching audio and text', percent: 10 });
-     audioPath, textPath, durationsFile = await fetchAudioAndText(
+    const result = await fetchAudioAndText(
       surahNumber,
       startVerse,
       endVerse,
       edition,
     );
+    audioPath = result.audioPath;
+    textPath = result.textPath;
+    durationsFile = result.durationsFile;
   }
   let audioHeld = false;
   await new Promise((resolve, reject) => {
+    
     audioHeld = true;
+    let attempts = 0;
+    const maxAttempts = 60;
+    
     const checkAudioFile = setInterval(() => {
+      attempts++;
+      // Timeout handling
+      if (attempts > maxAttempts) {
+        clearInterval(checkAudioFile);
+        reject(new Error("Audio file creation timed out"));
+        return;
+      }
+
       if (
         fs.existsSync(audioPath) &&
-        !fs.existsSync(`temp_${surahNumber}_${startVerse}.mp3`)
+        fs.statSync(audioPath).size > 0
       ) {
-        setTimeout(() => {
-          if (fs.existsSync(audioPath) && fs.statSync(audioPath).size > 0) {
-            clearInterval(checkAudioFile);
-            audioHeld = false;
-            resolve();
-          }
-        }, 1000);
+        clearInterval(checkAudioFile);
+        audioHeld = false;
+        resolve();
       }
     }, 500);
   });
-  
+
   progressCallback({ step: 'Processing audio', percent: 30 });
   let audioLen;
   if (!audioHeld) {
@@ -97,7 +132,7 @@ export async function generatePartialVideo(
     if (audioLen == -1) {
       console.error("Error: Invalid audio file.");
       return null;
-    } else if (audioLen == NaN) {
+    } else if (isNaN(audioLen)) {
       setTimeout(() => {
         console.log("waiting for audio len");
       }, 1000);
@@ -107,13 +142,13 @@ export async function generatePartialVideo(
       console.log("waiting for audio len");
     }, 10000);
   }
-  if (audioLen == NaN)
+  if (isNaN(audioLen))
     console.error(`Audio length: ${audioLen}`);
-  
+
   progressCallback({ step: 'Preparing background video', percent: 40 });
   const backgroundPath = await getBackgroundPath(
     useCustomBackground,
-    videoNumber,
+    videoNumber || 1,
     audioLen,
     crop,
   );
@@ -130,63 +165,70 @@ export async function generatePartialVideo(
     aColor,
     fontPosition,
     fontName,
-    size
-);
+    size,
+    customAudioPath || audioPath,
+    userVerseTimings 
+  );
 
   if (ret != 1) {
     console.log(`no subtitle file at ${subPath}`);
-    return;
+    progressCallback({ step: 'Error generating subtitle file', percent: 100, error: true });
+    return null;
   }
-
 
   const outputDir = path.resolve("Output_Video");
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
-  
+
+  const outputFileName = `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}.mp4`;
   const outputPath = path.join(
     outputDir,
-    `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}.mp4`
+    outputFileName
   );
-  
+
   if (!fs.existsSync(subPath)) {
     console.error(`Subtitle file does not exist at ${subPath}`);
-    return;
+    progressCallback({ step: 'Error: Subtitle file missing before render', percent: 100, error: true });
+    return null;
   }
-  
+
   progressCallback({ step: 'Rendering final video', percent: 60 });
-    await new Promise((resolve, reject) => {
-      ffmpeg()
+  await new Promise((resolve, reject) => {
+    const command = ffmpeg()
       .input(backgroundPath)
       .input(audioPath)
       .audioCodec("aac")
       .audioFilters("aformat=sample_fmts=fltp:channel_layouts=stereo")
       .videoCodec("libx264")
-      .outputOptions(
-        "-vf",
-        `subtitles='${subPath}:force_style=Fontname=${fontName},Encoding=1,format=yuv444p'`
-      )
       .outputOptions("-preset", "fast")
-      .output(outputPath)
-      .on('progress', (progress) => {
-        const mappedProgress = 60 + (progress.percent * 0.3);
-        progressCallback({ 
-          step: 'Rendering video', 
-          percent: Math.min(90, mappedProgress)
-        });
-        console.log(`Rendered video progress ${progress.percent}% complete`);
-      })
-      .on("end", async () => {
-        console.log("Video created successfully.");
-        resolve();
-      })
-      .on("error", (err, stdout, stderr) => {
-        console.error("Error processing video: ", err);
-        console.error("FFmpeg stderr: ", stderr); // Log stderr for more details
-        reject(err);
-      })
-      .run();
+      .output(outputPath);
+
+    // Add subtitles with proper timing handling
+    command.complexFilter([
+      `subtitles='${subPath.replace(/\\/g, '/').replace(/'/g, "'\\''")}':force_style='Fontname=${fontName},Encoding=1'`
+    ]);
+
+    command.on('progress', (progress) => {
+      const mappedProgress = 60 + (progress.percent * 0.3);
+      progressCallback({
+        step: 'Rendering video',
+        percent: Math.min(90, mappedProgress)
+      });
+      console.log(`Rendered video progress ${progress.percent}% complete`);
+    })
+    .on("end", async () => {
+      console.log("Video created successfully.");
+      resolve();
+    })
+    .on("error", (err, stdout, stderr) => {
+      console.error("Error processing video: ", err);
+      console.error("FFmpeg stderr: ", stderr);
+      reject(err);
+    })
+    .run();
   });
+  
   progressCallback({ step: 'Cleaning up', percent: 98 });
   deleteVidData(
     removeFiles,
@@ -199,6 +241,7 @@ export async function generatePartialVideo(
   deleteOldVideos();
 
   progressCallback({ step: 'Complete', percent: 100 });
+  return outputFileName;
 }
 
 async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition) {
@@ -212,7 +255,9 @@ async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition) {
     endVerse,
     edition,
   );
-  if (DATA === -1) return null;
+    if (DATA === -1) {
+    throw new Error("Failed to fetch audio and text data");
+  }
 
   return { audioPath, textPath, durationsFile };
 }
@@ -226,6 +271,29 @@ async function getAudioDuration(audioPath) {
     console.error("Error reading audio file:", error);
     return -1;
   }
+}
+
+async function fetchTextOnly(surahNumber, startVerse, endVerse, edition) {
+  const textPath = `Data/text/Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`;
+  const durationsFile = `Data/text/Surah_${surahNumber}_Durations_from_${startVerse}_to_${endVerse}.json`;
+
+  const { combinedText, durationPerAyah } = await getSurahDataRange(
+    surahNumber,
+    startVerse,
+    endVerse,
+    edition,
+    "quran-simple",
+    true
+  );
+
+  if (combinedText) {
+    const textOutputDir = path.resolve("Data/text");
+    fs.mkdirSync(textOutputDir, { recursive: true });
+    fs.writeFileSync(textPath, combinedText, "utf-8");
+    fs.writeFileSync(durationsFile, JSON.stringify(durationPerAyah), "utf-8");
+  }
+
+  return { textPath, durationsFile };
 }
 
 async function getEndVerse(surahNumber) {
