@@ -129,10 +129,10 @@ app.post("/generate-partial-video", async (req, res) => {
       },
       userVerseTimings 
     );
+    console.log("Partial video generated at:", vidPath);
     res.status(200).json({
       message: "Partial video generation completed successfully.",
-      vidPath: path.basename(vidPath),
-      vidPath: path.basename(vidPath),
+      vidPath: vidPath,
     });
   } catch (error) {
     console.error("Error generating partial video:", error);
