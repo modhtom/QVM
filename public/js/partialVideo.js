@@ -82,7 +82,7 @@ export async function handlePartialVideoSubmit(e) {
       customAudioPath: audioPath,
       userVerseTimings: userVerseTimings // Pass user-provided timings
     };
-    console.log(`the request body is ${requestBody}`)
+    console.log("Request body:", requestBody);
     const response = await fetch("/generate-partial-video", {
       method: "POST",
       headers: {
