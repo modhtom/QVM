@@ -78,7 +78,7 @@ async function createBackgroundFromImage(imagePath, len,crop) {
   });
 }
 async function downloadVideoFromPexels(query, length,crop) {
-  const PEXELS_API_KEY = 'API_KEY'; //TODO: add your api key here
+  const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
   try {
     const searchResponse = await axios.get(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=1`, {
       headers: { Authorization: PEXELS_API_KEY }

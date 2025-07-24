@@ -4,3 +4,4 @@ Data/subtitles/*
 Data/text/*
 node_modules
 Output_Video/*
+.env
