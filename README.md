@@ -5,24 +5,28 @@ Quran Video Maker is a full-stack web application that enables users to create p
 ## Key Features
 
 1. **Multi-Source Backgrounds**:
+
    - Pexels API integration (search by keywords)
    - YouTube video URLs
    - Custom image URLs
    - Default background library
 
 2. **Audio Handling**:
+
    - Built-in recitation library
    - Custom audio uploads (MP3/WAV)
    - Verse synchronization interface
    - Precision timing control
 
 3. **Video Generation**:
+
    - Full Surah videos
    - Custom verse ranges
    - Horizontal (16:9) and vertical (9:16) formats
    - Real-time progress tracking
 
 4. **Text Customization**:
+
    - Font size control (1-72px)
    - Color picker for Arabic text
    - Verse-by-verse timing adjustments
@@ -37,6 +41,7 @@ Quran Video Maker is a full-stack web application that enables users to create p
 ## System Requirements
 
 ### Software
+
 - Node.js v16+
 - FFmpeg v5+
 - FontConfig (for Arabic text rendering)
@@ -45,28 +50,34 @@ Quran Video Maker is a full-stack web application that enables users to create p
 ## Installation
 
 ### Local Setup
+
 1. Install prerequisites:
+
 ```bash
 sudo apt-get install ffmpeg fontconfig
 ```
 
 2. Clone repository:
+
 ```bash
 git clone https://github.com/modhtom/QVM.git
 cd quran-video-maker
 ```
 
 3. Install dependencies:
+
 ```bash
 npm install
 ```
 
 4. Configure environment:
+
 ```bash
 echo "PEXELS_API_KEY=your_key_here" >> .env
 ```
 
 5. Install Arabic font:
+
 ```bash
 wget https://example.com/Tasees_Regular.ttf
 sudo cp Tasees_Regular.ttf /usr/share/fonts/
@@ -74,11 +85,13 @@ fc-cache -fv
 ```
 
 6. Start server:
+
 ```bash
 node index.js
 ```
 
 ### Docker Setup
+
 ```bash
 docker build -t qvm .
 docker run -p 3001:3001 -e PEXELS_API_KEY=your_key_here qvm
@@ -87,11 +100,13 @@ docker run -p 3001:3001 -e PEXELS_API_KEY=your_key_here qvm
 ## API Integrations
 
 1. **Al-Quran Cloud API**:
+
    - Verse text retrieval
    - Surah metadata
    - Recitation audio
 
 2. **Pexels API**:
+
    - Background video search
    - HD video downloads
    - Keyword-based queries
@@ -104,11 +119,13 @@ docker run -p 3001:3001 -e PEXELS_API_KEY=your_key_here qvm
 ## Processing Workflow
 
 1. **Input Handling**:
+
    - Receive video parameters (surah, verses, styling)
    - Validate input ranges
    - Fetch Quranic text
 
 2. **Media Processing**:
+
    ```mermaid
    graph LR
    A[Audio Input] --> B(Audio Processing)
@@ -126,6 +143,7 @@ docker run -p 3001:3001 -e PEXELS_API_KEY=your_key_here qvm
    - ASS subtitle embedding
 
 ### Background Types
+
 ```javascript
 // Background selection logic
 if (pexelsQuery) {
@@ -148,6 +166,7 @@ The tap-to-sync interface provides frame-accurate verse timing:
 3. Progress tracking
 4. Timing reset functionality
 5. JSON timing export:
+
 ```json
 "userVerseTimings": [
   {"start": 0.5, "end": 4.2},
@@ -158,11 +177,13 @@ The tap-to-sync interface provides frame-accurate verse timing:
 ## Maintenance Features
 
 1. **Automatic Cleanup**:
+
    - Temporary file removal
    - 24-hour video retention policy
    - Custom audio deletion after processing
 
 2. **Error Handling**:
+
    - API failure fallbacks
    - Video generation monitoring
    - Filesystem validation
@@ -179,6 +200,7 @@ The tap-to-sync interface provides frame-accurate verse timing:
 ## Requirements
 
 ### Core Dependencies
+
 ```txt
 express
 fluent-ffmpeg
@@ -192,6 +214,7 @@ fontconfig
 ```
 
 ### Optional Dependencies
+
 ```txt
 docker@20.10+ (for containerization)
 pexels-api-wrapper (for background search)
@@ -200,6 +223,7 @@ pexels-api-wrapper (for background search)
 ## API Documentation
 
 ### Request Example
+
 ```json
 {
   "surahNumber": 36,
@@ -207,12 +231,13 @@ pexels-api-wrapper (for background search)
   "endVerse": 12,
   "color": "#FF5733",
   "useCustomBackground": true,
-  "videoNumber": "pexels:desert sunset",
+  "videoNumber": "1",
   "edition": "ar.husary",
   "size": 24,
   "crop": "horizontal"
 }
 ```
+
 ## Guidelines for Contributions
 
 - Ensure that your changes are well-documented, especially for any new features or APIs.
