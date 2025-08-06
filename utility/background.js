@@ -3,7 +3,8 @@ import ffmpeg from "fluent-ffmpeg";
 import youtubedl from "youtube-dl-exec";
 import path from 'path';
 import axios from 'axios';
-
+import dotenv from 'dotenv';
+dotenv.config();
 export async function getBackgroundPath(newBackground, videoNumber, len,crop) {
   const backgroundVideoPath = "Data/Background_Video/";
   const backgroundVideos = ["CarDrive.mp4"];
@@ -79,6 +80,9 @@ async function createBackgroundFromImage(imagePath, len,crop) {
 }
 async function downloadVideoFromPexels(query, length,crop) {
   const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
+  if( !PEXELS_API_KEY) {
+    throw new Error("PEXELS_API_KEY is not set in environment variables.");
+  }
   try {
     const searchResponse = await axios.get(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=1`, {
       headers: { Authorization: PEXELS_API_KEY }
@@ -113,7 +117,8 @@ async function downloadVideoFromPexels(query, length,crop) {
     return finalPath;
 
   } catch (error) {
-    console.error('Pexels Error:', error);
+    console.error('Pexels Error Message:', error.message);
+    console.error('Full Error:', error.response?.data || error);
     throw new Error('Failed to download from Pexels');
   }
 }
@@ -177,7 +182,7 @@ function createBackgroundVideo(videoPath, len, crop) {
       .duration(len)
       .noAudio()
       .videoCodec("libx264");
-
+      
     // Get video metadata to handle different orientations
     command.ffprobe((err, data) => {
       if (err) return reject(err);
@@ -207,7 +212,7 @@ function createBackgroundVideo(videoPath, len, crop) {
           `crop=1080:1920`,
           'setsar=1:1'
         ];
-      } else if (crop === "horizontal") {
+      } else if (crop !== "horizontal") {
         // Horizontal source to horizontal output
         filters = [
           `scale=1920:1080:force_original_aspect_ratio=increase`,
