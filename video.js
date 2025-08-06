@@ -186,6 +186,7 @@ export async function generatePartialVideo(
       .audioFilters("aformat=sample_fmts=fltp:channel_layouts=stereo")
       .videoCodec("libx264")
       .outputOptions("-preset", "fast")
+      .outputOptions(['-map', '1:a:0'])
       .output(outputPath);
 
     // Add subtitles with proper timing handling
