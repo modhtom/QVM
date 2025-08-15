@@ -12,15 +12,12 @@
 <body>
   <div class="islamic-pattern"></div>
 
-  <!-- الصفحة: القائمة الرئيسية -->
   <div id="mainMenu" class="page active">
     <div class="container">
       <div class="header">
-        <div class="logo-container">
-          <h1 class="logo">QVM</h1>
-        </div>
+        <h1 class="logo">QVM</h1>
         <p class="arabic-subtitle">صانع فيديو القرآن الكريم</p>
-        <p class="arabic-subtitle" style="font-size: small;color: green;">GitHub <a href="https://github.com/modhtom/QVM" target="_blank" style="color: gold; font-size: small;">REPO</a><p>
+        <p class="arabic-subtitle" style="font-size: small;color: green;">GitHub <a href="https://github.com/modhtom/QVM" target="_blank" style="color: gold; font-size: small;">REPO</a></p>
       </div>
       <div class="nav-buttons">
         <div class="nav-btn" onclick="showPage('fullOptions')">
@@ -48,171 +45,49 @@
     </div>
   </div>
 
-  <!-- الصفحة: خيارات السورة الكاملة -->
   <div id="fullOptions" class="page">
-    <button class="back-btn" onclick="showPage('mainMenu')">
-      <span>←</span> العودة إلى القائمة
-    </button>
+    <button class="back-btn" onclick="showPage('mainMenu')"><span>←</span> العودة إلى القائمة</button>
     <div class="container">
-      <div class="header">
-        <h1 class="logo">سورة كاملة</h1>
-      </div>
+      <div class="header"><h1 class="logo">سورة كاملة</h1></div>
       <div class="nav-buttons">
-        <div class="nav-btn" onclick="showPage('fullForm')">
-          <div class="nav-btn-content">
-            <span class="nav-btn-icon">🎙️</span>
-            <div class="nav-btn-title">مكتبة التلاوة</div>
-            <div class="nav-btn-desc">استخدام مكتبة التلاوة المدمجة</div>
-          </div>
-        </div>
-        <div class="nav-btn" onclick="showPage('fullFormCustom')">
-          <div class="nav-btn-content">
-            <span class="nav-btn-icon">📁</span>
-            <div class="nav-btn-title">تلاوة مخصصة</div>
-            <div class="nav-btn-desc">رفع تلاوتك الخاصة</div>
-          </div>
-        </div>
+        <div class="nav-btn" onclick="showPage('fullForm')"><div class="nav-btn-content"><span class="nav-btn-icon">🎙️</span><div class="nav-btn-title">مكتبة التلاوة</div><div class="nav-btn-desc">استخدام مكتبة التلاوة المدمجة</div></div></div>
+        <div class="nav-btn" onclick="showPage('fullFormCustom')"><div class="nav-btn-content"><span class="nav-btn-icon">📁</span><div class="nav-btn-title">تلاوة مخصصة</div><div class="nav-btn-desc">رفع تلاوتك الخاصة</div></div></div>
       </div>
     </div>
   </div>
 
-  <!-- الصفحة: خيارات الآيات -->
   <div id="partOptions" class="page">
-    <button class="back-btn" onclick="showPage('mainMenu')">
-      <span>←</span> العودة إلى القائمة
-    </button>
+    <button class="back-btn" onclick="showPage('mainMenu')"><span>←</span> العودة إلى القائمة</button>
     <div class="container">
-      <div class="header">
-        <h1 class="logo">آيات</h1>
-        <p class="subtitle">إعدادات مجموعة الآيات</p>
-        <p class="arabic-subtitle">Verse Range Settings</p>
-      </div>
-      <div class="nav-buttons">
-        <div class="nav-btn" onclick="showPage('partForm')">
-          <div class="nav-btn-content">
-            <span class="nav-btn-icon">🎙️</span>
-            <div class="nav-btn-title">مكتبة التلاوة</div>
-            <div class="nav-btn-desc">استخدام مكتبة التلاوة المدمجة</div>
-          </div>
+        <div class="header"><h1 class="logo">آيات</h1></div>
+        <div class="nav-buttons">
+            <div class="nav-btn" onclick="showPage('partForm')"><div class="nav-btn-content"><span class="nav-btn-icon">🎙️</span><div class="nav-btn-title">مكتبة التلاوة</div><div class="nav-btn-desc">استخدام مكتبة التلاوة المدمجة</div></div></div>
+            <div class="nav-btn" onclick="showPage('partFormCustom')"><div class="nav-btn-content"><span class="nav-btn-icon">📁</span><div class="nav-btn-title">تلاوة مخصصة</div><div class="nav-btn-desc">رفع تلاوتك الخاصة</div></div></div>
         </div>
-        <div class="nav-btn" onclick="showPage('partFormCustom')">
-          <div class="nav-btn-content">
-            <span class="nav-btn-icon">📁</span>
-            <div class="nav-btn-title">تلاوة مخصصة</div>
-            <div class="nav-btn-desc">رفع تلاوتك الخاصة</div>
-          </div>
-        </div>
-      </div>
     </div>
-  </div>
+</div>
 
-  <!-- الصفحة: صوت خاص -->
-  <div id="fullFormCustom" class="page">
-  <button class="back-btn" onclick="showPage('fullOptions')">
-    <span>←</span> رجوع
-  </button>
-  <div class="container">
-    <div class="header">
-      <h1 class="logo">السورة الكاملة</h1>
-      <p class="subtitle">إعدادات الفيديو (تلاوة مخصصة)</p>
-    </div>
-    <div class="form-container">
-      <div class="form-grid">
-        <div class="form-section">
-          <h3>(optinal)إعدادات الفيديو</h3>
-          <div class="form-group">
-            <label for="fontColorFullCustom">لون النص</label>
-            <input type="color" id="fontColorFullCustom" value="#ffffff">
-          </div>
-          <div class="form-group">
-            <label for="fontSizeFullCustom">حجم الخط</label>
-            <input type="range" id="fontSizeFullCustom" min="1" max="72" value="10">
-            <span id="fontSizeValueFullCustom">10px</span>
-          </div>
-          <div class="form-group">
-            <label for="pexelsVideoFullCustom">فيديو خلفية (Pexels)</label>
-            <input type="text" id="pexelsVideoFullCustom" placeholder="أدخل كلمة مفتاحية أو رابط Pexels">
-          </div>
-          <div class="form-group">
-            <label for="imageLinkFullCustom">صورة خلفية</label>
-            <input type="text" id="imageLinkFullCustom" placeholder="أدخل رابط الصورة">
-          </div>
-          <div class="form-group">
-            <label for="youtubeLinkFullCustom">خلفية من YouTube</label>
-            <input type="text" id="youtubeLinkFullCustom" placeholder="أدخل رابط YouTube">
-          </div>
-        </div>
-        <div class="form-section">
-          <h3>إعدادات القرآن</h3>
-          <div class="form-group">
-            <label for="fullSurahNumberCustom">السورة</label>
-            <select id="fullSurahNumberCustom" class="form-control"></select>
-          </div>
-          <div class="form-group">
-            <label for="customAudioFull">رفع التلاوة المخصصة</label>
-            <input type="file" id="customAudioFull" accept="audio/*">
-          </div>
-          <div class="checkbox-group">
-            <input type="checkbox" id="verticalVideoFullCustom">
-            <label for="verticalVideoFullCustom">فيديو عمودي (9:16)</label>
-          </div>
-          <button class="action-btn create-btn">إنشاء الفيديو</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- الصفحة: نموذج السورة الكاملة -->
   <div id="fullForm" class="page">
-    <button class="back-btn" onclick="showPage('fullOptions')">
-      <span>←</span> رجوع
-    </button>
+    <button class="back-btn" onclick="showPage('fullOptions')"><span>←</span> رجوع</button>
     <div class="container">
-      <div class="header">
-        <h1 class="logo">السورة الكاملة</h1>
-        <p class="subtitle">إعدادات الفيديو للسورة</p>
-      </div>
+      <div class="header"><h1 class="logo">السورة الكاملة (مكتبة)</h1></div>
       <div class="form-container">
         <div class="form-grid">
           <div class="form-section">
-            <h3>إعدادات الفيديو(optinal)</h3>
-            <div class="form-group">
-              <label for="fontColor">لون النص</label>
-              <input type="color" id="fontColor" value="#ffffff">
-            </div>
-            <div class="form-group">
-              <label for="fontSize">حجم الخط</label>
-              <input type="range" id="fontSize" min="1" max="72" value="10">
-              <span id="fontSizeValue">10px</span>
-            </div>
-            <div class="form-group">
-              <label for="pexelsVideo">فيديو خلفية (Pexels)</label>
-              <input type="text" id="pexelsVideo" placeholder="أدخل كلمة مفتاحية أو رابط Pexels">
-            </div>
-            <div class="form-group">
-              <label for="imageLink">صورة خلفية</label>
-              <input type="text" id="imageLink" placeholder="أدخل رابط الصورة">
-            </div>
-            <div class="form-group">
-              <label for="youtubeLink">خلفية من YouTube</label>
-              <input type="text" id="youtubeLink" placeholder="أدخل رابط YouTube">
-            </div>
+            <h3>إعدادات الفيديو</h3>
+            <div class="form-group"><label for="fontColor">لون النص</label><input type="color" id="fontColor" value="#ffffff"></div>
+            <div class="form-group"><label for="fontSize">حجم الخط</label><input type="range" id="fontSize" min="1" max="72" value="10"><span id="fontSizeValue">10px</span></div>
+            <div class="form-group"><label for="fontNameFull">الخط</label><select id="fontNameFull" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="translationEditionFull">الترجمة</label><select id="translationEditionFull" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
+            <div class="form-group"><label for="pexelsVideo">خلفية Pexels</label><input type="text" id="pexelsVideo" placeholder="أدخل كلمة مفتاحية"></div>
+            <div class="form-group"><label for="imageLink">خلفية صورة</label><input type="text" id="imageLink" placeholder="أدخل رابط الصورة"></div>
+            <div class="form-group"><label for="youtubeLink">خلفية YouTube</label><input type="text" id="youtubeLink" placeholder="أدخل رابط YouTube"></div>
           </div>
           <div class="form-section">
             <h3>إعدادات القرآن</h3>
-            <div class="form-group">
-              <label for="fullSurahNumber">السورة</label>
-              <select id="fullSurahNumber" class="form-control"></select>
-            </div>
-            <div class="form-group">
-              <label for="fullEdition">القارئ</label>
-              <select id="fullEdition" class="form-control"></select>
-            </div>
-            <div class="checkbox-group">
-              <input type="checkbox" id="verticalVideoFull">
-              <label for="verticalVideoFull">فيديو عمودي (9:16)</label>
-            </div>
+            <div class="form-group"><label for="fullSurahNumber">السورة</label><select id="fullSurahNumber" class="form-control"></select></div>
+            <div class="form-group"><label for="fullEdition">القارئ</label><select id="fullEdition" class="form-control"></select></div>
+            <div class="checkbox-group"><input type="checkbox" id="verticalVideoFull"><label for="verticalVideoFull">فيديو عمودي (9:16)</label></div>
             <button class="action-btn create-btn">إنشاء الفيديو</button>
           </div>
         </div>
@@ -220,63 +95,29 @@
     </div>
   </div>
 
-  <!-- الصفحة: نموذج الآيات -->
   <div id="partForm" class="page">
-    <button class="back-btn" onclick="showPage('partOptions')">
-      <span>←</span> رجوع
-    </button>
+    <button class="back-btn" onclick="showPage('partOptions')"><span>←</span> رجوع</button>
     <div class="container">
-      <div class="header">
-        <h1 class="logo">جزء من السورة</h1>
-        <p class="subtitle">إعدادات الفديو</p>
-      </div>
+      <div class="header"><h1 class="logo">آيات (مكتبة)</h1></div>
       <div class="form-container">
         <div class="form-grid">
           <div class="form-section">
-            <h3>إعدادات الفيديو(optinal)</h3>
-            <div class="form-group">
-              <label for="fontColorPart">لون النص</label>
-              <input type="color" id="fontColorPart" value="#ffffff">
-            </div>
-            <div class="form-group">
-              <label for="fontSizePart">حجم الخط</label>
-              <input type="range" id="fontSizePart" min="1" max="72" value="10">
-              <span id="fontSizeValuePart">10px</span>
-            </div>
-            <div class="form-group">
-              <label for="pexelsVideoPart">فيديو خلفية (Pexels)</label>
-              <input type="text" id="pexelsVideoPart" placeholder="أدخل كلمة مفتاحية أو رابط Pexels">
-            </div>
-            <div class="form-group">
-              <label for="imageLinkPart">صورة خلفية</label>
-              <input type="text" id="imageLinkPart" placeholder="أدخل رابط الصورة">
-            </div>
-            <div class="form-group">
-              <label for="youtubeLinkPart">خلفية من YouTube</label>
-              <input type="text" id="youtubeLinkPart" placeholder="أدخل رابط YouTube">
-            </div>
+            <h3>إعدادات الفيديو</h3>
+            <div class="form-group"><label for="fontColorPart">لون النص</label><input type="color" id="fontColorPart" value="#ffffff"></div>
+            <div class="form-group"><label for="fontSizePart">حجم الخط</label><input type="range" id="fontSizePart" min="1" max="72" value="10"><span id="fontSizeValuePart">10px</span></div>
+            <div class="form-group"><label for="fontNamePart">الخط</label><select id="fontNamePart" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="translationEditionPart">الترجمة</label><select id="translationEditionPart" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
+            <div class="form-group"><label for="pexelsVideoPart">خلفية Pexels</label><input type="text" id="pexelsVideoPart" placeholder="أدخل كلمة مفتاحية"></div>
+            <div class="form-group"><label for="imageLinkPart">خلفية صورة</label><input type="text" id="imageLinkPart" placeholder="أدخل رابط الصورة"></div>
+            <div class="form-group"><label for="youtubeLinkPart">خلفية YouTube</label><input type="text" id="youtubeLinkPart" placeholder="أدخل رابط YouTube"></div>
           </div>
           <div class="form-section">
             <h3>إعدادات القرآن</h3>
-            <div class="form-group">
-              <label for="surahNumber">السورة</label>
-              <select id="surahNumber" class="form-control"></select>
-            </div>
-            <div class="arabic-input">
-              <div class="arabic-label">آية البداية</div><input type="text" id="startVerse"
-                placeholder="رقم آية البداية">
-            </div>
-            <div class="arabic-input">
-              <div class="arabic-label">آية النهاية</div><input type="text" id="endVerse" placeholder="رقم آية النهاية">
-            </div>
-            <div class="form-group">
-              <label for="edition">القارئ</label>
-              <select id="edition" class="form-control"></select>
-            </div>
-            <div class="checkbox-group">
-              <input type="checkbox" id="verticalVideoPart">
-              <label for="verticalVideoPart">فيديو عمودي (9:16)</label>
-            </div>
+            <div class="form-group"><label for="surahNumber">السورة</label><select id="surahNumber" class="form-control"></select></div>
+            <div class="arabic-input"><div class="arabic-label">آية البداية</div><input type="text" id="startVerse" placeholder="رقم آية البداية"></div>
+            <div class="arabic-input"><div class="arabic-label">آية النهاية</div><input type="text" id="endVerse" placeholder="رقم آية النهاية"></div>
+            <div class="form-group"><label for="edition">القارئ</label><select id="edition" class="form-control"></select></div>
+            <div class="checkbox-group"><input type="checkbox" id="verticalVideoPart"><label for="verticalVideoPart">فيديو عمودي (9:16)</label></div>
             <button class="action-btn create-btn">إنشاء الفيديو</button>
           </div>
         </div>
@@ -284,101 +125,89 @@
     </div>
   </div>
 
-  <!-- الصفحة: صوت خاص -->
-  <div id="partFormCustom" class="page">
-    <button class="back-btn" onclick="showPage('partOptions')">
-      <span>←</span> رجوع
-    </button>
-    <div class="container">
-      <div class="header">
-        <h1 class="logo">جزء من السورة</h1>
-        <p class="subtitle">إعدادات الفيديو (تلاوة مخصصة)</p>
-      </div>
-      <div class="form-container">
-        <div class="form-grid">
-          <div class="form-section">
-            <h3>إعدادات الفيديو(optinal)</h3>
-            <div class="form-group">
-              <label for="fontColorPartCustom">لون النص</label>
-              <input type="color" id="fontColorPartCustom" value="#ffffff">
+    <div id="fullFormCustom" class="page">
+        <button class="back-btn" onclick="showPage('fullOptions')"><span>←</span> رجوع</button>
+        <div class="container">
+          <div class="header"><h1 class="logo">السورة الكاملة (مخصص)</h1></div>
+          <div class="form-container">
+            <div class="form-grid">
+              <div class="form-section">
+                <h3>إعدادات الفيديو</h3>
+                <div class="form-group"><label for="fontColorFullCustom">لون النص</label><input type="color" id="fontColorFullCustom" value="#ffffff"></div>
+                <div class="form-group"><label for="fontSizeFullCustom">حجم الخط</label><input type="range" id="fontSizeFullCustom" min="1" max="72" value="10"><span id="fontSizeValueFullCustom">10px</span></div>
+                <div class="form-group"><label for="fontNameFullCustom">الخط</label><select id="fontNameFullCustom" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+                <div class="form-group"><label for="translationEditionFullCustom">الترجمة</label><select id="translationEditionFullCustom" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
+                <div class="form-group"><label for="pexelsVideoFullCustom">خلفية Pexels</label><input type="text" id="pexelsVideoFullCustom" placeholder="أدخل كلمة مفتاحية"></div>
+                <div class="form-group"><label for="imageLinkFullCustom">خلفية صورة</label><input type="text" id="imageLinkFullCustom" placeholder="أدخل رابط الصورة"></div>
+                <div class="form-group"><label for="youtubeLinkFullCustom">خلفية YouTube</label><input type="text" id="youtubeLinkFullCustom" placeholder="أدخل رابط YouTube"></div>
+              </div>
+              <div class="form-section">
+                <h3>إعدادات القرآن</h3>
+                <div class="form-group"><label for="fullSurahNumberCustom">السورة</label><select id="fullSurahNumberCustom" class="form-control"></select></div>
+                <div class="form-group"><label for="customAudioFull">رفع التلاوة</label><input type="file" id="customAudioFull" accept="audio/*"></div>
+                <div class="checkbox-group"><input type="checkbox" id="verticalVideoFullCustom"><label for="verticalVideoFullCustom">فيديو عمودي (9:16)</label></div>
+                <button class="action-btn create-btn">مزامنة الصوت</button>
+              </div>
             </div>
-            <div class="form-group">
-              <label for="fontSizePartCustom">حجم الخط</label>
-              <input type="range" id="fontSizePartCustom" min="1" max="72" value="10">
-              <span id="fontSizeValuePartCustom">10px</span>
-            </div>
-            <div class="form-group">
-              <label for="pexelsVideoPartCustom">فيديو خلفية (Pexels)</label>
-              <input type="text" id="pexelsVideoPartCustom" placeholder="أدخل كلمة مفتاحية أو رابط Pexels">
-            </div>
-            <div class="form-group">
-              <label for="imageLinkPartCustom">صورة خلفية</label>
-              <input type="text" id="imageLinkPartCustom" placeholder="أدخل رابط الصورة">
-            </div>
-            <div class="form-group">
-              <label for="youtubeLinkPartCustom">خلفية من YouTube</label>
-              <input type="text" id="youtubeLinkPartCustom" placeholder="أدخل رابط YouTube">
-            </div>
-          </div>
-          <div class="form-section">
-            <h3>إعدادات القرآن</h3>
-            <div class="form-group">
-              <label for="surahNumberCustom">السورة</label>
-              <select id="surahNumberCustom" class="form-control"></select>
-            </div>
-            <div class="arabic-input">
-              <div class="arabic-label">آية البداية</div>
-              <input type="text" id="startVerseCustom" placeholder="رقم آية البداية">
-            </div>
-            <div class="arabic-input">
-              <div class="arabic-label">آية النهاية</div>
-              <input type="text" id="endVerseCustom" placeholder="رقم آية النهاية">
-            </div>
-            <div class="form-group">
-              <label for="customAudioPart">رفع التلاوة المخصصة</label>
-              <input type="file" id="customAudioPart" accept="audio/*">
-            </div>
-            <div class="checkbox-group">
-              <input type="checkbox" id="verticalVideoPartCustom">
-              <label for="verticalVideoPartCustom">فيديو عمودي (9:16)</label>
-            </div>
-            <button class="action-btn create-btn">إنشاء الفيديو</button>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    
+      <div id="partFormCustom" class="page">
+        <button class="back-btn" onclick="showPage('partOptions')"><span>←</span> رجوع</button>
+        <div class="container">
+          <div class="header"><h1 class="logo">آيات (مخصص)</h1></div>
+          <div class="form-container">
+            <div class="form-grid">
+              <div class="form-section">
+                <h3>إعدادات الفيديو</h3>
+                <div class="form-group"><label for="fontColorPartCustom">لون النص</label><input type="color" id="fontColorPartCustom" value="#ffffff"></div>
+                <div class="form-group"><label for="fontSizePartCustom">حجم الخط</label><input type="range" id="fontSizePartCustom" min="1" max="72" value="10"><span id="fontSizeValuePartCustom">10px</span></div>
+                <div class="form-group"><label for="fontNamePartCustom">الخط</label><select id="fontNamePartCustom" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+                <div class="form-group"><label for="translationEditionPartCustom">الترجمة</label><select id="translationEditionPartCustom" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
+                <div class="form-group"><label for="pexelsVideoPartCustom">خلفية Pexels</label><input type="text" id="pexelsVideoPartCustom" placeholder="أدخل كلمة مفتاحية"></div>
+                <div class="form-group"><label for="imageLinkPartCustom">خلفية صورة</label><input type="text" id="imageLinkPartCustom" placeholder="أدخل رابط الصورة"></div>
+                <div class="form-group"><label for="youtubeLinkPartCustom">خلفية YouTube</label><input type="text" id="youtubeLinkPartCustom" placeholder="أدخل رابط YouTube"></div>
+              </div>
+              <div class="form-section">
+                <h3>إعدادات القرآن</h3>
+                <div class="form-group"><label for="surahNumberCustom">السورة</label><select id="surahNumberCustom" class="form-control"></select></div>
+                <div class="arabic-input"><div class="arabic-label">آية البداية</div><input type="text" id="startVerseCustom" placeholder="رقم آية البداية"></div>
+                <div class="arabic-input"><div class="arabic-label">آية النهاية</div><input type="text" id="endVerseCustom" placeholder="رقم آية النهاية"></div>
+                <div class="form-group"><label for="customAudioPart">رفع التلاوة</label><input type="file" id="customAudioPart" accept="audio/*"></div>
+                <div class="checkbox-group"><input type="checkbox" id="verticalVideoPartCustom"><label for="verticalVideoPartCustom">فيديو عمودي (9:16)</label></div>
+                <button class="action-btn create-btn">مزامنة الصوت</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
   <div id="tapToSyncPage" class="page">
-    <button class="back-btn" onclick="goBack()">
-      <span>←</span> رجوع
-    </button>
+    <button class="back-btn" onclick="goBack()"><span>←</span> رجوع</button>
     <div class="container">
       <div class="header">
         <h1 class="logo">مزامنة التلاوة</h1>
         <p class="subtitle">اضغط للمزامنة مع بداية كل آية</p>
       </div>
-      <div class="verse-display" id="currentVerseDisplay">
-        الرجاء البدء في التلاوة واضغط "مزامنة" عند بداية كل آية.
-      </div>
-      <audio id="syncAudioPlayer" controls style="width: 100%; max-width: 700px; margin-top: 20px;"></audio>
+      <div class="verse-display" id="currentVerseDisplay">...</div>
+      <div id="waveform"></div>
+      <audio id="syncAudioPlayer" style="display:none;"></audio>
       <div class="audio-controls">
+        <button id="playPauseBtn" class="control-btn"><i class="fas fa-play"></i></button>
+        <button id="stopBtn" class="control-btn"><i class="fas fa-stop"></i></button>
+
         <button id="markVerseBtn">مزامنة الآية</button>
         <button id="resetSyncBtn" style="background-color: #f44336;">إعادة الضبط</button>
       </div>
       <div id="syncStatus"></div>
-      <div id="syncProgress">
-        <div id="syncProgressBar"></div>
-      </div>
-      <button id="finishSyncBtn" class="action-btn create-btn" style="margin-top: 30px; display: none;">إنشاء الفيديو</button>
+      <div id="syncProgress"><div id="syncProgressBar"></div></div>
+      <button id="finishSyncBtn" class="action-btn create-btn" style="margin-top: 30px; display: none;">إنهاء و إنشاء الفيديو</button>
     </div>
   </div>
 
-    <!-- الصفحة: معاينة الفيديو -->
-    <div id="videoPreview" class="page">
-      <button class="back-btn" onclick="goBack()">
-        <span>←</span> رجوع
-      </button>
+  <div id="videoPreview" class="page">
+      <button class="back-btn" onclick="goBack()"><span>←</span> رجوع</button>
       <div class="container">
         <div class="header">
           <h1 class="logo">المعاينة</h1>
@@ -386,189 +215,57 @@
         </div>
         <div class="preview-container">
           <div class="preview-content">
-            <div class="video-frame">
-              <video id="previewVideo" controls controlsList="nodownload">
-                <source src="" type="video/mp4">
-                متصفحك لا يدعم عنصر الفيديو.
-              </video>
-            </div>
+            <div class="video-frame"><video id="previewVideo" controls controlsList="nodownload"></video></div>
             <div class="preview-actions">
-              <button class="download-btn" onclick="downloadCurrentVideo()">
-                <i class="fas fa-download"></i> تحميل الفيديو
-              </button>
-              <button class="share-btn" onclick="shareCurrentVideo()">
-                <i class="fas fa-share-alt"></i> مشاركة
-              </button>
+              <button class="download-btn" onclick="downloadCurrentVideo()"><i class="fas fa-download"></i> تحميل</button>
+              <button class="share-btn" onclick="shareCurrentVideo()"><i class="fas fa-share-alt"></i> مشاركة</button>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-  <!-- الصفحة: المعرض -->
   <div id="gallery" class="page">
-    <button class="back-btn" onclick="goBack()">
-      <span>←</span> رجوع
-    </button>
-    <div class="gallery-grid" id="gallery-grid">
-      <!-- ستُعرض مقاطعك هنا -->
-    </div>
+    <button class="back-btn" onclick="goBack()"><span>←</span> رجوع</button>
+    <div class="gallery-grid" id="gallery-grid"></div>
   </div>
 
+  <script src="https://unpkg.com/wavesurfer.js"></script>
   <script type="module" src="js/main.js"></script>
-
   <script>
     let previousPage = '';
-
     window.showPage = function (pageId, from = '') {
       const current = document.querySelector('.page.active');
-      if (current && from) previousPage = from;
-      else if (current) previousPage = current.id;
-
+      if (current) previousPage = from || current.id;
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-
       setTimeout(() => document.getElementById(pageId).classList.add('active'), 150);
     };
+    window.goBack = () => showPage(previousPage || 'mainMenu');
 
-    window.goBack = function () {
-      showPage(previousPage || 'mainMenu');
-    };
-
-    document.getElementById('fontSize').addEventListener('input', e => {
-      document.getElementById('fontSizeValue').textContent = e.target.value + 'px';
-    });
-    document.getElementById('fontSizePart').addEventListener('input', e => {
-      document.getElementById('fontSizeValuePart').textContent = e.target.value + 'px';
-    });
+    document.getElementById('fontSize').addEventListener('input', e => { document.getElementById('fontSizeValue').textContent = e.target.value + 'px'; });
+    document.getElementById('fontSizePart').addEventListener('input', e => { document.getElementById('fontSizeValuePart').textContent = e.target.value + 'px'; });
 
     function downloadCurrentVideo() {
       const videoElement = document.getElementById('previewVideo');
       const fileName = videoElement.getAttribute('data-filename');
-      
-      if (!fileName) {
-        alert('لا يوجد فيديو متاح للتحميل');
-        return;
-      }
-      
-      const downloadUrl = `/videos/${fileName}?download=true`;
+      if (!fileName) return alert('لا يوجد فيديو متاح للتحميل');
       const a = document.createElement('a');
-      a.href = downloadUrl;
+      a.href = `/videos/${fileName}?download=true`;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     }
     function shareCurrentVideo() {
-      const videoUrl = document.getElementById('previewVideo').src;
-      const videoName = document.querySelector('.subtitle').textContent;
-      
-      // Create share menu
-      const shareMenu = `
-        <div class="share-modal">
-          <div class="share-header">
-            <h3>مشاركة الفيديو</h3>
-            <button class="close-share">&times;</button>
-          </div>
-          <div class="share-platforms">
-            <button class="share-option" data-platform="whatsapp">
-              <i class="fab fa-whatsapp"></i> واتساب
-            </button>
-            <button class="share-option" data-platform="tiktok">
-              <i class="fab fa-tiktok"></i> تيك توك
-            </button>
-            <button class="share-option" data-platform="instagram">
-              <i class="fab fa-instagram"></i> إنستغرام
-            </button>
-            <button class="share-option" data-platform="youtube">
-              <i class="fab fa-youtube"></i> يوتيوب
-            </button>
-            <button class="share-option" data-platform="link">
-              <i class="fas fa-link"></i> نسخ الرابط
-            </button>
-          </div>
-        </div>
-      `;
-      
-      // Add to DOM
-      const modalContainer = document.createElement('div');
-      modalContainer.id = 'share-modal-container';
-      modalContainer.innerHTML = shareMenu;
-      document.body.appendChild(modalContainer);
-      
-      // Add event listeners
-      document.querySelectorAll('.share-option').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const platform = btn.dataset.platform;
-          handleShare(platform, videoUrl, videoName);
-        });
-      });
-      
-      // Close button
-      document.querySelector('.close-share').addEventListener('click', () => {
-        document.body.removeChild(modalContainer);
-      });
+        const videoElement = document.getElementById('previewVideo');
+        const videoName = videoElement.getAttribute('data-filename');
+        if (navigator.share) {
+            navigator.share({ title: 'Quran Video', text: 'شاهد هذا الفيديو للقرآن الكريم', url: window.location.origin + `/videos/${videoName}` }).catch(console.error);
+        } else {
+            navigator.clipboard.writeText(window.location.origin + `/videos/${videoName}`);
+            alert('تم نسخ رابط الفيديو!');
+        }
     }
-
-    function handleShare(platform, url, title) {
-      const encodedUrl = encodeURIComponent(url);
-      const text = encodeURIComponent(`شاهد هذا الفيديو: ${title}`);
-
-      switch(platform) {
-        case 'whatsapp':
-          window.open(`https://wa.me/?text=${text}%0A${encodedUrl}`, '_blank');
-          break;
-        case 'tiktok':
-          // TikTok doesn't have direct share, use copy instead
-          navigator.clipboard.writeText(url);
-          alert('تم نسخ رابط الفيديو! الصقه في تيك توك');
-          break;
-        case 'instagram':
-          // Instagram doesn't allow direct sharing from web
-          alert('افتح تطبيق إنستغرام والصق الرابط في قصتك');
-          navigator.clipboard.writeText(url);
-          break;
-        case 'youtube':
-          window.open(`https://www.youtube.com/share?url=${encodedUrl}`, '_blank');
-          break;
-        case 'link':
-          navigator.clipboard.writeText(url);
-          alert('تم نسخ رابط الفيديو: ' + url);
-          break;
-      }
-      
-      // Close modal
-      document.getElementById('share-modal-container')?.remove();
-    }
-
-    document.querySelectorAll('.action-btn, .download-btn, .share-btn').forEach(button => {
-      button.addEventListener('click', function (e) {
-        const ripple = document.createElement('span');
-        const rect = this.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = e.clientX - rect.left - size / 2;
-        const y = e.clientY - rect.top - size / 2;
-        ripple.style.cssText = `
-          position: absolute;
-          width: ${size}px;
-          height: ${size}px;
-          left: ${x}px; top: ${y}px;
-          border-radius:50%;
-          background: rgba(255,255,255,0.4);
-          transform: scale(0);
-          animation: ripple 0.6s linear;
-        `;
-        this.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 600);
-      });
-    });
-
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes ripple { to { transform: scale(4); opacity: 0; } }
-      .action-btn, .download-btn, .share-btn { position: relative; overflow: hidden; }
-    `;
-    document.head.appendChild(style);
   </script>
 </body>
-
 </html>

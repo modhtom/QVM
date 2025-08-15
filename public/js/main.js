@@ -3,6 +3,7 @@ import { handleFullVideoSubmit } from "./fullVideo.js";
 import { loadVideos } from "./videos.js";
 import { surahs } from "./data/surahs.js";
 import { editions } from "./data/editions.js";
+let waveSurfer;
 
 window.tempVideoFormData = {};
 
@@ -148,26 +149,83 @@ async function initTapToSync(audioFile, surahNum, startV, endV, edition) {
   currentSurahNumber = surahNum;
   currentStartVerse = startV;
   currentEndVerse = endV;
-  currentEdition = edition; 
+  currentEdition = edition;
 
   audioPlayer = document.getElementById('syncAudioPlayer');
-  audioPlayer.src = URL.createObjectURL(customAudioFile);
-  audioPlayer.load();
+  if (!audioPlayer) {
+    console.error("Fatal Error: Audio player element '#syncAudioPlayer' not found.");
+    alert("An error occurred. Could not find the audio player on the page.");
+    return;
+  }
+
+  if (waveSurfer) {
+    waveSurfer.destroy();
+  }
+
+  waveSurfer = WaveSurfer.create({
+    container: '#waveform',
+    waveColor: 'gold',
+    progressColor: 'purple',
+    barWidth: 3,
+    barRadius: 3,
+    height: 128,
+    media: audioPlayer, // Link WaveSurfer directly to the audio element
+  });
+
+  const audioUrl = URL.createObjectURL(customAudioFile);
+  waveSurfer.load(audioUrl);
+  audioPlayer.src = audioUrl;
 
   const fetchedVerses = await getVerseText(surahNum, startV, endV);
   if (fetchedVerses.length === 0) {
-    alert("فشل في تحميل نصوص الآيات للمزامنة. يرجى المحاولة مرة أخرى.");
-    showPage(window.previousPage); 
+    alert("Failed to load verse texts for synchronization. Please try again.");
+    showPage(window.previousPage);
     return;
   }
+  
   currentVersesText = fetchedVerses;
   currentVerseIndex = 0;
   verseTimings = [];
-  document.getElementById('syncStatus').textContent = `الآية 1 من ${currentVersesText.length}`;
+  document.getElementById('syncStatus').textContent = `Verse 1 of ${currentVersesText.length}`;
   document.getElementById('syncProgressBar').style.width = '0%';
+  document.getElementById('markVerseBtn').disabled = false;
   document.getElementById('finishSyncBtn').style.display = 'none';
+  
   displayCurrentVerse();
-  window.showPage('tapToSyncPage', window.previousPage); 
+  window.showPage('tapToSyncPage');
+}
+
+async function updateStaticPreview() {
+    const previewContainer = document.getElementById('static-preview-container');
+    const previewImage = document.getElementById('static-preview-image');
+    previewImage.style.opacity = '0.5'; // Indicate loading
+
+    const payload = {
+        surahNumber: document.getElementById("surahNumber").value,
+        startVerse: document.getElementById("startVerse").value || 1,
+        color: document.getElementById("fontColorPart").value,
+        fontName: document.getElementById("fontName").value,
+        size: document.getElementById("fontSizePart").value,
+        background: document.getElementById("pexelsVideoPart")?.value || document.getElementById("imageLinkPart")?.value,
+        translationEdition: document.getElementById("translationEdition").value
+    };
+
+    try {
+        const response = await fetch('/generate-preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('Failed to generate preview');
+        
+        const data = await response.json();
+        previewImage.src = data.previewPath + `?t=${new Date().getTime()}`;
+        previewImage.style.opacity = '1';
+    } catch (error) {
+        console.error("Preview Error:", error);
+        previewImage.style.opacity = '1';
+    }
 }
 
 function displayCurrentVerse() {
@@ -184,10 +242,10 @@ function displayCurrentVerse() {
 
 function markVerse() {
   if (currentVerseIndex >= currentVersesText.length) {
-    return; 
+    return;
   }
 
-  const currentTime = audioPlayer.currentTime; 
+  const currentTime = audioPlayer.currentTime;
 
   if (verseTimings.length > 0 && currentVerseIndex > 0) {
     verseTimings[currentVerseIndex - 1].end = currentTime;
@@ -209,7 +267,7 @@ function markVerse() {
     document.getElementById('finishSyncBtn').style.display = 'block';
     
     document.getElementById('syncProgressBar').style.width = '100%';
-    document.getElementById('syncStatus').textContent = 'اكتملت المزامنة!';  
+    document.getElementById('syncStatus').textContent = 'اكتملت المزامنة!';
   }
 }
 
@@ -227,15 +285,15 @@ function resetSync() {
 
 async function finishSyncAndGenerateVideo() {
   if (verseTimings.length > 0 && verseTimings[verseTimings.length - 1].end === null) {
-      verseTimings[verseTimings.length - 1].end = audioPlayer.duration; 
+      verseTimings[verseTimings.length - 1].end = audioPlayer.duration;
   }
 
   const { isFullSurah, surahNumber, startVerse, endVerse, edition, color, size, useCustomBackground, videoNumber, crop } = window.tempVideoFormData;
   
   if (isFullSurah) {
     handleFullVideoSubmit({
-        preventDefault: () => {}, 
-        detail: { 
+        preventDefault: () => {},
+        detail: {
             customAudioFile: customAudioFile,
             userVerseTimings: verseTimings,
             surahNumber: surahNumber,
@@ -250,14 +308,14 @@ async function finishSyncAndGenerateVideo() {
     });
   } else {
     handlePartialVideoSubmit({
-        preventDefault: () => {}, 
-        detail: { 
+        preventDefault: () => {},
+        detail: {
             customAudioFile: customAudioFile,
             userVerseTimings: verseTimings,
             surahNumber: surahNumber,
             startVerse: startVerse,
             endVerse: endVerse,
-            edition: edition, 
+            edition: edition,
             color: color,
             size: size,
             useCustomBackground: useCustomBackground,
@@ -294,7 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.tempVideoFormData = {
           isFullSurah: true,
           surahNumber: document.getElementById("fullSurahNumberCustom").value,
-          edition: "quran-simple", 
+          edition: "quran-simple",
           color: document.getElementById("fontColorFullCustom").value,
           size: document.getElementById("fontSizeFullCustom").value,
           useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
@@ -345,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
       initTapToSync(customAudio, window.tempVideoFormData.surahNumber, window.tempVideoFormData.startVerse, window.tempVideoFormData.endVerse, window.tempVideoFormData.edition);
     });
   }
-   if (fullFormBtn) {
+  if (fullFormBtn) {
     fullFormBtn.addEventListener('click', (e) => {
       e.preventDefault();
       console.log("FULL (Built-in Audio)");
@@ -372,6 +430,23 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('markVerseBtn')?.addEventListener('click', markVerse);
   document.getElementById('resetSyncBtn')?.addEventListener('click', resetSync);
   document.getElementById('finishSyncBtn')?.addEventListener('click', finishSyncAndGenerateVideo);
+
+  document.getElementById('fontName')?.addEventListener('change', updateStaticPreview);
+  document.getElementById('fontColorPart')?.addEventListener('input', updateStaticPreview);
+  document.getElementById('fontSizePart')?.addEventListener('input', updateStaticPreview);
+  document.getElementById('pexelsVideoPart')?.addEventListener('blur', updateStaticPreview); // blur = when user clicks away
+  
+  document.getElementById('playPauseBtn')?.addEventListener('click', () => {
+    if (waveSurfer) {
+      waveSurfer.playPause();
+    }
+  });
+
+  document.getElementById('stopBtn')?.addEventListener('click', () => {
+    if (waveSurfer) {
+      waveSurfer.stop(); // Stops and rewinds to the beginning
+    }
+  });
 
   addProgressBar();
   connectToProgressUpdates();

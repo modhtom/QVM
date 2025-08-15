@@ -5,6 +5,9 @@ export async function handlePartialVideoSubmit(e) {
   let customAudioFile = null;
   let userVerseTimings = null;
 
+  const fontName = document.getElementById("fontNamePart").value;
+  const translationEdition = document.getElementById("translationEditionPart").value;
+
   // Check if this call is coming from the Tap-to-Sync flow
   if (e.detail && e.detail.customAudioFile) {
     formData = {
@@ -16,6 +19,8 @@ export async function handlePartialVideoSubmit(e) {
       size: e.detail.size,
       useCustomBackground: e.detail.useCustomBackground,
       videoNumber: e.detail.videoNumber,
+      fontName,
+      translationEdition,
       crop: e.detail.crop,
     };
     customAudioFile = e.detail.customAudioFile;
@@ -54,7 +59,9 @@ export async function handlePartialVideoSubmit(e) {
       removeFilesAfterCreation: true,
       videoNumber: videoData,
       size,
-      crop
+      crop,
+      fontName,
+      translationEdition
     };
   }
 
