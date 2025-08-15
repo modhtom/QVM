@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import multer from "multer";
 import {getSurahDataRange} from './utility/data.js'
+import { getBackgroundPath } from "./utility/background.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -107,7 +108,10 @@ app.post("/generate-partial-video", async (req, res) => {
     size,
     crop,
     customAudioPath,
-    userVerseTimings 
+    userVerseTimings,
+    fontName,
+    translationEdition,
+    transliterationEdition
   } = req.body;
 
   try {
@@ -123,11 +127,14 @@ app.post("/generate-partial-video", async (req, res) => {
       size,
       crop,
       customAudioPath || null,
+      fontName || 'Tasees Regular',
+      translationEdition,
+      transliterationEdition,
       (progress) => {
         console.log("Partial video progress:", progress);
         progressEmitter.emit('progress', progress);
       },
-      userVerseTimings 
+      userVerseTimings
     );
     console.log("Partial video generated at:", vidPath);
     res.status(200).json({
@@ -150,7 +157,10 @@ app.post("/generate-full-video", async (req, res) => {
     size,
     crop,
     customAudioPath,
-    userVerseTimings 
+    userVerseTimings,
+    fontName,
+    translationEdition,
+    transliterationEdition
   } = req.body;
   try {
     const vidPath = await generateFullVideo(
@@ -163,11 +173,14 @@ app.post("/generate-full-video", async (req, res) => {
       size,
       crop,
       customAudioPath  || null,
+      fontName || 'Tasees Regular',
+      translationEdition,
+      transliterationEdition,
       (progress) => {
         console.log("Full video progress:", progress);
         progressEmitter.emit('progress', progress);
       },
-      userVerseTimings 
+      userVerseTimings
     );
     res.status(200).json({
       message: "Full video generation completed successfully.",
@@ -191,11 +204,13 @@ app.get('/api/surah-verses-text', async (req, res) => {
       parseInt(surahNumber),
       parseInt(startVerse),
       parseInt(endVerse),
-      null,
-      "quran-simple", 
-      true 
+      null, // reciterEdition (not needed)
+      "quran-simple", // textEdition
+      null, // translationEdition (not needed)
+      null, // transliterationEdition (not needed)
+      true // textOnly
     );
-    const verses = combinedText.split('\n').filter(Boolean); 
+    const verses = combinedText.split('\n').filter(Boolean);
     res.json({ verses });
   } catch (error) {
     console.error("Error fetching surah verses text:", error);

@@ -5,6 +5,10 @@ export async function handleFullVideoSubmit(e) {
   let customAudioFile = null;
   let userVerseTimings = null;
 
+  const fontName = document.getElementById("fontNameFull").value;
+  const translationEdition = document.getElementById("translationEditionFull").value;
+
+
   // Check if this call is coming from the Tap-to-Sync flow
   if (e.detail && e.detail.customAudioFile) {
     formData = {
@@ -15,9 +19,8 @@ export async function handleFullVideoSubmit(e) {
       useCustomBackground: e.detail.useCustomBackground,
       videoNumber: e.detail.videoNumber,
       crop: e.detail.crop,
-      // Add start/end verse if they were part of the tempVideoFormData
-      startVerse: e.detail.startVerse, 
-      endVerse: e.detail.endVerse 
+      fontName,
+      translationEdition
     };
     customAudioFile = e.detail.customAudioFile;
     userVerseTimings = e.detail.userVerseTimings;

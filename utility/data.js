@@ -3,9 +3,9 @@ import axios from "axios";
 import ffmpeg from "fluent-ffmpeg";
 import path from "path";
 import * as mm from "music-metadata";
-import NodeCache from "node-cache"; 
+import NodeCache from "node-cache";
 
-const audioCache = new NodeCache({ stdTTL: 60 * 60 }); 
+const audioCache = new NodeCache({ stdTTL: 60 * 60 });
 const textCache = new NodeCache({ stdTTL: 60 * 60 });
 
 export async function getSurahDataRange(
@@ -14,18 +14,24 @@ export async function getSurahDataRange(
   endVerse,
   reciterEdition,
   textEdition,
-  textOnly = false 
+  translationEdition = null,
+  transliterationEdition = null,
+  textOnly = false
 ) {
   const audioBuffers = [];
   const durationPerAyah = [];
   let combinedText = "";
+  let combinedTranslation = "";
+  let combinedTransliteration = "";
 
   for (let verse = startVerse; verse <= endVerse; verse++) {
-    const { audio, text, duration } = await getSurahData(
+    const { audio, text, duration, translation, transliteration } = await getSurahData(
       surahNumber,
       verse,
-      textOnly ? null : reciterEdition, 
+      textOnly ? null : reciterEdition,
       textEdition,
+      translationEdition,
+      transliterationEdition,
       textOnly
     );
     if (!textOnly && audio) {
@@ -35,13 +41,15 @@ export async function getSurahDataRange(
     if (text) {
       durationPerAyah.push(textOnly ? 1 : (duration || 0));
       combinedText += text + "\n";
+      if (translation) combinedTranslation += translation + "\n";
+      if (transliteration) combinedTransliteration += transliteration + "\n";
     } else {
       console.error(`No text found for Surah ${surahNumber}, Verse ${verse}`);
       durationPerAyah.push(defaultDuration);
     }
   }
 
-  return { audioBuffers, combinedText, durationPerAyah };
+  return { audioBuffers, combinedText, combinedTranslation, combinedTransliteration, durationPerAyah };
 }
 
 async function getSurahData(
@@ -49,6 +57,8 @@ async function getSurahData(
   verseNumber,
   reciterEdition,
   textEdition,
+  translationEdition,
+  transliterationEdition,
   textOnly = false
 ) {
   const cacheKey = `${surahNumber}-${verseNumber}`;
@@ -70,6 +80,8 @@ async function getSurahData(
   try {
     let audioBuffer = null;
     let duration = 0;
+    let translationText = null;
+    let transliterationText = null;
 
     if (!textOnly) {
       const response = await axios.get(
@@ -92,10 +104,27 @@ async function getSurahData(
     const text = textData.text;
     textCache.set(cacheKey, text);
 
+    if (translationEdition) {
+      const translationResponse = await axios.get(
+        `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${translationEdition}`
+      );
+      translationText = translationResponse.data.data.text;
+    }
+
+    if (transliterationEdition) {
+      const transliterationResponse = await axios.get(
+        `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${transliterationEdition}`
+      );
+      transliterationText = transliterationResponse.data.data.text;
+    }
+
+
     return {
       audio: audioBuffer,
       text: text,
-      duration: textOnly ? 1 : duration     
+      translation: translationText,
+      transliteration: transliterationText,
+      duration: textOnly ? 1 : duration
     };
   } catch (error) {
     console.error(
@@ -117,7 +146,7 @@ async function getAudioDurationFromBuffer(buffer) {
     const metadata = await mm.parseFile(tempFile);
     const duration = metadata.format.duration;
 
-    return Math.round(duration);
+    return duration || 0;
   } catch (error) {
     console.error("Error calculating audio duration:", error);
     return 0;
@@ -139,16 +168,27 @@ export async function partAudioAndText(
   endVerse,
   reciterEdition = "ar.alafasy",
   textEdition = "quran-simple",
+  translationEdition = null,
+  transliterationEdition = null
 ) {
+  console.log(`Fetching data for S${surahNumber}:${startVerse}-${endVerse}. Translation: ${translationEdition || 'None'}`);
 
-  const { audioBuffers, combinedText, durationPerAyah } =
-    await getSurahDataRange(
+  const {
+    audioBuffers,
+    combinedText,
+    combinedTranslation,
+    combinedTransliteration,
+    durationPerAyah
+  } = await getSurahDataRange(
       surahNumber,
       startVerse,
       endVerse,
       reciterEdition,
       textEdition,
+      translationEdition,
+      transliterationEdition
     );
+  console.log(`Received translation text: ${combinedTranslation ? 'Yes' : 'No'}`);
 
   if (audioBuffers.length) {
     const audioOutputDir = path.resolve("Data/audio");
@@ -212,6 +252,23 @@ export async function partAudioAndText(
       `Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`,
     );
     fs.writeFileSync(textOutputFile, combinedText, "utf-8");
+
+    if (combinedTranslation) {
+      const translationOutputFile = path.join(
+        textOutputDir,
+        `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`,
+      );
+      fs.writeFileSync(translationOutputFile, combinedTranslation, "utf-8");
+    }
+
+    if (combinedTransliteration) {
+        const transliterationOutputFile = path.join(
+          textOutputDir,
+          `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`,
+        );
+        fs.writeFileSync(transliterationOutputFile, combinedTransliteration, "utf-8");
+        console.log('Translation file saved to:', translationOutputFile);
+    }
 
     const durationsOutputFile = path.join(
       textOutputDir,
