@@ -2,6 +2,40 @@ import fs from "fs";
 import path from "path";
 
 const MAX_CHARS_PER_LINE = 70;
+
+function splitTextIntoChunks(text, maxLength) {
+    if (!text) return [];
+    const words = text.split(' ');
+    const chunks = [];
+    let currentChunk = "";
+
+    for (const word of words) {
+        if (currentChunk.length === 0) {
+            currentChunk = word;
+        } else if (currentChunk.length + word.length + 1 <= maxLength) {
+            currentChunk += " " + word;
+        } else {
+            chunks.push(currentChunk);
+            currentChunk = word;
+        }
+    }
+    if (currentChunk) {
+        chunks.push(currentChunk);
+    }
+    return chunks;
+}
+
+function buildFullLine(mainText, transliterationText, translationText, color, fontName, size) {
+    let line = `{\\c${color}\\an5\\q1\\bord2\\fn${fontName}}${mainText || ''}`;
+    if (transliterationText) {
+        line += `\\N{\\fs${size * 5}}${transliterationText}`;
+    }
+    if (translationText) {
+        line += `\\N{\\fs${size * 5}}${translationText}`;
+    }
+    return line;
+}
+
 export async function generateSubtitles(
     surahNumber,
     startVerse,
@@ -51,7 +85,14 @@ export async function generateSubtitles(
             for (let i = 0; i < textContent.length; i++) {
                 const startTime = userVerseTimings[i].start;
                 const endTime = userVerseTimings[i].end;
-                let fullLine = buildFullLine(textContent, transliterationContent, translationContent, hasTransliteration, hasTranslation, i, color, fontName, size);
+                let fullLine = buildFullLine(
+                    textContent[i],
+                    transliterationContent[i],
+                    translationContent[i],
+                    color,
+                    fontName,
+                    size
+                );
                 subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
             }
         } else {
@@ -64,28 +105,29 @@ export async function generateSubtitles(
             for (let i = 0; i < textContent.length; i++) {
                 const verseText = textContent[i];
                 const verseTranslation = translationContent[i] || '';
-                const totalDuration = durations[i].duration;
+                const verseTransliteration = transliterationContent[i] || '';
+                const totalDuration = durationPerAyah[i];
 
-                const startTime = userVerseTimings ? durations[i].start : currentTime;
+                const startTime = currentTime;
 
                 if (verseText.length > MAX_CHARS_PER_LINE) {
                     const textChunks = splitTextIntoChunks(verseText, MAX_CHARS_PER_LINE);
                     const translationChunks = splitTextIntoChunks(verseTranslation, MAX_CHARS_PER_LINE);
-                    const numChunks = textChunks.length;
+                    const numChunks = Math.max(textChunks.length, translationChunks.length);
                     const chunkDuration = totalDuration / numChunks;
 
                     for (let j = 0; j < numChunks; j++) {
                         const chunkStartTime = startTime + (j * chunkDuration);
                         const chunkEndTime = chunkStartTime + chunkDuration;
-                        const chunkText = textChunks[j];
+                        const chunkText = textChunks[j] || '';
                         const chunkTranslation = translationChunks[j] || '';
 
-                        const fullLine = buildFullLine(chunkText, '', chunkTranslation, false, true, color, fontName, size);
+                        const fullLine = buildFullLine(chunkText, '', chunkTranslation, color, fontName, size);
                         subtitles += `Dialogue: 0,${formatTime(chunkStartTime)},${formatTime(chunkEndTime)},Default,,0,0,0,,${fullLine}\n`;
                     }
                 } else {
                     const endTime = startTime + totalDuration;
-                    const fullLine = buildFullLine(verseText, '', verseTranslation, false, true, color, fontName, size);
+                    const fullLine = buildFullLine(verseText, verseTransliteration, verseTranslation, color, fontName, size);
                     subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
                 }
 
@@ -101,17 +143,6 @@ export async function generateSubtitles(
         console.error("Error generating styled subtitles:", error);
         throw error;
     }
-}
-
-function buildFullLine(textContent, transliterationContent, translationContent, hasTransliteration, hasTranslation, index, color, fontName, size) {
-    let line = `{\\c${color}\\an5\\q1\\bord2\\fn${fontName}}${textContent[index]}`;
-    if (hasTransliteration && transliterationContent[index]) {
-        line += `\\N{\\fs${size * 5}}${transliterationContent[index]}`;
-    }
-    if (hasTranslation && translationContent[index]) {
-        line += `\\N{\\fs${size * 5}}${translationContent[index]}`;
-    }
-    return line;
 }
 
 function formatTime(seconds) {
