@@ -97,7 +97,7 @@ export async function generatePartialVideo(
       .input(audioPath)
       .audioCodec("aac")
       .videoCodec("libx264")
-      .outputOptions("-preset", "fast")
+      .outputOptions("-preset", "ultrafast")
       .outputOptions(['-map', '1:a:0'])
       .complexFilter(`[0:v]${subtitleFilter}[v_out]`)
       .map('[v_out]')
