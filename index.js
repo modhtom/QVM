@@ -7,7 +7,6 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import multer from "multer";
 import {getSurahDataRange} from './utility/data.js'
-import { getBackgroundPath } from "./utility/background.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +14,36 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3001;
 const progressEmitter = new EventEmitter();
+
+const backgroundStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'Data/Background_Video/uploads';
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+const uploadBackground = multer({ storage: backgroundStorage });
+
+const audioStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = 'Data/audio/custom';
+    
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ audioStorage });
 
 app.use(cors());
 app.use(express.json());
@@ -218,22 +247,13 @@ app.get('/api/surah-verses-text', async (req, res) => {
   }
 });
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = 'Data/audio/custom';
-    
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+app.post('/upload-background', uploadBackground.single('backgroundFile'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('No file uploaded.');
   }
+  res.json({ backgroundPath: req.file.path });
 });
 
-const upload = multer({ storage });
 app.post('/upload-audio', upload.single('audio'), (req, res) => {
   if (!req.file) {
     return res.status(400).send('No audio uploaded.');

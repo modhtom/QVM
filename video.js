@@ -71,7 +71,7 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Processing audio', percent: 30 });
   const audioLen = await getAudioDuration(audioPath);
-  if (isNaN(audioLen)) {
+  if (isNaN(audioLen)) {  
     throw new Error("Audio length is not a number");
   }
 
