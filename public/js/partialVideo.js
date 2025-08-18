@@ -1,100 +1,103 @@
 export async function handlePartialVideoSubmit(e) {
   e.preventDefault();
+  console.log("handlePartialVideoSubmit triggered.");
 
-  let formData = {};
-  let customAudioFile = null;
-  let userVerseTimings = null;
+  const backgroundUploadInput = document.getElementById("backgroundUploadPart");
+  const customAudioFile = (e.detail && e.detail.customAudioFile) ? e.detail.customAudioFile : null;
+  let userVerseTimings = (e.detail && e.detail.userVerseTimings) ? e.detail.userVerseTimings : null;
 
-  const fontName = document.getElementById("fontNamePart").value;
-  const translationEdition = document.getElementById("translationEditionPart").value;
+  let uploadedBackgroundPath = null;
 
-  // Check if this call is coming from the Tap-to-Sync flow
-  if (e.detail && e.detail.customAudioFile) {
-    formData = {
-      surahNumber: e.detail.surahNumber,
-      startVerse: e.detail.startVerse,
-      endVerse: e.detail.endVerse,
-      edition: e.detail.edition,
-      color: e.detail.color,
-      size: e.detail.size,
-      useCustomBackground: e.detail.useCustomBackground,
-      videoNumber: e.detail.videoNumber,
-      fontName,
-      translationEdition,
-      crop: e.detail.crop,
-    };
-    customAudioFile = e.detail.customAudioFile;
-    userVerseTimings = e.detail.userVerseTimings;
+  if (backgroundUploadInput && backgroundUploadInput.files[0]) {
+    const backgroundFile = backgroundUploadInput.files[0];
+    const backgroundFormData = new FormData();
+    backgroundFormData.append('backgroundFile', backgroundFile);
+
+    try {
+      console.log("A background file is selected. Uploading...");
+      const uploadResponse = await fetch('/upload-background', {
+        method: 'POST',
+        body: backgroundFormData
+      });
+
+      if (!uploadResponse.ok) throw new Error('Background upload failed');
+      const uploadData = await uploadResponse.json();
+      uploadedBackgroundPath = uploadData.backgroundPath;
+      console.log("Background successfully uploaded. Path:", uploadedBackgroundPath);
+
+    } catch (error) {
+      alert(`Error uploading background: ${error.message}`);
+      return;
+    }
+  }
+
+  let formData;
+  if (customAudioFile) {
+    console.log("Custom audio flow detected.");
+    formData = { ...e.detail };
+    if (uploadedBackgroundPath) {
+      formData.videoNumber = uploadedBackgroundPath;
+      formData.useCustomBackground = true;
+    }
   } else {
+    console.log("Standard form flow detected.");
     const isVertical = document.getElementById("verticalVideoPart")?.checked;
-    const crop = isVertical ? "horizontal":"vertical";
+    
+    formData = {
+      surahNumber: document.getElementById("surahNumber").value,
+      startVerse: parseInt(document.getElementById("startVerse").value),
+      endVerse: parseInt(document.getElementById("endVerse").value),
+      edition: document.getElementById("edition").value,
+      color: document.getElementById("fontColorPart").value,
+      size: document.getElementById("fontSizePart").value,
+      fontName: document.getElementById("fontNamePart").value,
+      translationEdition: document.getElementById("translationEditionPart").value,
+      crop: isVertical ? "vertical" : "horizontal",
+      useCustomBackground: false, // Default
+      videoNumber: 1, // Default
+      removeFilesAfterCreation: true,
+    };
 
-    const surahNumber = document.getElementById("surahNumber").value;
-    const startVerse = parseInt(document.getElementById("startVerse").value);
-    const endVerse = parseInt(document.getElementById("endVerse").value);
-    const edition = document.getElementById("edition").value;
-    const color = document.getElementById("fontColorPart").value;
-    const size = document.getElementById("fontSizePart").value;
-
-    let videoData = 1;
     const pexelsQuery = document.getElementById("pexelsVideoPart")?.value;
     const imageUrl = document.getElementById("imageLinkPart")?.value;
     const youtubeUrl = document.getElementById("youtubeLinkPart")?.value;
 
-    if (pexelsQuery) {
-      videoData = `pexels:${pexelsQuery}`;
+    if (uploadedBackgroundPath) {
+      console.log("OVERRIDING DEFAULTS: Using uploaded background.");
+      formData.useCustomBackground = true;
+      formData.videoNumber = uploadedBackgroundPath;
+    } else if (pexelsQuery) {
+      console.log("OVERRIDING DEFAULTS: Using Pexels background.");
+      formData.useCustomBackground = true;
+      formData.videoNumber = `pexels:${pexelsQuery}`;
     } else if (imageUrl) {
-      videoData = imageUrl;
+      console.log("OVERRIDING DEFAULTS: Using Image URL background.");
+      formData.useCustomBackground = true;
+      formData.videoNumber = imageUrl;
     } else if (youtubeUrl) {
-      videoData = youtubeUrl;
+      console.log("OVERRIDING DEFAULTS: Using YouTube background.");
+      formData.useCustomBackground = true;
+      formData.videoNumber = youtubeUrl;
     }
-
-    formData = {
-      surahNumber,
-      startVerse,
-      endVerse,
-      edition,
-      color,
-      useCustomBackground: videoData !== 1,
-      removeFilesAfterCreation: true,
-      videoNumber: videoData,
-      size,
-      crop,
-      fontName,
-      translationEdition
-    };
   }
 
   try {
     let audioPath = null;
     if (customAudioFile) {
-      // Upload audio file if it's custom
       const audioFormData = new FormData();
       audioFormData.append('audio', customAudioFile);
-      
-      const uploadResponse = await fetch('/upload-audio', {
-        method: 'POST',
-        body: audioFormData
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload audio');
-      }
+      const uploadResponse = await fetch('/upload-audio', { method: 'POST', body: audioFormData });
+      if (!uploadResponse.ok) throw new Error('Failed to upload audio');
       const uploadData = await uploadResponse.json();
       audioPath = uploadData.audioPath;
     }
 
-    const requestBody = {
-      ...formData,
-      customAudioPath: audioPath,
-      userVerseTimings: userVerseTimings // Pass user-provided timings
-    };
-    console.log("Request body:", requestBody);
+    const requestBody = { ...formData, customAudioPath: audioPath, userVerseTimings };
+    console.log("Sending FINAL request to server with body:", requestBody);
+
     const response = await fetch("/generate-partial-video", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody),
     });
 
@@ -103,17 +106,12 @@ export async function handlePartialVideoSubmit(e) {
       const videoElement = document.getElementById("previewVideo");
       videoElement.src = `/videos/${data.vidPath}`;
       videoElement.setAttribute('data-filename', data.vidPath);
-      if (window.showPage) {
-        window.showPage("videoPreview");
-      } else {
-        console.error("showPage function not found");
-      }
+      window.showPage("videoPreview");
     } else {
-      throw new Error("Failed to generate video");
-      throw new Error("Failed to generate video");
+      const errorText = await response.text();
+      throw new Error(`Failed to generate video: ${errorText}`);
     }
   } catch (error) {
-    alert(`Error: ${error.message}`);
     alert(`Error: ${error.message}`);
   }
 }
