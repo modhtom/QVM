@@ -7,8 +7,8 @@ Quran Video Maker is a full-stack web application that enables users to create p
 ### 1\. Multi-Source Backgrounds
 
 - **Pexels API:** Search for high-quality videos by keywords.
-- **YouTube:** Use any YouTube video as a background.
-- **Custom Images:** Provide a URL to any image.
+- **YouTube:** Use any YouTube video as a background OR upload your own.
+- **Custom Images:** Provide a URL to any image OR upload your own.
 - **Default Library:** Use the built-in background video.
 
 ---
@@ -27,6 +27,7 @@ Quran Video Maker is a full-stack web application that enables users to create p
 - **Format Control:** Generate videos in both horizontal (16:9) and vertical (9:16) formats suitable for any platform.
 - **Automatic Verse Splitting:** Long verses are automatically broken into smaller, sequential chunks for improved readability.
 - **Real-time Progress:** Track the video creation process live from the browser.
+- **Automatic "Bismillah"** Automatically add "Bismillah" to the beginning of videos under the correct conditions.
 
 ---
 
