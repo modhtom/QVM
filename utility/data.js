@@ -24,6 +24,30 @@ export async function getSurahDataRange(
   let combinedTranslation = "";
   let combinedTransliteration = "";
 
+  if (startVerse !== 1 && surahNumber != 9) {
+    console.log("Prepending Bismillah...");
+
+    const bismillahData = await getSurahData(
+      1,
+      1,
+      textOnly ? null : reciterEdition,
+      textEdition,
+      translationEdition,
+      transliterationEdition,
+      textOnly
+    );
+
+    if (!textOnly && bismillahData.audio) {
+      audioBuffers.push({ verse: 0, audio: bismillahData.audio });
+    }
+    if (bismillahData.text) {
+      durationPerAyah.push(textOnly ? 2 : (bismillahData.duration || 2));
+      combinedText += bismillahData.text + "\n";
+      if (bismillahData.translation) combinedTranslation += bismillahData.translation + "\n";
+      if (bismillahData.transliteration) combinedTransliteration += bismillahData.transliteration + "\n";
+    }
+  }
+
   for (let verse = startVerse; verse <= endVerse; verse++) {
     const { audio, text, duration, translation, transliteration } = await getSurahData(
       surahNumber,
@@ -45,7 +69,7 @@ export async function getSurahDataRange(
       if (transliteration) combinedTransliteration += transliteration + "\n";
     } else {
       console.error(`No text found for Surah ${surahNumber}, Verse ${verse}`);
-      durationPerAyah.push(defaultDuration);
+      durationPerAyah.push(0); // Default duration if text is missing
     }
   }
 
@@ -61,102 +85,89 @@ async function getSurahData(
   transliterationEdition,
   textOnly = false
 ) {
-  const cacheKey = `${surahNumber}-${verseNumber}`;
+  const cacheKey = `${surahNumber}-${verseNumber}-${reciterEdition}-${textEdition}-${translationEdition}-${transliterationEdition}`;
   
-  if (textCache.has(cacheKey)) {
-    const cachedText = textCache.get(cacheKey);
-    
-    if (textOnly) {
-      return { audio: null, text: cachedText, duration: 0 };
-    }
-    
-    if (audioCache.has(cacheKey)) {
-      const cachedAudio = audioCache.get(cacheKey);
-      const duration = await getAudioDurationFromBuffer(cachedAudio);
-      return { audio: cachedAudio, text: cachedText, duration };
-    }
+  // Check cache first
+  const cachedData = textCache.get(cacheKey);
+  if (cachedData) {
+      if (textOnly) return { ...cachedData, audio: null, duration: 0 };
+      if (audioCache.has(cacheKey)) {
+          const cachedAudio = audioCache.get(cacheKey);
+          const duration = await getAudioDurationFromBuffer(cachedAudio);
+          return { ...cachedData, audio: cachedAudio, duration };
+      }
   }
 
   try {
     let audioBuffer = null;
     let duration = 0;
+    let text = null;
     let translationText = null;
     let transliterationText = null;
+    
+    const textEditionIdentifier = textEdition || 'quran-simple';
+    const editions = [textEditionIdentifier, translationEdition, transliterationEdition, reciterEdition].filter(Boolean).join(',');
+    const apiUrl = `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/editions/${editions}`;
 
-    if (!textOnly) {
-      const response = await axios.get(
-        `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${reciterEdition}`
-      );
-      const audioData = response.data.data;
-      const audioUrl = audioData.audio;
-      const audioContent = await axios.get(audioUrl, {
-        responseType: "arraybuffer",
-      });
-      audioBuffer = Buffer.from(audioContent.data, "binary");
-      audioCache.set(cacheKey, audioBuffer);
-      duration = await getAudioDurationFromBuffer(audioBuffer);
-    }
+    const response = await axios.get(apiUrl);
+    const ayahData = response.data.data;
 
-    const textResponse = await axios.get(
-      `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${textEdition}`
-    );
-    const textData = textResponse.data.data;
-    const text = textData.text;
-    textCache.set(cacheKey, text);
+    const textAyah = ayahData.find(a => a.edition.identifier === textEditionIdentifier);
+    if (textAyah) text = textAyah.text;
 
     if (translationEdition) {
-      const translationResponse = await axios.get(
-        `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${translationEdition}`
-      );
-      translationText = translationResponse.data.data.text;
+        const translationAyah = ayahData.find(a => a.edition.identifier === translationEdition);
+        if (translationAyah) translationText = translationAyah.text;
     }
 
     if (transliterationEdition) {
-      const transliterationResponse = await axios.get(
-        `http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${transliterationEdition}`
-      );
-      transliterationText = transliterationResponse.data.data.text;
+        const transliterationAyah = ayahData.find(a => a.edition.identifier === transliterationEdition);
+        if (transliterationAyah) transliterationText = transliterationAyah.text;
     }
-
+    
+    if (!textOnly && reciterEdition) {
+        const audioAyah = ayahData.find(a => a.edition.identifier === reciterEdition);
+        if (audioAyah && audioAyah.audio) {
+            const audioContent = await axios.get(audioAyah.audio, { responseType: "arraybuffer" });
+            audioBuffer = Buffer.from(audioContent.data, "binary");
+            duration = await getAudioDurationFromBuffer(audioBuffer);
+            audioCache.set(cacheKey, audioBuffer);
+        }
+    }
+    
+    const dataToCache = { text, translation: translationText, transliteration: transliterationText };
+    textCache.set(cacheKey, dataToCache);
 
     return {
       audio: audioBuffer,
-      text: text,
-      translation: translationText,
-      transliteration: transliterationText,
+      ...dataToCache,
       duration: textOnly ? 1 : duration
     };
   } catch (error) {
     console.error(
       `Failed to fetch data for Surah ${surahNumber}, Verse ${verseNumber}:`,
-      error
+      error.message
     );
-    return { audio: null, text: null, duration: 0 };
+    return { audio: null, text: null, translation: null, transliteration: null, duration: 0 };
   }
 }
 
 async function getAudioDurationFromBuffer(buffer) {
-  const audioDir = path.resolve("Data/audio");
-  fs.mkdirSync(audioDir, { recursive: true });
-  const tempFile = path.join(audioDir, `temp_audio_${Date.now()}.mp3`);
-
   try {
-    fs.writeFileSync(tempFile, buffer);
-
-    const metadata = await mm.parseFile(tempFile);
-    const duration = metadata.format.duration;
-
-    return duration || 0;
+    const metadata = await mm.parseBuffer(buffer, 'audio/mpeg');
+    return metadata.format.duration || 0;
   } catch (error) {
-    console.error("Error calculating audio duration:", error);
-    return 0;
-  } finally {
+    // Fallback for files that music-metadata struggles with
+    const tempFile = `temp_audio_${Date.now()}.mp3`;
+    fs.writeFileSync(tempFile, buffer);
     try {
-      if (fs.existsSync(tempFile)) {
+        const metadata = await mm.parseFile(tempFile);
         fs.unlinkSync(tempFile);
-      }
-    } catch (unlinkError) {
-      console.error(`Error deleting temporary file ${tempFile}:`, unlinkError);
+        return metadata.format.duration || 0;
+    } catch (fileError) {
+        if(fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+        console.error("Error calculating audio duration from buffer/file:", fileError);
+        return 0;
     }
   }
 }
@@ -188,7 +199,6 @@ export async function partAudioAndText(
       translationEdition,
       transliterationEdition
     );
-  console.log(`Received translation text: ${combinedTranslation ? 'Yes' : 'No'}`);
 
   if (audioBuffers.length) {
     const audioOutputDir = path.resolve("Data/audio");
@@ -199,48 +209,31 @@ export async function partAudioAndText(
     );
 
     const ffmpegCommand = ffmpeg();
+    const tempFiles = [];
     audioBuffers.forEach(({ audio }, index) => {
       const audioPath = path.join(
         audioOutputDir,
-        `temp_${surahNumber}_${index}.mp3`,
+        `temp_${surahNumber}_${startVerse}_${index}.mp3`,
       );
       fs.writeFileSync(audioPath, audio);
       ffmpegCommand.input(audioPath);
+      tempFiles.push(audioPath);
     });
 
-    ffmpegCommand
-      .mergeToFile(audioOutputFile)
-      .on("end", () => {
-        audioBuffers.forEach((_, index) => {
-          const tempPath = path.join(
-            audioOutputDir,
-            `temp_${surahNumber}_${index}.mp3`,
-          );
-          setTimeout(() => {
-            try {
-              if (fs.existsSync(tempPath)) {
-                fs.unlinkSync(tempPath);
-              }
-            } catch (error) {
-              console.error(
-                `Error deleting temporary file ${tempPath}:`,
-                error,
-              );
-            }
-          }, 500);
-        });
-      })
-      .on("error", (err) =>
-        console.error("Error during audio concatenation:", err),
-      );
-
-    await new Promise((resolve) => {
-      const checkAudioFile = setInterval(() => {
-        if (fs.existsSync(audioOutputFile)) {
-          clearInterval(checkAudioFile);
-          resolve();
-        }
-      }, 500);
+    await new Promise((resolve, reject) => {
+        ffmpegCommand
+          .mergeToFile(audioOutputFile)
+          .on("end", () => {
+            tempFiles.forEach(file => {
+                try { if (fs.existsSync(file)) fs.unlinkSync(file); }
+                catch (e) { console.error("Error deleting temp file:", e); }
+            });
+            resolve();
+          })
+          .on("error", (err) => {
+            console.error("Error during audio concatenation:", err);
+            reject(err);
+          });
     });
   }
 
@@ -267,7 +260,6 @@ export async function partAudioAndText(
           `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`,
         );
         fs.writeFileSync(transliterationOutputFile, combinedTransliteration, "utf-8");
-        console.log('Translation file saved to:', translationOutputFile);
     }
 
     const durationsOutputFile = path.join(
@@ -279,10 +271,5 @@ export async function partAudioAndText(
       JSON.stringify(durationPerAyah),
       "utf-8",
     );
-
-    return 1;
-  } else {
-    return -1;
   }
 }
-
