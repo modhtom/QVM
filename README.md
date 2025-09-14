@@ -45,12 +45,22 @@ Quran Video Maker is a full-stack web application that enables users to create p
 - **Download & Share:** Easily download videos or share them on social media.
 - **Automatic Cleanup:** An automated system removes old video files to save space.
 
+---
+
+### 6\. Robust Job Processing
+
+- **Background Job Queue:** Video generation requests are handled by a robust job queue powered by **BullMQ** and **Redis**. This prevents server overload from concurrent requests and ensures stable, one-by-one processing of resource-intensive tasks.
+- **Real-time Job Progress:** The frontend receives live updates on the job's progress directly from the queue.
+
+---
+
 ## System Requirements
 
 - Node.js v16+
 - FFmpeg v5+
 - FontConfig (for Arabic text rendering on the server)
-- Docker (Optional)
+- Redis v6+
+- Docker (Recommended for Redis)
 
 ## Installation
 
@@ -88,7 +98,27 @@ Quran Video Maker is a full-stack web application that enables users to create p
     - Download the required Arabic fonts (e.g., Tasees, Amiri).
     - Place the font files (`.ttf`) inside the new `fonts` directory.
 
-6.  **Start Server:**
+6.  **Start Redis:** The easiest method is with Docker.
+
+    ```bash
+    docker run --name qvm-redis -p 6379:6379 -d redis
+    ```
+
+7.  **Start Server & Worker:** Open two separate terminal windows.
+
+    In the first terminal, start the main web server:
+
+    ```bash
+    node index.js
+    ```
+
+    In the second terminal, start the video processing worker:
+
+    ```bash
+    node worker.js
+    ```
+
+8.  **Start Server:**
 
     ```bash
     node index.js
@@ -102,6 +132,8 @@ Quran Video Maker is a full-stack web application that enables users to create p
 docker build -t qvm .
 docker run -p 3001:3001 -v $(pwd)/Output_Video:/app/Output_Video -e PEXELS_API_KEY=your_key_here qvm
 ```
+
+_Note: The Docker setup will need to be updated to run the server and worker processes concurrently._
 
 ## Synchronization System
 
@@ -166,21 +198,21 @@ The following is an example of the JSON data sent to the server to generate a vi
 
 ## Processing Workflow
 
-1.  **Input Handling**: The system receives video parameters from the user, including the surah, verse range, and all styling options. It fetches the required Quranic text and audio data from the Al-Quran Cloud API.
-
-2.  **Media Processing**: The background is prepared (downloaded from Pexels/YouTube or loaded from the library), and the subtitle file is generated with precise timings.
+1.  **Job Creation**: The Express server receives video parameters, creates a job with this data, and adds it to the **video-queue** in Redis. It immediately responds to the user with a `jobId`.
+2.  **Background Processing**: The `worker.js` process, running independently, picks up the job from the queue. It fetches the required data from APIs, processes media, and generates the video using FFmpeg.
+3.  **Progress Tracking**: As the worker processes the job, it sends progress updates back to the queue. The frontend client can poll an endpoint using the `jobId` to get these real-time updates.
+4.  **Completion**: Once the video is rendered, the worker marks the job as complete. The user can then view and download the final video.
 
     ```mermaid
-    graph LR
-       A[Audio Input] --> B(Audio Processing);
-       C[Background Source] --> D(Video Processing);
-       B --> E(Subtitle & Timing Generation);
-       D --> E;
-       E --> F(FFmpeg Rendering);
-       F --> G[Output Video];
+    graph TD
+        A[User Request] --> B{Express Server};
+        B --> |1. Add Job| C[Redis Queue];
+        C --> |2. Pick up Job| D[Worker Process];
+        D --> |3. Process Video| E[FFmpeg Rendering];
+        E --> |4. Mark as Complete| C;
+        F[User's Browser] <-->|Poll for Status| B;
+        F -->|On Complete| G[Download Video];
     ```
-
-3.  **Output Generation**: **FFmpeg** renders the final video by combining the processed background, the recitation audio, and the styled subtitles. The output is a standard **MP4** file (`H.264`/`AAC`).
 
 ---
 
@@ -199,7 +231,7 @@ The following is an example of the JSON data sent to the server to generate a vi
 
 ## Requirements
 
-### Core Dependencies
+## Core Dependencies
 
 ```text
 express
@@ -210,6 +242,8 @@ music-metadata
 youtube-dl-exec
 cors
 multer
+bullmq
+ioredis
 ```
 
 ### Front-End Libraries
@@ -238,3 +272,4 @@ This project is licensed under the **MIT License**. See the `LICENSE` file for d
 - [Fluent-FFMPEG](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) for its powerful video manipulation library.
 - [Al-Quran Cloud API](http://alquran.cloud/) for providing comprehensive Quranic data.
 - [Pexels](https://www.pexels.com/) for its library of high-quality video content.
+- [BullMQ](https://bullmq.io/) for its robust and efficient job queue system.
