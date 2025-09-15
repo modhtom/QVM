@@ -7,6 +7,50 @@ let waveSurfer;
 
 window.tempVideoFormData = {};
 
+async function pollJobStatus(jobId) {
+  const progressContainer = document.getElementById('progress-container');
+  if (progressContainer) progressContainer.style.display = 'block';
+
+  const intervalId = setInterval(async () => {
+    try {
+      const response = await fetch(`/job-status/${jobId}`);
+      if (!response.ok) {
+        throw new Error('Could not get job status');
+      }
+      const job = await response.json();
+      
+      updateProgressBar({
+        step: job.progress?.step || job.state,
+        percent: job.progress?.percent || (job.state === 'completed' ? 100 : 0)
+      });
+
+      if (job.state === 'completed') {
+        clearInterval(intervalId);
+        console.log('Job completed:', job.result);
+        const videoElement = document.getElementById("previewVideo");
+        videoElement.src = `/videos/${job.result.vidPath}`;
+        videoElement.setAttribute('data-filename', job.result.vidPath);
+        window.showPage("videoPreview");
+        setTimeout(() => {
+          if (progressContainer) progressContainer.style.display = 'none';
+        }, 2000);
+      } else if (job.state === 'failed') {
+        clearInterval(intervalId);
+        alert(`Video generation failed: ${job.failedReason}`);
+        console.error('Job failed:', job.failedReason);
+        if (progressContainer) progressContainer.style.display = 'none';
+      }
+    } catch (error) {
+      clearInterval(intervalId);
+      console.error('Error polling job status:', error);
+      alert('Error checking video progress. Please check the gallery later.');
+      if (progressContainer) progressContainer.style.display = 'none';
+    }
+  }, 2000);
+}
+window.pollJobStatus = pollJobStatus;
+
+
 async function getVerseText(surahNumber, startVerse, endVerse) {
   try {
     const response = await fetch(`/api/surah-verses-text?surahNumber=${surahNumber}&startVerse=${startVerse}&endVerse=${endVerse}`);
@@ -77,17 +121,8 @@ function updateProgressBar(progress) {
     return;
   }
 
-  if (!progressContainer) {
-    console.error("Progress container not found!");
-    return;
-  }
-
   const progressFill = progressContainer.querySelector('.progress-fill');
   const progressText = progressContainer.querySelector('.progress-text');
-  if (!progressFill || !progressText) {
-    console.error("Progress elements missing!");
-    return;
-  }
   if (!progressFill || !progressText) {
     console.error("Progress elements missing!");
     return;
