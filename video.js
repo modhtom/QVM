@@ -1,10 +1,9 @@
 import axios from "axios";
 import ffmpeg from "fluent-ffmpeg";
-import { partAudioAndText } from "./utility/data.js";
+import { partAudioAndText, getSurahDataRange } from "./utility/data.js";
 import { getBackgroundPath } from "./utility/background.js";
 import { deleteVidData, deleteOldVideos } from "./utility/delete.js";
 import { generateSubtitles } from "./utility/subtitle.js";
-import {getSurahDataRange} from './utility/data.js'
 import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
@@ -48,7 +47,6 @@ export async function generatePartialVideo(
     durationsFile = result.durationsFile;
   } else {
     progressCallback({ step: 'Fetching audio and text', percent: 10 });
-    // FIX WAS HERE: Added translationEdition and transliterationEdition to this call
     const result = await fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition);
     audioPath = result.audioPath;
     textPath = result.textPath;
@@ -71,7 +69,7 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Processing audio', percent: 30 });
   const audioLen = await getAudioDuration(audioPath);
-  if (isNaN(audioLen)) {  
+  if (isNaN(audioLen)) {
     throw new Error("Audio length is not a number");
   }
 
@@ -98,9 +96,8 @@ export async function generatePartialVideo(
       .audioCodec("aac")
       .videoCodec("libx264")
       .outputOptions("-preset", "ultrafast")
-      .outputOptions(['-map', '1:a:0'])
-      .complexFilter(`[0:v]${subtitleFilter}[v_out]`)
-      .map('[v_out]')
+      .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
+      .complexFilter(subtitleFilter)
       .output(outputPath)
       .on('progress', (progress) => {
         const mappedProgress = 60 + (progress.percent * 0.3);
@@ -122,7 +119,7 @@ export async function generatePartialVideo(
   deleteOldVideos();
 
   progressCallback({ step: 'Complete', percent: 100 });
-  return outputPath;
+  return {vidPath: outputFileName};
 }
 
 async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition) {
@@ -165,14 +162,23 @@ async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEditi
   }
   return { textPath, durationsFile };
 }
-async function getEndVerse(surahNumber) {
-  try {
-    const response = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
-    return response.data?.data.numberOfAyahs || -1;
-  } catch (error) {
-    console.error("Error fetching end verse: ", error);
-    return -1;
+async function getEndVerse(surahNumber, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
+      if (response.data && response.data.data && response.data.data.numberOfAyahs) {
+        return response.data.data.numberOfAyahs;
+      }
+    } catch (error) {
+      console.error(`Error fetching end verse (Attempt ${i + 1}/${retries}):`, error.message);
+      if (i === retries - 1) {
+        console.error("All attempts to fetch surah data failed.");
+        return -1;
+      }
+      await new Promise(res => setTimeout(res, 3000));
+    }
   }
+  return -1;
 }
 
 const cssColorToASS = (cssColor) => {

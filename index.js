@@ -6,6 +6,8 @@ import { EventEmitter } from 'events';
 import { fileURLToPath } from "url";
 import cors from "cors";
 import multer from "multer";
+import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 import {getSurahDataRange} from './utility/data.js'
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,6 +47,16 @@ const audioStorage = multer.diskStorage({
 });
 const upload = multer({ audioStorage });
 
+const connection = new IORedis({
+  maxRetriesPerRequest: null,
+});
+const videoQueue = new Queue('video-queue', { connection });
+console.log('Server connected to video-queue.');
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.resolve(__dirname, "public")));
+
 app.use(cors());
 app.use(express.json());
 
@@ -53,6 +65,23 @@ app.use(express.static(path.resolve(__dirname, "public")));
 app.get("/", (req, res) => {
   res.sendFile(path.resolve(__dirname, "public/index.html"));
 });
+
+app.get('/job-status/:id', async (req, res) => {
+  const jobId = req.params.id;
+  const job = await videoQueue.getJob(jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  const state = await job.getState();
+  const progress = job.progress;
+  const result = job.returnvalue;
+  const failedReason = job.failedReason;
+
+  res.json({ id: job.id, state, progress, result, failedReason });
+});
+
 
 app.get('/progress', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -78,13 +107,12 @@ app.get("/api/videos", (req, res) => {
       return res.status(500).json({ error: 'Unable to read videos' });
     }
     // Filter for video files
-    const videoFiles = files.filter(file => 
+    const videoFiles = files.filter(file =>
       ['.mp4', '.mov', '.avi'].includes(path.extname(file).toLowerCase())
     );
     res.json({ videos: videoFiles });
   });
 });
-
 app.use("/videos", express.static(path.resolve(__dirname, "Output_Video")));
 
 app.get("/video-preview/:video", (req, res) => {
@@ -122,103 +150,24 @@ app.get("/videos/:video", (req, res) => {
 });
 
 app.post("/generate-partial-video", async (req, res) => {
-
-  console.log("Incoming request body:", req.body);
-
-  const {
-    surahNumber,
-    startVerse,
-    endVerse,
-    removeFilesAfterCreation,
-    color,
-    useCustomBackground,
-    videoNumber,
-    edition,
-    size,
-    crop,
-    customAudioPath,
-    userVerseTimings,
-    fontName,
-    translationEdition,
-    transliterationEdition
-  } = req.body;
-
+  console.log("Received request for partial video. Adding to queue...");
   try {
-    const vidPath = await generatePartialVideo(
-      surahNumber,
-      startVerse,
-      endVerse,
-      removeFilesAfterCreation,
-      color,
-      useCustomBackground,
-      videoNumber,
-      edition,
-      size,
-      crop,
-      customAudioPath || null,
-      fontName || 'Tasees Regular',
-      translationEdition,
-      transliterationEdition,
-      (progress) => {
-        console.log("Partial video progress:", progress);
-        progressEmitter.emit('progress', progress);
-      },
-      userVerseTimings
-    );
-    console.log("Partial video generated at:", vidPath);
-    res.status(200).json({
-      message: "Partial video generation completed successfully.",
-      vidPath: path.basename(vidPath),
-    });
+    const job = await videoQueue.add('process-video', { type: 'partial', videoData: req.body });
+    res.status(202).json({ message: "Video generation has been queued.", jobId: job.id });
   } catch (error) {
-    console.error("Error generating partial video:", error);
-    res.status(500).send("Failed to generate partial video.");
+    console.error("Error adding partial video job to queue:", error);
+    res.status(500).send("Failed to queue video generation.");
   }
 });
+
 app.post("/generate-full-video", async (req, res) => {
-  const {
-    surahNumber,
-    edition,
-    color,
-    useCustomBackground,
-    removeFilesAfterCreation,
-    videoNumber,
-    size,
-    crop,
-    customAudioPath,
-    userVerseTimings,
-    fontName,
-    translationEdition,
-    transliterationEdition
-  } = req.body;
+  console.log("Received request for full video. Adding to queue...");
   try {
-    const vidPath = await generateFullVideo(
-      surahNumber,
-      removeFilesAfterCreation,
-      color,
-      useCustomBackground,
-      videoNumber,
-      edition,
-      size,
-      crop,
-      customAudioPath  || null,
-      fontName || 'Tasees Regular',
-      translationEdition,
-      transliterationEdition,
-      (progress) => {
-        console.log("Full video progress:", progress);
-        progressEmitter.emit('progress', progress);
-      },
-      userVerseTimings
-    );
-    res.status(200).json({
-      message: "Full video generation completed successfully.",
-      vidPath:path.basename(vidPath),
-      vidPath:path.basename(vidPath),
-    });
+    const job = await videoQueue.add('process-video', { type: 'full', videoData: req.body });
+    res.status(202).json({ message: "Video generation has been queued.", jobId: job.id });
   } catch (error) {
-    console.error("Error generating full video:", error);
-    res.status(500).send("Failed to generate full video.");
+    console.error("Error adding full video job to queue:", error);
+    res.status(500).send("Failed to queue video generation.");
   }
 });
 
