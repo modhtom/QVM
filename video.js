@@ -2,13 +2,22 @@ import axios from "axios";
 import ffmpeg from "fluent-ffmpeg";
 import { partAudioAndText, getSurahDataRange } from "./utility/data.js";
 import { getBackgroundPath } from "./utility/background.js";
-import { deleteVidData, deleteOldVideos } from "./utility/delete.js";
+import { deleteVidData, deleteOldVideosAndTempFiles } from "./utility/delete.js";
 import { generateSubtitles } from "./utility/subtitle.js";
 import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
+import os from 'os';
 
 const fontPosition = "1920,1080";
+
+function getHardwareEncoder() {
+  const platform = os.platform();
+  if (platform === 'darwin') { // For macOS
+    return 'h264_videotoolbox';
+  }
+  return 'libx264'; // Default for Windows and Linux
+}
 
 export async function generateFullVideo(
   surahNumber, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition,
@@ -16,6 +25,9 @@ export async function generateFullVideo(
   userVerseTimings = null
 ) {
   const endVerse = await getEndVerse(surahNumber);
+  if (endVerse === -1) {
+    throw new Error(`Could not retrieve data for Surah ${surahNumber}. The API might be down or the Surah number is invalid.`);
+  }
   progressCallback({ step: 'Starting full video generation', percent: 0 });
   return generatePartialVideo(
     surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings
@@ -28,16 +40,20 @@ export async function generatePartialVideo(
   userVerseTimings = null
 ) {
   console.log("MAKING A VIDEO");
-  if (!surahNumber || !startVerse || !endVerse) {
-    throw new Error("Missing required parameters");
-  }
   progressCallback({ step: 'Starting video generation', percent: 0 });
-  const limit = await getEndVerse(surahNumber);
-  if (endVerse > limit) endVerse = limit;
-  if (!color) color = "#ffffff";
-  if (!crop) crop = "vertical";
 
+  const limit = await getEndVerse(surahNumber);
+  if (limit === -1) {
+    throw new Error(`Could not get Surah data for S${surahNumber}. The API might be down or the Surah number is invalid.`);
+  }
+  
+  if (!surahNumber || !startVerse || !endVerse) throw new Error("Missing required parameters: Surah or verse numbers.");
+  if (endVerse > limit) endVerse = limit;
+  color = color || "#ffffff";
+  crop = crop || "vertical";
+  
   let audioPath, textPath, durationsFile;
+
   if (customAudioPath) {
     audioPath = customAudioPath;
     progressCallback({ step: 'Using custom audio', percent: 10 });
@@ -58,7 +74,7 @@ export async function generatePartialVideo(
     const checkAudioFile = setInterval(() => {
       if (++attempts > 60) {
         clearInterval(checkAudioFile);
-        return reject(new Error("Audio file creation timed out"));
+        return reject(new Error("Audio file creation timed out. This often happens if the Quran API fails to provide audio data."));
       }
       if (fs.existsSync(audioPath) && fs.statSync(audioPath).size > 0) {
         clearInterval(checkAudioFile);
@@ -69,8 +85,8 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Processing audio', percent: 30 });
   const audioLen = await getAudioDuration(audioPath);
-  if (isNaN(audioLen)) {
-    throw new Error("Audio length is not a number");
+  if (isNaN(audioLen) || audioLen <= 0) {
+    throw new Error("Could not determine audio length or audio length is zero.");
   }
 
   progressCallback({ step: 'Preparing background video', percent: 40 });
@@ -83,25 +99,34 @@ export async function generatePartialVideo(
 
   const outputDir = path.resolve("Output_Video");
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-  const outputFileName = `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}.mp4`;
+  const outputFileName = `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}_${Date.now()}.mp4`;
   const outputPath = path.join(outputDir, outputFileName);
-  if (!fs.existsSync(subPath)) throw new Error("Subtitle file missing");
+
+  if (!fs.existsSync(subPath)) throw new Error("Critical error: Subtitle file was not created.");
+
+  const encoder = getHardwareEncoder();
+  console.log(`Using encoder: ${encoder}`);
 
   progressCallback({ step: 'Rendering final video', percent: 60 });
   await new Promise((resolve, reject) => {
     const subtitleFilter = `subtitles='${subPath.replace(/\\/g, '/').replace(/'/g, "'\\''")}':force_style='Fontname=${fontName},Encoding=1'`;
-    ffmpeg()
+    
+    const command = ffmpeg()
       .input(backgroundPath)
       .input(audioPath)
       .audioCodec("aac")
-      .videoCodec("libx264")
-      .outputOptions("-preset", "ultrafast")
+      .videoCodec(encoder)
       .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
-      .complexFilter(subtitleFilter)
-      .output(outputPath)
-      .on('progress', (progress) => {
+      .videoFilter(subtitleFilter)
+      .output(outputPath);
+
+    if (encoder === 'libx264') {
+      command.outputOptions("-preset", "veryfast");
+    }
+      
+    command.on('progress', (progress) => {
         const mappedProgress = 60 + (progress.percent * 0.3);
-        progressCallback({ step: 'Rendering video', percent: Math.min(90, mappedProgress) });
+        progressCallback({ step: `Rendering: ${Math.round(progress.percent || 0)}%`, percent: Math.min(90, mappedProgress) });
       })
       .on("end", () => {
         console.log("Video created successfully.");
@@ -109,14 +134,33 @@ export async function generatePartialVideo(
       })
       .on("error", (err, stdout, stderr) => {
         console.error("Error processing video: ", stderr);
-        reject(new Error(stderr));
+        if (encoder !== 'libx264') {
+          console.log('Hardware encoding failed. Retrying with software encoder (libx264)...');
+          progressCallback({ step: 'Retrying with software...', percent: 60 });
+          
+          const softwareCommand = ffmpeg()
+            .input(backgroundPath)
+            .input(audioPath)
+            .audioCodec("aac")
+            .videoCodec("libx264")
+            .outputOptions("-preset", "veryfast")
+            .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
+            .videoFilter(subtitleFilter)
+            .output(outputPath)
+            .on('end', resolve)
+            .on('error', (err, stdout, stderr) => reject(new Error(stderr)));
+
+          softwareCommand.run();
+        } else {
+          reject(new Error(stderr));
+        }
       })
       .run();
   });
   
   progressCallback({ step: 'Cleaning up', percent: 98 });
   deleteVidData(removeFiles, audioPath, textPath, backgroundPath, durationsFile, subPath, customAudioPath);
-  deleteOldVideos();
+  deleteOldVideosAndTempFiles();
 
   progressCallback({ step: 'Complete', percent: 100 });
   return {vidPath: outputFileName};
@@ -162,20 +206,22 @@ async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEditi
   }
   return { textPath, durationsFile };
 }
+
 async function getEndVerse(surahNumber, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       const response = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
+
       if (response.data && response.data.data && response.data.data.numberOfAyahs) {
         return response.data.data.numberOfAyahs;
       }
     } catch (error) {
-      console.error(`Error fetching end verse (Attempt ${i + 1}/${retries}):`, error.message);
+      console.error(`Error fetching end verse (Attempt ${i + 1}/${retries}): ${error.message}`);
       if (i === retries - 1) {
         console.error("All attempts to fetch surah data failed.");
         return -1;
       }
-      await new Promise(res => setTimeout(res, 3000));
+      await new Promise(res => setTimeout(res, 1000));
     }
   }
   return -1;
