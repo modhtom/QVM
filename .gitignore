@@ -2,6 +2,8 @@ Data/Background_Video/*
 Data/audio/*
 Data/subtitles/*
 Data/text/*
+Data/temp/*
 node_modules
+.vscode/*
 Output_Video/*
 .env

@@ -14,14 +14,14 @@ const worker = new Worker('video-queue', async (job) => {
   const { type, videoData } = job.data;
 
   try {
-    let finalPath;
+    let result;
     const progressCallback = (progress) => {
       job.updateProgress(progress);
       console.log(`Job ${job.id} progress: ${progress.percent}% - ${progress.step}`);
     };
 
     if (type === 'partial') {
-      finalPath = await generatePartialVideo(
+      result = await generatePartialVideo(
         videoData.surahNumber,
         videoData.startVerse,
         videoData.endVerse,
@@ -40,7 +40,7 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.userVerseTimings
       );
     } else if (type === 'full') {
-      finalPath = await generateFullVideo(
+      result = await generateFullVideo(
         videoData.surahNumber,
         videoData.removeFilesAfterCreation,
         videoData.color,
@@ -60,8 +60,8 @@ const worker = new Worker('video-queue', async (job) => {
       throw new Error('Unknown job type');
     }
 
-    console.log(`Job ${job.id} completed successfully. Video at: ${finalPath}`);
-    return { videoPath: finalPath };
+    console.log(`Job ${job.id} completed successfully. Video at: ${result.vidPath}`);
+    return result;
 
   } catch (error) {
     console.error(`Job ${job.id} failed:`, error);

@@ -8,7 +8,7 @@ export function deleteVidData(
     backgroundPath,
     durationsFile,
     subFile,
-    customAudioPath  
+    customAudioPath
   ) {
     if (removeFiles) {
       try {
@@ -60,19 +60,21 @@ export function deleteVidData(
     }
   }
   
-export function deleteOldVideos() {
+export function deleteOldVideosAndTempFiles() {
     const videoFolder = "Output_Video/";
-    const threshold = 24 * 60 * 60 ; // 24 hours
+    const tempFolder = "Data/temp/";
+    const videoThreshold = 24 * 60 * 60 ; // 24 hours
+    const tempThreshold = 2 ; // 2 seconds
     const currentTime = Date.now();
-  
-    readdir(videoFolder, (err, files) => {
+    
+    readdir(tempFolder, (err, files) => {
       if (err) return console.log("Error reading directory", err);
       files.forEach((file) => {
-        const filePath = join(videoFolder, file);
+        const filePath = join(tempFolder, file);
         stat(filePath, (err, stats) => {
           if (err) return console.log("Error getting file stats", err);
           const age = currentTime - stats.ctimeMs;
-          if (age > threshold) {
+          if (age > tempThreshold) {
             unlink(filePath, (err) => {
               if (err) console.log("Error deleting file", err);
               else console.log(`Deleted: ${filePath}`);
@@ -81,5 +83,21 @@ export function deleteOldVideos() {
         });
       });
     });
-  }
-  
+
+    readdir(videoFolder, (err, files) => {
+      if (err) return console.log("Error reading directory", err);
+      files.forEach((file) => {
+        const filePath = join(videoFolder, file);
+        stat(filePath, (err, stats) => {
+          if (err) return console.log("Error getting file stats", err);
+          const age = currentTime - stats.ctimeMs;
+          if (age > videoThreshold) {
+            unlink(filePath, (err) => {
+              if (err) console.log("Error deleting file", err);
+              else console.log(`Deleted: ${filePath}`);
+            });
+          }
+        });
+      });
+    });
+}
