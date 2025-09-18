@@ -10,7 +10,7 @@ export function deleteVidData(
     subFile,
     customAudioPath
   ) {
-    if (removeFiles) {
+    //if (removeFiles) {
       try {
         if (fs.existsSync(audioPath)) {
           unlink(audioPath, (err) => {
@@ -57,7 +57,7 @@ export function deleteVidData(
       } catch (err) {
         console.error("Error deleting files:", err);
       }
-    }
+    //}
   }
   
 export function deleteOldVideosAndTempFiles() {
