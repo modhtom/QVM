@@ -7,3 +7,4 @@ node_modules
 .vscode/*
 Output_Video/*
 .env
+Data/temp_images/*

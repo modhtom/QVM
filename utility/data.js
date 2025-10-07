@@ -37,8 +37,7 @@ export async function getSurahDataRange(
   transliterationEdition = null,
   textOnly = false
 ) {
-  if (startVerse === 1 && surahNumber !== 1 && surahNumber !== 9) {
-      console.log("Prepending Bismillah...");
+  if (surahNumber !== "1" && surahNumber !== "9") {
       const bismillahData = await getSurahData(1, 1, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly, true);
       const mainData = await fetchRange(surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly);
       

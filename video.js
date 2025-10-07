@@ -84,18 +84,20 @@ export async function generatePartialVideo(
   });
 
   progressCallback({ step: 'Processing audio', percent: 30 });
-  const audioLen = await getAudioDuration(audioPath);
+  let audioLen = await getAudioDuration(audioPath);
+  audioLen = Math.ceil(audioLen || 0) + 1; // safety margin
   if (isNaN(audioLen) || audioLen <= 0) {
     throw new Error("Could not determine audio length or audio length is zero.");
   }
 
   progressCallback({ step: 'Preparing background video', percent: 40 });
-  const backgroundPath = await getBackgroundPath(useCustomBackground, videoNumber || 1, audioLen, crop);
+  const verseInfo = { surahNumber, startVerse, endVerse, translationEdition };
+  const backgroundPath = await getBackgroundPath(useCustomBackground, videoNumber || 1, audioLen, crop, verseInfo);
 
   progressCallback({ step: 'Generating subtitles', percent: 50 });
   const subPath = `Data/subtitles/Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`;
   const aColor = cssColorToASS(color);
-  await generateSubtitles(surahNumber, startVerse, endVerse, aColor, fontPosition, fontName, size, customAudioPath || audioPath, userVerseTimings);
+  await generateSubtitles(surahNumber, startVerse, endVerse, aColor, fontPosition, fontName, size, audioLen, customAudioPath || audioPath, userVerseTimings);
 
   const outputDir = path.resolve("Output_Video");
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -144,7 +146,17 @@ export async function generatePartialVideo(
             .audioCodec("aac")
             .videoCodec("libx264")
             .outputOptions("-preset", "veryfast")
-            .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
+            .outputOptions([
+              '-map 0:v:0',
+              '-map 1:a:0',
+              '-fflags +genpts',
+              '-avoid_negative_ts make_zero'
+            ])
+            .outputOptions([
+              "-shortest",
+              "-avoid_negative_ts make_zero",
+              "-fflags +genpts"
+            ])
             .videoFilter(subtitleFilter)
             .output(outputPath)
             .on('end', resolve)
@@ -159,7 +171,10 @@ export async function generatePartialVideo(
   });
   
   progressCallback({ step: 'Cleaning up', percent: 98 });
-  deleteVidData(removeFiles, audioPath, textPath, backgroundPath, durationsFile, subPath, customAudioPath);
+  try {
+    deleteVidData(removeFiles, audioPath, textPath, null, durationsFile, null, customAudioPath);
+  } catch(e){ console.warn('deleteVidData failed (non-fatal):', e.message); }
+
   deleteOldVideosAndTempFiles();
 
   progressCallback({ step: 'Complete', percent: 100 });
