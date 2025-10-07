@@ -100,10 +100,10 @@ function addProgressBar() {
 
   progressContainer.innerHTML = `
     <div class="progress-wrapper">
-      <h4>Generating Video</h4>
+      <h4>انتاج الفديو</h4>
       <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden">
         <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%"></div>
-      <h4>Generating Video</h4>
+      <h4>انتاج الفديو</h4>
       <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden">
         <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%"></div>
       </div>

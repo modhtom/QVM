@@ -6,10 +6,11 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ### 1\. Multi-Source Backgrounds
 
+- **AI-Generated Default:** When no background is selected, the application analyzes the meaning of the selected verses and automatically creates a beautiful video slideshow from relevant, high-quality images sourced from Unsplash.
+  > NOTE:Surah themes and verse context are commented out for now will be fully added soon
 - **Pexels API:** Search for high-quality videos by keywords.
 - **YouTube:** Use any YouTube video as a background OR upload your own.
 - **Custom Images:** Provide a URL to any image OR upload your own.
-- **Default Library:** Use the built-in background video.
 
 ---
 
@@ -86,10 +87,11 @@ Quran Video Maker is a full-stack web application that enables users to create p
     npm install
     ```
 
-4.  **Configure Environment:** Create a `.env` file in the root directory and add your Pexels API key.
+4.  **Configure Environment:** Create a `.env` file in the root directory and add your Pexels API key and UNSPLASH ACCESS KEY.
 
     ```bash
-    echo "PEXELS_API_KEY=your_key_here" >> .env
+    PEXELS_API_KEY=your_pexels_key_here
+    UNSPLASH_ACCESS_KEY=your_unsplash_access_key_here
     ```
 
 5.  **Install Fonts:**
@@ -116,12 +118,6 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
     ```bash
     node worker.js
-    ```
-
-8.  **Start Server:**
-
-    ```bash
-    node index.js
     ```
 
 ---

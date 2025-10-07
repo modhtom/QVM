@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import * as mm from "music-metadata";
 
 const MAX_CHARS_PER_LINE = 70;
 
@@ -44,6 +45,7 @@ export async function generateSubtitles(
     position,
     fontName,
     size,
+    audioLen = null,
     audioPath = null,
     userVerseTimings = null
 ) {
@@ -67,24 +69,28 @@ export async function generateSubtitles(
         const translationContent = hasTranslation ? fs.readFileSync(translationFilePath, "utf-8").split("\n").filter(Boolean) : [];
         const transliterationContent = hasTransliteration ? fs.readFileSync(transliterationFilePath, "utf-8").split("\n").filter(Boolean) : [];
 
+        // Ensure we have audio length; if not provided, try to read it from audioPath
+        if ((!audioLen || isNaN(audioLen) || audioLen <= 0) && audioPath && fs.existsSync(audioPath)) {
+            try {
+                const meta = await mm.parseFile(audioPath);
+                audioLen = Math.ceil(meta.format.duration || 0);
+            } catch (e) {
+                console.warn("Could not read audio metadata in subtitles generator:", e.message);
+                audioLen = null;
+            }
+        }
+
         let pos = position.split(',');
         
-        let subtitles = `[Script Info]
-                        ScriptType: v4.00+
-                        PlayResX: ${pos[0]}
-                        PlayResY: ${pos[1]}
-
-                        [V4+ Styles]
-                        Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-                        Style: Default,${fontName},${size * 8},${color},&H0300FFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1
-
-                        [Events]
-                        Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
+        let subtitles = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${pos[0]}\nPlayResY: ${pos[1]}\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,${fontName},${size * 8},${color},&H0300FFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
 
         if (userVerseTimings && userVerseTimings.length === textContent.length) {
             for (let i = 0; i < textContent.length; i++) {
                 const startTime = userVerseTimings[i].start;
-                const endTime = userVerseTimings[i].end;
+                let endTime = userVerseTimings[i].end;
+                if (i === textContent.length - 1 && audioLen) {
+                    endTime = Math.max(endTime, audioLen);
+                }
                 let fullLine = buildFullLine(
                     textContent[i],
                     transliterationContent[i],
@@ -99,7 +105,8 @@ export async function generateSubtitles(
             const durationPerAyah = JSON.parse(fs.readFileSync(durationsFilePath, "utf-8"));
             if (textContent.length !== durationPerAyah.length) {
                 console.error("Mismatch between texts and durations.");
-                return;
+                const avg = durationPerAyah.reduce((a,b)=>a+b,0)/durationPerAyah.length || 1;
+                while (durationPerAyah.length < textContent.length) durationPerAyah.push(avg);
             }
             let currentTime = 0;
             for (let i = 0; i < textContent.length; i++) {
@@ -118,7 +125,10 @@ export async function generateSubtitles(
 
                     for (let j = 0; j < numChunks; j++) {
                         const chunkStartTime = startTime + (j * chunkDuration);
-                        const chunkEndTime = chunkStartTime + chunkDuration;
+                        let chunkEndTime = chunkStartTime + chunkDuration;
+                        if (i === textContent.length - 1 && audioLen) {
+                            if (j === numChunks - 1) chunkEndTime = Math.max(chunkEndTime, audioLen);
+                        }
                         const chunkText = textChunks[j] || '';
                         const chunkTranslation = translationChunks[j] || '';
 
@@ -126,7 +136,10 @@ export async function generateSubtitles(
                         subtitles += `Dialogue: 0,${formatTime(chunkStartTime)},${formatTime(chunkEndTime)},Default,,0,0,0,,${fullLine}\n`;
                     }
                 } else {
-                    const endTime = startTime + totalDuration;
+                    let endTime = startTime + totalDuration;
+                    if (i === textContent.length - 1 && audioLen) {
+                        endTime = Math.max(endTime, audioLen);
+                    }
                     const fullLine = buildFullLine(verseText, verseTransliteration, verseTranslation, color, fontName, size);
                     subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
                 }

@@ -75,7 +75,7 @@ export async function handleFullVideoSubmit(e) {
 
     if (response.status === 202) {
       const data = await response.json();
-      alert("Video generation has started! You will be notified when it's complete.");
+      alert("بدأ إنتاج الفيديو! سيتم إعلامك عند اكتماله.");
       window.pollJobStatus(data.jobId);
       window.showPage('mainMenu');
     } else {
