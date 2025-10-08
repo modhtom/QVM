@@ -2,7 +2,6 @@
 
 [![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=for-the-badge)](./TO-DOs.md)
 [![Open Source Love](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-lightgrey.svg?style=for-the-badge)](https://github.com/modhtom/QVM)
-[![Custom License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
 [![To-Do Tracker](https://img.shields.io/badge/Development%20Tasks-View%20TO--DOs-orange.svg?style=for-the-badge)](./TO-DOs.md)
 
 Quran Video Maker is a full-stack web application that enables users to create professional videos of Quranic verses with customizable backgrounds, multi-language text, selectable fonts, and precise audio synchronization. The system integrates multiple APIs and FFmpeg processing to generate videos in both horizontal and vertical formats.
