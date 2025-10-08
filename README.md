@@ -1,5 +1,10 @@
 # Quran Video Maker (QVM)
 
+[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-brightgreen.svg?style=for-the-badge)](./TO-DOs.md)
+[![Open Source Love](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-lightgrey.svg?style=for-the-badge)](https://github.com/modhtom/QVM)
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](./LICENSE)
+[![To-Do Tracker](https://img.shields.io/badge/Development%20Tasks-View%20TO--DOs-orange.svg?style=for-the-badge)](./TO-DOs.md)
+
 Quran Video Maker is a full-stack web application that enables users to create professional videos of Quranic verses with customizable backgrounds, multi-language text, selectable fonts, and precise audio synchronization. The system integrates multiple APIs and FFmpeg processing to generate videos in both horizontal and vertical formats.
 
 ## Key Features
@@ -7,7 +12,9 @@ Quran Video Maker is a full-stack web application that enables users to create p
 ### 1\. Multi-Source Backgrounds
 
 - **AI-Generated Default:** When no background is selected, the application analyzes the meaning of the selected verses and automatically creates a beautiful video slideshow from relevant, high-quality images sourced from Unsplash.
-  > NOTE:Surah themes and verse context are commented out for now will be fully added soon
+
+  > _Note: Surah themes and verse context are commented out for now will be fully added soon_
+
 - **Pexels API:** Search for high-quality videos by keywords.
 - **YouTube:** Use any YouTube video as a background OR upload your own.
 - **Custom Images:** Provide a URL to any image OR upload your own.
@@ -61,11 +68,37 @@ Quran Video Maker is a full-stack web application that enables users to create p
 - FFmpeg v5+
 - FontConfig (for Arabic text rendering on the server)
 - Redis v6+
-- Docker (Recommended for Redis)
+- Docker
 
 ## Installation
 
-### Local Setup
+### Docker Setup (Recommended)
+
+The easiest and most reliable way to run this project is with Docker Compose. It orchestrates the web server, background worker, and Redis database automatically.
+
+1. **Install Docker and Docker Compose:** Ensure you have both installed on your system.
+
+2. **Configure Environment:** Create a `.env` file in the root directory by copying the `.env.example` file. Then, add your `PEXELS_API_KEY` and `UNSPLASH_ACCESS_KEY`.
+
+3. **Run the application:** Open a terminal in the project's root directory and run a single command:
+
+   ```bash
+   docker compose up --build
+   ```
+
+This command will:
+
+- Build the Docker image for the application.
+
+- Start the QVM container (running both the web server and the worker).
+
+- Start a Redis container.
+
+- Connect them on a shared network.
+
+Your application will be available at `http://localhost:3001`. To stop the services, press `CTRL+C` in the same terminal.
+
+### Local Setup (For Advanced Users)
 
 1.  **Install Prerequisites:**
 
@@ -121,15 +154,6 @@ Quran Video Maker is a full-stack web application that enables users to create p
     ```
 
 ---
-
-### Docker Setup
-
-```bash
-docker build -t qvm .
-docker run -p 3001:3001 -v $(pwd)/Output_Video:/app/Output_Video -e PEXELS_API_KEY=your_key_here qvm
-```
-
-_Note: The Docker setup will need to be updated to run the server and worker processes concurrently._
 
 ## Synchronization System
 
@@ -254,6 +278,21 @@ ioredis
 - Write unit tests for new code to maintain functionality.
 - Follow the existing coding style and conventions in the project.
 - If your feature requires additional setup or dependencies, include them in the documentation.
+
+---
+
+## Developer Roadmap & To-Do List
+
+If you're looking to contribute or understand current development priorities, check the **[`TO-DOs.md`](./TO-DOs.md)** file.
+It outlines:
+
+- **Critical Bugs & Fixes**: Known issues that need immediate attention.
+- **Refactoring Goals**: Areas of the backend and frontend that require cleanup or modularization.
+- **Performance Improvements**: FFmpeg optimization, caching, and cloud storage migration.
+- **Planned Features**: Account systems, live previews, font uploads, and enhanced text rendering.
+- **Hosting & Deployment**: Migration roadmap from local file storage to scalable cloud infrastructure.
+
+> **Tip for New Contributors:** Start with medium-priority items in `TO-DOs.md` (e.g., refactoring or frontend cleanup) to familiarize yourself with the codebase before tackling core bugs or backend logic.
 
 ---
 

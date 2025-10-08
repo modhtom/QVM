@@ -47,6 +47,7 @@ const audioStorage = multer.diskStorage({
 const upload = multer({ audioStorage });
 
 const connection = new IORedis({
+  host: process.env.REDIS_HOST || '127.0.0.1',
   maxRetriesPerRequest: null,
 });
 const videoQueue = new Queue('video-queue', { connection });

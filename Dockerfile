@@ -4,20 +4,13 @@ FROM node:24-alpine
 ENV NODE_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-# Install system dependencies
+# Install necessary system dependencies including FFmpeg and fonts
 RUN apk update && apk add --no-cache \
     ffmpeg \
-    python3 \
-    py3-pip \
-    make \
-    g++ \
-    git \
     fontconfig \
     ttf-freefont \
-    ttf-dejavu \
-    ttf-liberation \
-    yt-dlp \
-    && npm install -g npm@latest
+    yt-dlp
+
 
 # Create font directory for Arabic fonts
 RUN mkdir -p /usr/share/fonts/truetype/custom/
@@ -31,17 +24,23 @@ RUN fc-cache -fv
 # Clean npm cache to reduce image size
 RUN npm cache clean --force
 
-# Set a working directory 
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json first for better caching
+# Copy package files and install dependencies
+# This leverages Docker layer caching
 COPY package*.json ./
+RUN npm install --omit=dev
 
-# Install project dependencies
-RUN npm ci --omit=dev
-
-# Copy the rest of your app
+# Copy the rest of the application code
 COPY . .
 
-# set default command
-CMD ["node", "index.js"]
+# Install PM2 globally within the container
+RUN npm install -g pm2
+
+# Expose the port your app runs on
+EXPOSE 3001
+
+# The command to start both the server and worker using pm2-runtime
+# pm2-runtime is the recommended way to run PM2 in a container
+CMD ["pm2-runtime", "start", "ecosystem.config.cjs"]
