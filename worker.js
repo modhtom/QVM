@@ -2,8 +2,8 @@ import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { generatePartialVideo, generateFullVideo } from './video.js';
 
-//NOTE: Ensure your Redis server is running. For local dev, 'docker run -p 6379:6379 -d redis' is recommended.
 const connection = new IORedis({
+  host: process.env.REDIS_HOST || '127.0.0.1',
   maxRetriesPerRequest: null
 });
 

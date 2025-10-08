@@ -6,6 +6,14 @@ services:
     volumes:
       - ./Data:/app/Data
       - ./Output_Video:/app/Output_Video
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    restart: unless-stopped
+  redis:
+    image: "redis:alpine"
     restart: unless-stopped
