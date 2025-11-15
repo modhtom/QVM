@@ -138,7 +138,7 @@ app.post('/upload-image', (req, res) => {
   });
 });
 
-app.get("/videos/:video", (req, res) => {
+app.get("/Output_Video/:video", (req, res) => {
   const video = req.params.video;
   const filePath = path.resolve(__dirname, "Output_Video", video);
   
