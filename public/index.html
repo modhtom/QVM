@@ -223,7 +223,7 @@
         </div>
         <div class="preview-container">
           <div class="preview-content">
-            <div class="video-frame"><video id="previewVideo" controls controlsList="nodownload"></video></div>
+            <div class="video-frame"><video id="previewVideo" controls></video></div>
             <div class="preview-actions">
               <button class="download-btn" onclick="downloadCurrentVideo()"><i class="fas fa-download"></i> تحميل</button>
               <button class="share-btn" onclick="shareCurrentVideo()"><i class="fas fa-share-alt"></i> مشاركة</button>
@@ -255,22 +255,43 @@
 
     function downloadCurrentVideo() {
       const videoElement = document.getElementById('previewVideo');
-      const fileName = videoElement.getAttribute('data-filename');
-      if (!fileName) return alert('لا يوجد فيديو متاح للتحميل');
+      const videoSrc = videoElement.src;
+      
+      if (!videoSrc || videoSrc.includes('undefined')) {
+        return alert('لا يوجد فيديو متاح للتحميل');
+      }
+      
+      const urlParts = videoSrc.split('/');
+      const fileNameWithQuery = urlParts[urlParts.length - 1];
+      const fileName = fileNameWithQuery.split('?')[0];
+      
+      if (!fileName) return alert('لا يمكن العثور على اسم الملف');
+
       const a = document.createElement('a');
-      a.href = `/videos/${fileName}?download=true`;
+      a.href = `/Output_Video/${fileName}?download=true`;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     }
+
     function shareCurrentVideo() {
         const videoElement = document.getElementById('previewVideo');
-        const videoName = videoElement.getAttribute('data-filename');
+        const videoSrc = videoElement.src;
+        if (!videoSrc || videoSrc.includes('undefined')) {
+          return alert('لا يوجد فيديو متاح للمشاركة');
+        }
+        
+        const urlParts = videoSrc.split('/');
+        const fileNameWithQuery = urlParts[urlParts.length - 1];
+        const fileName = fileNameWithQuery.split('?')[0];
+        
+        const videoUrl = window.location.origin + `/Output_Video/${fileName}`;
+
         if (navigator.share) {
-            navigator.share({ title: 'Quran Video', text: 'شاهد هذا الفيديو للقرآن الكريم', url: window.location.origin + `/videos/${videoName}` }).catch(console.error);
+            navigator.share({ title: 'Quran Video', text: 'شاهد هذا الفيديو للقرآن الكريم', url: videoUrl }).catch(console.error);
         } else {
-            navigator.clipboard.writeText(window.location.origin + `/videos/${videoName}`);
+            navigator.clipboard.writeText(videoUrl);
             alert('تم نسخ رابط الفيديو!');
         }
     }
