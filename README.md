@@ -138,7 +138,15 @@ Your application will be available at `http://localhost:3001`. To stop the servi
     docker run --name qvm-redis -p 6379:6379 -d redis
     ```
 
-7.  **Start Server & Worker:** Open two separate terminal windows.
+7.  **Start Server & Worker:**
+
+- Open a terminal window and run:
+
+    ```bash
+    npm run start
+    ```
+
+- Or you can open two separate terminal windows.
 
     In the first terminal, start the main web server:
 
