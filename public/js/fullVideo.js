@@ -44,7 +44,7 @@ export async function handleFullVideoSubmit(e) {
     if (uploadedBackgroundPath) {
       videoData = uploadedBackgroundPath; useCustomBg = true;
     } else if (pexelsQuery) {
-      videoData = `pexels:${pexelsQuery}`; useCustomBg = true;
+      videoData = `unsplash:${pexelsQuery}`; useCustomBg = true;
     } else if (imageUrl) {
       videoData = imageUrl; useCustomBg = true;
     } else if (youtubeUrl) {
