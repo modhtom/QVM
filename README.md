@@ -14,7 +14,7 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
   > _Note: Surah themes and verse context are commented out for now will be fully added soon_
 
-- **Pexels API:** Search for high-quality videos by keywords.
+- **Unsplash API:** Search for high-quality videos by keywords.
 - **YouTube:** Use any YouTube video as a background OR upload your own.
 - **Custom Images:** Provide a URL to any image OR upload your own.
 
@@ -41,8 +41,10 @@ Quran Video Maker is a full-stack web application that enables users to create p
 ### 4\. Text & Translation
 
 - **Multi-Language Support:** Display verse translations (e.g., English, Spanish) and transliterations alongside the original Arabic text.
-- **Advanced Text Styling:** Choose from multiple Arabic fonts, control font size (1-72px), and select any color using a color picker.
-- **Verse-by-Verse Timing:** Manually adjust the timing for each verse or verse segment.
+- **Typography:** Choose from high-quality Arabic fonts (e.g., Tasees, DTHULUTH).
+- **Custom Positioning:** Users can now choose to display subtitles at the **Bottom** or the **Middle** of the screen.
+- **Metadata Overlay:** Option to display the Surah Name and Reciter Name as an elegant overlay at the top of the video.
+- **Styling:** Full control over font size (1-72px) and color.
 
 ---
 
@@ -77,7 +79,7 @@ The easiest and most reliable way to run this project is with Docker Compose. It
 
 1. **Install Docker and Docker Compose:** Ensure you have both installed on your system.
 
-2. **Configure Environment:** Create a `.env` file in the root directory by copying the `.env.example` file. Then, add your `PEXELS_API_KEY` and `UNSPLASH_ACCESS_KEY`.
+2. **Configure Environment:** Create a `.env` file in the root directory by copying the `.env.example` file. Then, add your `UNSPLASH_ACCESS_KEY`.
 
 3. **Run the application:** Open a terminal in the project's root directory and run a single command:
 
@@ -119,10 +121,9 @@ Your application will be available at `http://localhost:3001`. To stop the servi
     npm install
     ```
 
-4.  **Configure Environment:** Create a `.env` file in the root directory and add your Pexels API key and UNSPLASH ACCESS KEY.
+4.  **Configure Environment:** Create a `.env` file in the root directory and add your UNSPLASH ACCESS KEY.
 
     ```bash
-    PEXELS_API_KEY=your_pexels_key_here
     UNSPLASH_ACCESS_KEY=your_unsplash_access_key_here
     ```
 
@@ -194,7 +195,7 @@ The following is an example of the JSON data sent to the server to generate a vi
   "fontName": "Amiri",
   "translationEdition": "en.sahih",
   "useCustomBackground": true,
-  "videoNumber": "pexels:space",
+  "videoNumber": "unsplash:space",
   "crop": "horizontal"
 }
 ```
@@ -209,7 +210,7 @@ The following is an example of the JSON data sent to the server to generate a vi
 
 ---
 
-### 2\. Pexels API
+### 2\. Unsplash API
 
 - **Background Video Search**: Finds high-quality stock videos based on keyword queries.
 - **HD Video Downloads**: Downloads video files for use as backgrounds.
@@ -313,5 +314,5 @@ This project is licensed under **CUSTOM License**. See the `LICENSE` file for de
 
 - [Fluent-FFMPEG](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) for its powerful video manipulation library.
 - [Al-Quran Cloud API](http://alquran.cloud/) for providing comprehensive Quranic data.
-- [Pexels](https://www.pexels.com/) for its library of high-quality video content.
+- [Unsplash](https://www.Unsplash.com/) for its library of high-quality video content.
 - [BullMQ](https://bullmq.io/) for its robust and efficient job queue system.

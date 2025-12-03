@@ -4,9 +4,43 @@ export async function handleFullVideoSubmit(e) {
   let requestBody = {};
   const customAudioFile = e.detail?.customAudioFile;
   const isCustomFlow = !!customAudioFile;
+  const ids = isCustomFlow ? {
+    color: "fontColorFullCustom",
+    size: "fontSizeFullCustom",
+    font: "fontNameFullCustom",
+    trans: "translationEditionFullCustom",
+    pos: "subtitlePositionFullCustom",
+    meta: "showMetadataFullCustom",
+    bgUpload: "backgroundUploadFullCustom",
+    vertical: "verticalVideoFullCustom",
+    pexels: "pexelsVideoFullCustom",
+    img: "imageLinkFullCustom",
+    yt: "youtubeLinkFullCustom",
+    surah: "fullSurahNumberCustom",
+    edition: "fullEditionFullCustom"
+  } : {
+    color: "fontColor",
+    size: "fontSize",
+    font: "fontNameFull",
+    trans: "translationEditionFull",
+    pos: "subtitlePositionFull",
+    meta: "showMetadataFull",
+    bgUpload: "backgroundUploadFull",
+    vertical: "verticalVideoFull",
+    pexels: "pexelsVideo",
+    img: "imageLink",
+    yt: "youtubeLink",
+    surah: "fullSurahNumber",
+    edition: "fullEdition"
+  };
+
+  const subtitlePosition = document.getElementById(ids.pos)?.value || 'bottom';
+  const showMetadata = document.getElementById(ids.meta)?.checked || false;
 
   if (isCustomFlow) {
     requestBody = { ...e.detail };
+    requestBody.subtitlePosition = subtitlePosition;
+    requestBody.showMetadata = showMetadata;
     const audioFormData = new FormData();
     audioFormData.append('audio', customAudioFile);
     try {
@@ -18,8 +52,7 @@ export async function handleFullVideoSubmit(e) {
       return alert(`Error: ${error.message}`);
     }
   } else {
-    const formPrefix = isCustomFlow ? "FullCustom" : "";
-    const backgroundUploadInput = document.getElementById(`backgroundUpload${formPrefix}`);
+    const backgroundUploadInput = document.getElementById(ids.bgUpload);
     let uploadedBackgroundPath = null;
     if (backgroundUploadInput?.files[0]) {
       const backgroundFile = backgroundUploadInput.files[0];
@@ -35,10 +68,10 @@ export async function handleFullVideoSubmit(e) {
       }
     }
     
-    const isVertical = document.getElementById(`verticalVideo${formPrefix}`)?.checked;
-    const pexelsQuery = document.getElementById(`pexelsVideo${formPrefix}`)?.value;
-    const imageUrl = document.getElementById(`imageLink${formPrefix}`)?.value;
-    const youtubeUrl = document.getElementById(`youtubeLink${formPrefix}`)?.value;
+    const isVertical = document.getElementById(ids.vertical)?.checked;
+    const pexelsQuery = document.getElementById(ids.pexels)?.value;
+    const imageUrl = document.getElementById(ids.img)?.value;
+    const youtubeUrl = document.getElementById(ids.yt)?.value;
 
     let videoData = 1, useCustomBg = false;
     if (uploadedBackgroundPath) {
@@ -52,16 +85,18 @@ export async function handleFullVideoSubmit(e) {
     }
 
     requestBody = {
-      surahNumber: document.getElementById(`fullSurahNumber${formPrefix}`).value,
-      edition: document.getElementById(`fullEdition${formPrefix}`)?.value,
-      color: document.getElementById(`fontColor${formPrefix}`).value,
-      size: document.getElementById(`fontSize${formPrefix}`).value,
-      fontName: document.getElementById(`fontName${formPrefix}`).value,
-      translationEdition: document.getElementById(`translationEdition${formPrefix}`).value,
+      surahNumber: document.getElementById(ids.surah).value,
+      edition: document.getElementById(ids.edition)?.value,
+      color: document.getElementById(ids.color).value,
+      size: document.getElementById(ids.size).value,
+      fontName: document.getElementById(ids.font).value,
+      translationEdition: document.getElementById(ids.trans).value,
       crop: isVertical ? "vertical" : "horizontal",
       useCustomBackground: useCustomBg,
       videoNumber: videoData,
       removeFilesAfterCreation: true,
+      subtitlePosition,
+      showMetadata
     };
   }
 

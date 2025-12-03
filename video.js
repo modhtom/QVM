@@ -19,10 +19,33 @@ function getHardwareEncoder() {
   return 'libx264'; // Default for Windows and Linux
 }
 
+async function getMetadataInfo(surahNumber, editionIdentifier) {
+    try {
+        const surahRes = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
+        const surahName = surahRes.data.data.name;
+        let reciterName = "";
+        if (editionIdentifier) {
+            try {
+                const editionRes = await axios.get(`http://api.alquran.cloud/v1/edition`);
+                const edition = editionRes.data.data.find(e => e.identifier === editionIdentifier);
+                if (edition) reciterName = edition.name;
+            } catch(e) {
+                console.warn("Could not fetch reciter name");
+            }
+        }
+        return { surahName, reciterName };
+    } catch (error) {
+        console.error("Error fetching metadata info:", error.message);
+        return { surahName: `Surah ${surahNumber}`, reciterName: "" };
+    }
+}
+
 export async function generateFullVideo(
   surahNumber, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition,
   progressCallback = () => { },
-  userVerseTimings = null
+  userVerseTimings = null,
+  subtitlePosition = 'bottom',
+  showMetadata = false
 ) {
   const endVerse = await getEndVerse(surahNumber);
   if (endVerse === -1) {
@@ -30,14 +53,16 @@ export async function generateFullVideo(
   }
   progressCallback({ step: 'Starting full video generation', percent: 0 });
   return generatePartialVideo(
-    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings
+    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata
   );
 }
 
 export async function generatePartialVideo(
   surahNumber, startVerse, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition,
   progressCallback = () => { },
-  userVerseTimings = null
+  userVerseTimings = null,
+  subtitlePosition = 'bottom',
+  showMetadata = false
 ) {
   console.log("MAKING A VIDEO");
   progressCallback({ step: 'Starting video generation', percent: 0 });
@@ -97,7 +122,17 @@ export async function generatePartialVideo(
   progressCallback({ step: 'Generating subtitles', percent: 50 });
   const subPath = `Data/subtitles/Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`;
   const aColor = cssColorToASS(color);
-  await generateSubtitles(surahNumber, startVerse, endVerse, aColor, fontPosition, fontName, size, audioLen, customAudioPath || audioPath, userVerseTimings);
+  let metadata = null;
+  if (showMetadata) {
+      progressCallback({ step: 'Fetching Metadata', percent: 52 });
+      metadata = await getMetadataInfo(surahNumber, edition);
+  }
+
+  await generateSubtitles(
+      surahNumber, startVerse, endVerse, aColor, fontPosition, fontName, size,
+      audioLen, customAudioPath || audioPath, userVerseTimings,
+      subtitlePosition, metadata
+  );
 
   const outputDir = path.resolve("Output_Video");
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });

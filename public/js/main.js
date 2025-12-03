@@ -392,8 +392,10 @@ document.addEventListener('DOMContentLoaded', () => {
           size: document.getElementById("fontSizeFullCustom").value,
           useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
           videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `pexels:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
-          crop: document.getElementById("verticalVideoFullCustom")?.checked ? "horizontal" : "vertical"
-      };
+          crop: document.getElementById("verticalVideoFullCustom")?.checked ? "horizontal" : "vertical",
+          subtitlePosition: document.getElementById("subtitlePositionFullCustom")?.value || 'bottom',
+          showMetadata: document.getElementById("showMetadataFullCustom")?.checked || false
+        };
 
       const surahNum = window.tempVideoFormData.surahNumber;
       let endVerse;
@@ -432,7 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
           size: document.getElementById("fontSizePartCustom").value,
           useCustomBackground: (document.getElementById("pexelsVideoPartCustom")?.value || document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value) !== '',
           videoNumber: (document.getElementById("pexelsVideoPartCustom")?.value ? `pexels:${document.getElementById("pexelsVideoPartCustom").value}` : (document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value)),
-          crop: document.getElementById("verticalVideoPartCustom")?.checked ? "horizontal" : "vertical"
+          crop: document.getElementById("verticalVideoPartCustom")?.checked ? "horizontal" : "vertical",
+          subtitlePosition: document.getElementById("subtitlePositionPartCustom")?.value || 'bottom',
+          showMetadata: document.getElementById("showMetadataPartCustom")?.checked || false
       };
 
       initTapToSync(customAudio, window.tempVideoFormData.surahNumber, window.tempVideoFormData.startVerse, window.tempVideoFormData.endVerse, window.tempVideoFormData.edition);

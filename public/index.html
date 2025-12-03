@@ -17,7 +17,7 @@
       <div class="header">
         <h1 class="logo">QVM</h1>
         <p class="arabic-subtitle">صانع فيديو القرآن الكريم</p>
-        <p class="arabic-subtitle" style="font-size: small;color: green;">GitHub <a href="https://github.com/modhtom/QVM" target="_blank" style="color: gold; font-size: small;">REPO</a></p>
+        <p class="arabic-subtitle" style="font-size: 14px; color: #a5d6a7; margin-top: 10px; font-weight: normal;"><i class="fas fa-heart" style="font-size: 10px; margin-left: 5px;"></i>دقائق الانتظار .. املأها بالاستغفار<i class="fas fa-heart" style="font-size: 10px; margin-right: 5px;"></i></p>
       </div>
       <div class="nav-buttons">
         <div class="nav-btn" onclick="showPage('fullOptions')">
@@ -42,6 +42,13 @@
           </div>
         </div>
       </div>
+
+      <div style="margin-top: 40px; text-align: center; opacity: 0.6; font-size: 12px;">
+        <a href="https://github.com/modhtom/QVM" target="_blank" style="color: #000000; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; transition: opacity 0.2s;">
+          <i class="fab fa-github"></i> Project Repo
+        </a>
+      </div>
+
     </div>
   </div>
 
@@ -78,14 +85,13 @@
             <div class="form-group"><label for="fontColor">لون النص</label><input type="color" id="fontColor" value="#ffffff"></div>
             <div class="form-group"><label for="fontSize">حجم الخط</label><input type="range" id="fontSize" min="1" max="72" value="10"><span id="fontSizeValue">10px</span></div>
             <div class="form-group"><label for="fontNameFull">الخط</label><select id="fontNameFull" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="subtitlePositionFull">موقع النص</label><select id="subtitlePositionFull" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
+            <div class="checkbox-group"><input type="checkbox" id="showMetadataFull"><label for="showMetadataFull">عرض معلومات السورة والقارئ</label></div>
             <div class="form-group"><label for="translationEditionFull">الترجمة</label><select id="translationEditionFull" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
             <div class="form-group"><label for="pexelsVideo">خلفية من موقع unsplash</label><input type="text" id="pexelsVideo" placeholder="أدخل كلمة مفتاحية"></div>
             <div class="form-group"><label for="imageLink">خلفية صورة</label><input type="text" id="imageLink" placeholder="أدخل رابط الصورة"></div>
             <div class="form-group"><label for="youtubeLink">خلفية YouTube</label><input type="text" id="youtubeLink" placeholder="أدخل رابط YouTube"></div>
-            <div class="form-group">
-              <label for="backgroundUploadFull">رفع خلفية</label>
-              <input type="file" id="backgroundUploadFull" class="form-control" accept="video/*,image/*">
-            </div>
+            <div class="form-group"><label for="backgroundUploadFull">رفع خلفية</label><input type="file" id="backgroundUploadFull" class="form-control" accept="video/*,image/*"></div>
           </div>
           <div class="form-section">
             <h3>إعدادات القرآن</h3>
@@ -110,14 +116,13 @@
             <div class="form-group"><label for="fontColorPart">لون النص</label><input type="color" id="fontColorPart" value="#ffffff"></div>
             <div class="form-group"><label for="fontSizePart">حجم الخط</label><input type="range" id="fontSizePart" min="1" max="72" value="10"><span id="fontSizeValuePart">10px</span></div>
             <div class="form-group"><label for="fontNamePart">الخط</label><select id="fontNamePart" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="subtitlePositionPart">موقع النص</label><select id="subtitlePositionPart" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
+            <div class="checkbox-group"><input type="checkbox" id="showMetadataPart"><label for="showMetadataPart">عرض معلومات السورة والقارئ</label></div>
             <div class="form-group"><label for="translationEditionPart">الترجمة</label><select id="translationEditionPart" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
             <div class="form-group"><label for="pexelsVideoPart">خلفية من موقع unsplash</label><input type="text" id="pexelsVideoPart" placeholder="أدخل كلمة مفتاحية"></div>
             <div class="form-group"><label for="imageLinkPart">خلفية صورة</label><input type="text" id="imageLinkPart" placeholder="أدخل رابط الصورة"></div>
             <div class="form-group"><label for="youtubeLinkPart">خلفية YouTube</label><input type="text" id="youtubeLinkPart" placeholder="أدخل رابط YouTube"></div>
-            <div class="form-group">
-              <label for="backgroundUploadPart">رفع خلفية</label>
-              <input type="file" id="backgroundUploadPart" class="form-control" accept="video/*,image/*">
-            </div>
+            <div class="form-group"><label for="backgroundUploadPart">رفع خلفية</label><input type="file" id="backgroundUploadPart" class="form-control" accept="video/*,image/*"></div>
           </div>
           <div class="form-section">
             <h3>إعدادات القرآن</h3>
@@ -133,63 +138,71 @@
     </div>
   </div>
 
-    <div id="fullFormCustom" class="page">
-        <button class="back-btn" onclick="showPage('fullOptions')"><span>←</span> رجوع</button>
-        <div class="container">
-          <div class="header"><h1 class="logo">السورة الكاملة (مخصص)</h1></div>
-          <div class="form-container">
-            <div class="form-grid">
-              <div class="form-section">
-                <h3>(اختياري) إعدادات الفيديو</h3>
-                <div class="form-group"><label for="fontColorFullCustom">لون النص</label><input type="color" id="fontColorFullCustom" value="#ffffff"></div>
-                <div class="form-group"><label for="fontSizeFullCustom">حجم الخط</label><input type="range" id="fontSizeFullCustom" min="1" max="72" value="10"><span id="fontSizeValueFullCustom">10px</span></div>
-                <div class="form-group"><label for="fontNameFullCustom">الخط</label><select id="fontNameFullCustom" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
-                <div class="form-group"><label for="translationEditionFullCustom">الترجمة</label><select id="translationEditionFullCustom" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
-                <div class="form-group"><label for="pexelsVideoFullCustom">خلفية من موقع unsplash</label><input type="text" id="pexelsVideoFullCustom" placeholder="أدخل كلمة مفتاحية"></div>
-                <div class="form-group"><label for="imageLinkFullCustom">خلفية صورة</label><input type="text" id="imageLinkFullCustom" placeholder="أدخل رابط الصورة"></div>
-                <div class="form-group"><label for="youtubeLinkFullCustom">خلفية YouTube</label><input type="text" id="youtubeLinkFullCustom" placeholder="أدخل رابط YouTube"></div>
-              </div>
-              <div class="form-section">
-                <h3>إعدادات القرآن</h3>
-                <div class="form-group"><label for="fullSurahNumberCustom">السورة</label><select id="fullSurahNumberCustom" class="form-control"></select></div>
-                <div class="form-group"><label for="customAudioFull">رفع التلاوة</label><input type="file" id="customAudioFull" accept="audio/*"></div>
-                <div class="checkbox-group"><input type="checkbox" id="verticalVideoFullCustom"><label for="verticalVideoFullCustom">فيديو عمودي (9:16)</label></div>
-                <button class="action-btn create-btn">مزامنة الصوت</button>
-              </div>
-            </div>
+  <div id="fullFormCustom" class="page">
+    <button class="back-btn" onclick="showPage('fullOptions')"><span>←</span> رجوع</button>
+    <div class="container">
+      <div class="header"><h1 class="logo">السورة الكاملة (مخصص)</h1></div>
+      <div class="form-container">
+        <div class="form-grid">
+          <div class="form-section">
+            <h3>(اختياري) إعدادات الفيديو</h3>
+            <div class="form-group"><label for="fontColorFullCustom">لون النص</label><input type="color" id="fontColorFullCustom" value="#ffffff"></div>
+            <div class="form-group"><label for="fontSizeFullCustom">حجم الخط</label><input type="range" id="fontSizeFullCustom" min="1" max="72" value="10"><span id="fontSizeValueFullCustom">10px</span></div>
+            <div class="form-group"><label for="fontNameFullCustom">الخط</label><select id="fontNameFullCustom" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+
+            <div class="form-group"><label for="subtitlePositionFullCustom">موقع النص</label><select id="subtitlePositionFullCustom" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
+            <div class="checkbox-group"><input type="checkbox" id="showMetadataFullCustom"><label for="showMetadataFullCustom">عرض معلومات السورة</label></div>
+
+            <div class="form-group"><label for="translationEditionFullCustom">الترجمة</label><select id="translationEditionFullCustom" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
+            <div class="form-group"><label for="pexelsVideoFullCustom">خلفية من موقع unsplash</label><input type="text" id="pexelsVideoFullCustom" placeholder="أدخل كلمة مفتاحية"></div>
+            <div class="form-group"><label for="imageLinkFullCustom">خلفية صورة</label><input type="text" id="imageLinkFullCustom" placeholder="أدخل رابط الصورة"></div>
+            <div class="form-group"><label for="youtubeLinkFullCustom">خلفية YouTube</label><input type="text" id="youtubeLinkFullCustom" placeholder="أدخل رابط YouTube"></div>
+          </div>
+          <div class="form-section">
+            <h3>إعدادات القرآن</h3>
+            <div class="form-group"><label for="fullSurahNumberCustom">السورة</label><select id="fullSurahNumberCustom" class="form-control"></select></div>
+            <div class="form-group"><label for="customAudioFull">رفع التلاوة</label><input type="file" id="customAudioFull" accept="audio/*"></div>
+            <div class="checkbox-group"><input type="checkbox" id="verticalVideoFullCustom"><label for="verticalVideoFullCustom">فيديو عمودي (9:16)</label></div>
+            <button class="action-btn create-btn">مزامنة الصوت</button>
           </div>
         </div>
       </div>
+    </div>
+  </div>
     
-      <div id="partFormCustom" class="page">
-        <button class="back-btn" onclick="showPage('partOptions')"><span>←</span> رجوع</button>
-        <div class="container">
-          <div class="header"><h1 class="logo">آيات (مخصص)</h1></div>
-          <div class="form-container">
-            <div class="form-grid">
-              <div class="form-section">
-                <h3>(اختياري) إعدادات الفيديو</h3>
-                <div class="form-group"><label for="fontColorPartCustom">لون النص</label><input type="color" id="fontColorPartCustom" value="#ffffff"></div>
-                <div class="form-group"><label for="fontSizePartCustom">حجم الخط</label><input type="range" id="fontSizePartCustom" min="1" max="72" value="10"><span id="fontSizeValuePartCustom">10px</span></div>
-                <div class="form-group"><label for="fontNamePartCustom">الخط</label><select id="fontNamePartCustom" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
-                <div class="form-group"><label for="translationEditionPartCustom">الترجمة</label><select id="translationEditionPartCustom" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
-                <div class="form-group"><label for="pexelsVideoPartCustom">خلفية من موقع unsplash</label><input type="text" id="pexelsVideoPartCustom" placeholder="أدخل كلمة مفتاحية"></div>
-                <div class="form-group"><label for="imageLinkPartCustom">خلفية صورة</label><input type="text" id="imageLinkPartCustom" placeholder="أدخل رابط الصورة"></div>
-                <div class="form-group"><label for="youtubeLinkPartCustom">خلفية YouTube</label><input type="text" id="youtubeLinkPartCustom" placeholder="أدخل رابط YouTube"></div>
-              </div>
-              <div class="form-section">
-                <h3>إعدادات القرآن</h3>
-                <div class="form-group"><label for="surahNumberCustom">السورة</label><select id="surahNumberCustom" class="form-control"></select></div>
-                <div class="arabic-input"><div class="arabic-label">آية البداية</div><input type="text" id="startVerseCustom" placeholder="رقم آية البداية"></div>
-                <div class="arabic-input"><div class="arabic-label">آية النهاية</div><input type="text" id="endVerseCustom" placeholder="رقم آية النهاية"></div>
-                <div class="form-group"><label for="customAudioPart">رفع التلاوة</label><input type="file" id="customAudioPart" accept="audio/*"></div>
-                <div class="checkbox-group"><input type="checkbox" id="verticalVideoPartCustom"><label for="verticalVideoPartCustom">فيديو عمودي (9:16)</label></div>
-                <button class="action-btn create-btn">مزامنة الصوت</button>
-              </div>
-            </div>
+  <div id="partFormCustom" class="page">
+    <button class="back-btn" onclick="showPage('partOptions')"><span>←</span> رجوع</button>
+    <div class="container">
+      <div class="header"><h1 class="logo">آيات (مخصص)</h1></div>
+      <div class="form-container">
+        <div class="form-grid">
+          <div class="form-section">
+            <h3>(اختياري) إعدادات الفيديو</h3>
+            <div class="form-group"><label for="fontColorPartCustom">لون النص</label><input type="color" id="fontColorPartCustom" value="#ffffff"></div>
+            <div class="form-group"><label for="fontSizePartCustom">حجم الخط</label><input type="range" id="fontSizePartCustom" min="1" max="72" value="10"><span id="fontSizeValuePartCustom">10px</span></div>
+            <div class="form-group"><label for="fontNamePartCustom">الخط</label><select id="fontNamePartCustom" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            
+            <div class="form-group"><label for="subtitlePositionPartCustom">موقع النص</label><select id="subtitlePositionPartCustom" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
+            <div class="checkbox-group"><input type="checkbox" id="showMetadataPartCustom"><label for="showMetadataPartCustom">عرض معلومات السورة</label></div>
+
+            <div class="form-group"><label for="translationEditionPartCustom">الترجمة</label><select id="translationEditionPartCustom" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
+            <div class="form-group"><label for="pexelsVideoPartCustom">خلفية من موقع unsplash</label><input type="text" id="pexelsVideoPartCustom" placeholder="أدخل كلمة مفتاحية"></div>
+            <div class="form-group"><label for="imageLinkPartCustom">خلفية صورة</label><input type="text" id="imageLinkPartCustom" placeholder="أدخل رابط الصورة"></div>
+            <div class="form-group"><label for="youtubeLinkPartCustom">خلفية YouTube</label><input type="text" id="youtubeLinkPartCustom" placeholder="أدخل رابط YouTube"></div>
+          </div>
+          <div class="form-section">
+            <h3>إعدادات القرآن</h3>
+            <div class="form-group"><label for="surahNumberCustom">السورة</label><select id="surahNumberCustom" class="form-control"></select></div>
+            <div class="arabic-input"><div class="arabic-label">آية البداية</div><input type="text" id="startVerseCustom" placeholder="رقم آية البداية"></div>
+            <div class="arabic-input"><div class="arabic-label">آية النهاية</div><input type="text" id="endVerseCustom" placeholder="رقم آية النهاية"></div>
+            <div class="form-group"><label for="customAudioPart">رفع التلاوة</label><input type="file" id="customAudioPart" accept="audio/*"></div>
+            <div class="checkbox-group"><input type="checkbox" id="verticalVideoPartCustom"><label for="verticalVideoPartCustom">فيديو عمودي (9:16)</label></div>
+            <button class="action-btn create-btn">مزامنة الصوت</button>
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
   <div id="tapToSyncPage" class="page">
     <button class="back-btn" onclick="goBack()"><span>←</span> رجوع</button>

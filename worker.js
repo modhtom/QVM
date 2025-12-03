@@ -19,7 +19,8 @@ const worker = new Worker('video-queue', async (job) => {
       job.updateProgress(progress);
       console.log(`Job ${job.id} progress: ${progress.percent}% - ${progress.step}`);
     };
-
+    const subtitlePosition = videoData.subtitlePosition || 'bottom';
+    const showMetadata = videoData.showMetadata || false;
     if (type === 'partial') {
       result = await generatePartialVideo(
         videoData.surahNumber,
@@ -37,7 +38,9 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.translationEdition,
         videoData.transliterationEdition,
         progressCallback,
-        videoData.userVerseTimings
+        videoData.userVerseTimings,
+        subtitlePosition,
+        showMetadata
       );
     } else if (type === 'full') {
       result = await generateFullVideo(
@@ -54,7 +57,9 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.translationEdition,
         videoData.transliterationEdition,
         progressCallback,
-        videoData.userVerseTimings
+        videoData.userVerseTimings,
+        subtitlePosition,
+        showMetadata
       );
     } else {
       throw new Error('Unknown job type');

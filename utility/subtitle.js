@@ -25,9 +25,8 @@ function splitTextIntoChunks(text, maxLength) {
     }
     return chunks;
 }
-
-function buildFullLine(mainText, transliterationText, translationText, color, fontName, size) {
-    let line = `{\\c${color}\\an5\\q1\\bord2\\fn${fontName}}${mainText || ''}`;
+function buildFullLine(mainText, transliterationText, translationText, color, fontName, size, alignment) {
+    let line = `{\\an${alignment}\\c${color}\\q1\\bord2\\fn${fontName}}${mainText || ''}`;
     if (transliterationText) {
         line += `\\N{\\fs${size * 5}}${transliterationText}`;
     }
@@ -47,7 +46,9 @@ export async function generateSubtitles(
     size,
     audioLen = null,
     audioPath = null,
-    userVerseTimings = null
+    userVerseTimings = null,
+    subtitlePosition = 'bottom',
+    metadata = null
 ) {
     const textFilePath = path.resolve(`Data/text/Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`);
     const durationsFilePath = path.resolve(`Data/text/Surah_${surahNumber}_Durations_from_${startVerse}_to_${endVerse}.json`);
@@ -69,7 +70,6 @@ export async function generateSubtitles(
         const translationContent = hasTranslation ? fs.readFileSync(translationFilePath, "utf-8").split("\n").filter(Boolean) : [];
         const transliterationContent = hasTransliteration ? fs.readFileSync(transliterationFilePath, "utf-8").split("\n").filter(Boolean) : [];
 
-        // Ensure we have audio length; if not provided, try to read it from audioPath
         if ((!audioLen || isNaN(audioLen) || audioLen <= 0) && audioPath && fs.existsSync(audioPath)) {
             try {
                 const meta = await mm.parseFile(audioPath);
@@ -82,7 +82,23 @@ export async function generateSubtitles(
 
         let pos = position.split(',');
         
-        let subtitles = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${pos[0]}\nPlayResY: ${pos[1]}\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,${fontName},${size * 8},${color},&H0300FFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
+        const alignment = subtitlePosition === 'middle' ? 5 : 2;
+        const marginV = subtitlePosition === 'middle' ? 0 : 50;
+
+        let subtitles = `[Script Info]\nScriptType: v4.00+\nPlayResX: ${pos[0]}\nPlayResY: ${pos[1]}\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n`;
+        
+        subtitles += `Style: Default,${fontName},${size * 8},${color},&H0300FFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,${alignment},10,10,${marginV},1\n`;
+
+        if (metadata) {
+            subtitles += `Style: Info,${fontName},30,&H00FFFFFF,&H0300FFFF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,1,1,8,10,10,20,1\n`;
+        }
+
+        subtitles += `\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
+
+        if (metadata && audioLen) {
+            const infoText = `${metadata.surahName} | ${metadata.reciterName || 'Custom Recitation'}`;
+            subtitles += `Dialogue: 1,0:00:00.00,${formatTime(audioLen)},Info,,0,0,0,,${infoText}\n`;
+        }
 
         if (userVerseTimings && userVerseTimings.length === textContent.length) {
             for (let i = 0; i < textContent.length; i++) {
@@ -91,20 +107,12 @@ export async function generateSubtitles(
                 if (i === textContent.length - 1 && audioLen) {
                     endTime = Math.max(endTime, audioLen);
                 }
-                let fullLine = buildFullLine(
-                    textContent[i],
-                    transliterationContent[i],
-                    translationContent[i],
-                    color,
-                    fontName,
-                    size
-                );
+                let fullLine = buildFullLine(textContent[i], transliterationContent[i], translationContent[i], color, fontName, size, alignment);
                 subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
             }
         } else {
             const durationPerAyah = JSON.parse(fs.readFileSync(durationsFilePath, "utf-8"));
             if (textContent.length !== durationPerAyah.length) {
-                console.error("Mismatch between texts and durations.");
                 const avg = durationPerAyah.reduce((a,b)=>a+b,0)/durationPerAyah.length || 1;
                 while (durationPerAyah.length < textContent.length) durationPerAyah.push(avg);
             }
@@ -132,7 +140,7 @@ export async function generateSubtitles(
                         const chunkText = textChunks[j] || '';
                         const chunkTranslation = translationChunks[j] || '';
 
-                        const fullLine = buildFullLine(chunkText, '', chunkTranslation, color, fontName, size);
+                        const fullLine = buildFullLine(chunkText, '', chunkTranslation, color, fontName, size, alignment);
                         subtitles += `Dialogue: 0,${formatTime(chunkStartTime)},${formatTime(chunkEndTime)},Default,,0,0,0,,${fullLine}\n`;
                     }
                 } else {
@@ -140,7 +148,7 @@ export async function generateSubtitles(
                     if (i === textContent.length - 1 && audioLen) {
                         endTime = Math.max(endTime, audioLen);
                     }
-                    const fullLine = buildFullLine(verseText, verseTransliteration, verseTranslation, color, fontName, size);
+                    const fullLine = buildFullLine(verseText, verseTransliteration, verseTranslation, color, fontName, size, alignment);
                     subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
                 }
 

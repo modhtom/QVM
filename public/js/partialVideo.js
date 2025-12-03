@@ -3,9 +3,15 @@ export async function handlePartialVideoSubmit(e) {
 
   let requestBody = {};
   const customAudioFile = e.detail?.customAudioFile;
+  const isCustomFlow = !!customAudioFile;
+  const formPrefix = isCustomFlow ? "PartCustom" : "Part";
+  const subtitlePosition = document.getElementById(`subtitlePosition${formPrefix}`)?.value || 'bottom';
+  const showMetadata = document.getElementById(`showMetadata${formPrefix}`)?.checked || false;
 
   if (customAudioFile) {
     requestBody = { ...e.detail };
+    requestBody.subtitlePosition = subtitlePosition;
+    requestBody.showMetadata = showMetadata;
     const audioFormData = new FormData();
     audioFormData.append('audio', customAudioFile);
     try {
@@ -62,6 +68,8 @@ export async function handlePartialVideoSubmit(e) {
       useCustomBackground: useCustomBg,
       videoNumber: videoData,
       removeFilesAfterCreation: true,
+      subtitlePosition,
+      showMetadata
     };
   }
 
