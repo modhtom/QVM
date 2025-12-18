@@ -29,9 +29,7 @@
 
 ### 1. Frontend Logic
 
-- **Incorrect Custom Audio Handling**: In `fullVideo.js` and `partialVideo.js`, the logic incorrectly tries to find and submit form elements (like Pexels URL) even when a custom audio file is provided and a separate flow is intended. This leads to incorrect data being sent to the backend.
-- **Event Listener on Non-Existent Element**: In `main.js`, an event listener is attached to `document.getElementById('fontName')`, but this ID doesn't exist in the HTML. The correct IDs are `fontNameFull`, `fontNamePart`, etc. This is dead code.
-- **Duplicate CSS & HTML**: `main.css` and `index.html` contain many duplicated style blocks and elements, increasing file size and making maintenance difficult.
+- **Incorrect Custom Audio Handling**: In `fullVideo.js` and `partialVideo.js`, the logic incorrectly tries to find and submit form elements (like unsplash URL) even when a custom audio file is provided and a separate flow is intended. This leads to incorrect data being sent to the backend.
 
 ### 2. Backend Logic
 
