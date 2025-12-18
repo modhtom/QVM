@@ -9,17 +9,25 @@ export async function handleFullVideoSubmit(e) {
 
   if (isCustomFlow) {
     requestBody = { ...e.detail };
+    requestBody.audioSource = 'custom';
     const audioFormData = new FormData();
     audioFormData.append('audio', customAudioFile);
     try {
       const uploadResponse = await fetch('/upload-audio', { method: 'POST', body: audioFormData });
       if (!uploadResponse.ok) throw new Error('Failed to upload audio');
       const uploadData = await uploadResponse.json();
+      
+      if (!uploadData.audioPath) {
+        const debugStr = JSON.stringify(uploadData);
+        alert(`Upload Error: Server returned success but no audioPath. Response: ${debugStr}`);
+        throw new Error('Server returned no audio path');
+      }
       requestBody.customAudioPath = uploadData.audioPath;
     } catch (error) {
       return alert(`Error: ${error.message}`);
     }
   } else {
+    requestBody.audioSource = 'api';
     requestBody.surahNumber = getVal("fullSurahNumber");
     requestBody.edition = getVal("fullEdition");
   }

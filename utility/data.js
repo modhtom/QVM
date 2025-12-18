@@ -35,14 +35,14 @@ export async function getSurahDataRange(
   textEdition,
   translationEdition = null,
   transliterationEdition = null,
-  textOnly = false
+  textOnly = false,
 ) {
   if (surahNumber !== "1" && surahNumber !== "9") {
       const bismillahData = await getSurahData(1, 1, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly, true);
       const mainData = await fetchRange(surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly);
       
       return {
-          audioBuffers: [bismillahData, ...mainData.audioBuffers],
+          audioBuffers: [bismillahData, ...mainData.audioBuffers].filter(b => b.audio),
           combinedText: `${bismillahData.text}\n${mainData.combinedText}`,
           combinedTranslation: `${bismillahData.translation || ''}\n${mainData.combinedTranslation}`,
           combinedTransliteration: `${bismillahData.transliteration || ''}\n${mainData.combinedTransliteration}`,
@@ -95,12 +95,22 @@ async function getSurahData(
         
         if (!audioBuffer) {
             const response = await axios.get(`http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${reciterEdition}`);
-            const audioUrl = response.data.data.audio;
-            const audioContent = await axios.get(audioUrl, { responseType: "arraybuffer" });
-            audioBuffer = Buffer.from(audioContent.data, "binary");
-            await cacheAudio(reciterEdition, surahNumber, verseNumber, audioBuffer);
+            const audioUrl = response.data?.data?.audio;
+            if (audioUrl && typeof audioUrl === 'string' && audioUrl.startsWith('http')) {
+                try {
+                    const audioContent = await axios.get(audioUrl, { responseType: "arraybuffer" });
+                    audioBuffer = Buffer.from(audioContent.data, "binary");
+                    await cacheAudio(reciterEdition, surahNumber, verseNumber, audioBuffer);
+                    duration = await getAudioDurationFromBuffer(audioBuffer);
+                } catch(e) {
+                    console.warn(`Failed to download audio from ${audioUrl}: ${e.message}`);
+                }
+            } else {
+                console.warn(`No valid audio URL found for edition ${reciterEdition} at ${surahNumber}:${verseNumber}`);
+            }
+        } else {
+            duration = await getAudioDurationFromBuffer(audioBuffer);
         }
-        duration = await getAudioDurationFromBuffer(audioBuffer);
     }
 
     const textResponse = await axios.get(`http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${textEdition}`);
@@ -123,7 +133,7 @@ async function getSurahData(
 
   } catch (error) {
     console.error(`Failed to fetch data for Surah ${surahNumber}, Verse ${verseNumber}:`, error.message);
-    return { audio: null, text: null, duration: 0 };
+    return { audio: null, text: null, duration: 0, translation: "", transliteration: "" };
   }
 }
 
@@ -153,34 +163,38 @@ export async function partAudioAndText(
 
   const audioOutputDir = path.resolve("Data/audio");
   const textOutputDir = path.resolve("Data/text");
-  fs.mkdirSync(audioOutputDir, { recursive: true });
-  fs.mkdirSync(textOutputDir, { recursive: true });
+  if (!fs.existsSync(audioOutputDir)) fs.mkdirSync(audioOutputDir, { recursive: true });
+  if (!fs.existsSync(textOutputDir)) fs.mkdirSync(textOutputDir, { recursive: true });
 
   const audioOutputFile = path.join(audioOutputDir, `Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`);
 
-  if (audioBuffers.length) {
+  if (audioBuffers && audioBuffers.length > 0) {
     const ffmpegCommand = ffmpeg();
     const tempFiles = [];
 
     audioBuffers.forEach(({ audio }, index) => {
-        const tempPath = path.join(audioOutputDir, `temp_${surahNumber}_${startVerse}_${index}.mp3`);
-        fs.writeFileSync(tempPath, audio);
-        ffmpegCommand.input(tempPath);
-        tempFiles.push(tempPath);
+        if (audio) {
+            const tempPath = path.join(audioOutputDir, `temp_${surahNumber}_${startVerse}_${index}.mp3`);
+            fs.writeFileSync(tempPath, audio);
+            ffmpegCommand.input(tempPath);
+            tempFiles.push(tempPath);
+        }
     });
 
-    await new Promise((resolve, reject) => {
-        ffmpegCommand
-            .mergeToFile(audioOutputFile)
-            .on("end", () => {
-                tempFiles.forEach(file => fs.unlinkSync(file));
-                resolve();
-            })
-            .on("error", (err) => {
-                tempFiles.forEach(file => fs.unlinkSync(file));
-                reject(new Error("Error during audio concatenation: " + err.message));
-            });
-    });
+    if (tempFiles.length > 0) {
+        await new Promise((resolve, reject) => {
+            ffmpegCommand
+                .mergeToFile(audioOutputFile)
+                .on("end", () => {
+                    tempFiles.forEach(file => { if(fs.existsSync(file)) fs.unlinkSync(file) });
+                    resolve();
+                })
+                .on("error", (err) => {
+                    tempFiles.forEach(file => { if(fs.existsSync(file)) fs.unlinkSync(file) });
+                    reject(new Error("Error during audio concatenation: " + err.message));
+                });
+        });
+    }
   }
 
   if (combinedText) {

@@ -3,7 +3,6 @@
 ### Urgent: Bugs & Critical Fixes
 
 1.  **Resolve File Path and Storage Issues**: The application relies heavily on the local filesystem. This will fail on modern hosting platforms with ephemeral storage and doesn't scale.
-2.  **Sanitize All User Inputs**: Inputs like Pexels queries or YouTube URLs are used to build commands and API requests without proper sanitization, posing a potential security risk.
 
 ### High Priority: Performance & Refactoring
 

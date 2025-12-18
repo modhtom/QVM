@@ -10,17 +10,34 @@ export async function handlePartialVideoSubmit(e) {
 
   if (isCustomFlow) {
     requestBody = { ...e.detail };
+    requestBody.audioSource = 'custom';
+
     const audioFormData = new FormData();
     audioFormData.append('audio', customAudioFile);
     try {
+      console.log("Uploading audio...");
       const uploadResponse = await fetch('/upload-audio', { method: 'POST', body: audioFormData });
-      if (!uploadResponse.ok) throw new Error('Failed to upload audio');
+      
+      if (!uploadResponse.ok) {
+        const errText = await uploadResponse.text();
+        throw new Error(`Server Error (${uploadResponse.status}): ${errText}`);
+      }
+      
       const uploadData = await uploadResponse.json();
+      console.log("Upload Success:", uploadData);
+
+      if (!uploadData || !uploadData.audioPath) {
+        alert("Debug Error: Server response was: " + JSON.stringify(uploadData));
+        throw new Error('Server returned success but no audioPath');
+      }
       requestBody.customAudioPath = uploadData.audioPath;
+      
     } catch (error) {
-      return alert(`Error: ${error.message}`);
+      console.error("Audio upload failed:", error);
+      return alert(`Upload Failed: ${error.message}`);
     }
   } else {
+    requestBody.audioSource = 'api';
     requestBody.surahNumber = getVal("surahNumber");
     requestBody.startVerse = parseInt(getVal("startVerse"));
     requestBody.endVerse = parseInt(getVal("endVerse"));

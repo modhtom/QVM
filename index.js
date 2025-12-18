@@ -16,35 +16,38 @@ const app = express();
 const PORT = 3001;
 const progressEmitter = new EventEmitter();
 
+const sanitizeFilename = (name) => {
+  return name.replace(/[^a-z0-9.]/gi, '_').replace(/_{2,}/g, '_');
+};
+
 const backgroundStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'Data/Background_Video/uploads';
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const safeName = sanitizeFilename(file.originalname);
+    cb(null, `${Date.now()}_${safeName}`);
   }
 });
-const uploadBackground = multer({ storage: backgroundStorage });
+const uploadBackground = multer({
+  storage: backgroundStorage,
+  limits: { fileSize: 50 * 1024 * 1024 } // Limit 50MB
+});
 
 const audioStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = 'Data/audio/custom';
-    
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const safeName = sanitizeFilename(file.originalname);
+    cb(null, `${Date.now()}_${safeName}`);
   }
 });
-const upload = multer({ audioStorage });
+const uploadAudio = multer({ storage: audioStorage });
 
 const connection = new IORedis({
   host: process.env.REDIS_HOST || '127.0.0.1',
@@ -55,11 +58,6 @@ console.log('Server connected to video-queue.');
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.resolve(__dirname, "public")));
-
-app.use(cors());
-app.use(express.json());
-
 app.use(express.static(path.resolve(__dirname, "public")));
 
 app.get("/", (req, res) => {
@@ -87,32 +85,21 @@ app.get('/progress', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-
-  const sendProgress = (progress) => {
-    res.write(`data: ${JSON.stringify(progress)}\n\n`);
-  };
-
+  const sendProgress = (progress) => res.write(`data: ${JSON.stringify(progress)}\n\n`);
   progressEmitter.on('progress', sendProgress);
-
-  req.on('close', () => {
-    progressEmitter.removeListener('progress', sendProgress);
-  });
+  req.on('close', () => progressEmitter.removeListener('progress', sendProgress));
 });
 
 app.get("/api/videos", (req, res) => {
   const videoDir = path.resolve(__dirname, "Output_Video");
+  if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir);
   fs.readdir(videoDir, (err, files) => {
-    if (err) {
-      console.error('Error reading video directory:', err);
-      return res.status(500).json({ error: 'Unable to read videos' });
-    }
-    // Filter for video files
-    const videoFiles = files.filter(file =>
-      ['.mp4', '.mov', '.avi'].includes(path.extname(file).toLowerCase())
-    );
+    if (err) return res.status(500).json({ error: 'Unable to read videos' });
+    const videoFiles = files.filter(file => ['.mp4', '.mov', '.avi'].includes(path.extname(file).toLowerCase()));
     res.json({ videos: videoFiles });
   });
 });
+
 app.use("/videos", express.static(path.resolve(__dirname, "Output_Video")));
 
 app.get("/video-preview/:video", (req, res) => {
@@ -150,68 +137,52 @@ app.get("/Output_Video/:video", (req, res) => {
 });
 
 app.post("/generate-partial-video", async (req, res) => {
-  console.log("Received request for partial video. Adding to queue...");
   try {
     const job = await videoQueue.add('process-video', { type: 'partial', videoData: req.body });
-    res.status(202).json({ message: "Video generation has been queued.", jobId: job.id });
+    res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
-    console.error("Error adding partial video job to queue:", error);
-    res.status(500).send("Failed to queue video generation.");
+    res.status(500).send("Failed to queue.");
   }
 });
 
 app.post("/generate-full-video", async (req, res) => {
-  console.log("Received request for full video. Adding to queue...");
   try {
     const job = await videoQueue.add('process-video', { type: 'full', videoData: req.body });
-    res.status(202).json({ message: "Video generation has been queued.", jobId: job.id });
+    res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
-    console.error("Error adding full video job to queue:", error);
-    res.status(500).send("Failed to queue video generation.");
+    res.status(500).send("Failed to queue.");
   }
 });
 
 app.get('/api/surah-verses-text', async (req, res) => {
   const { surahNumber, startVerse, endVerse } = req.query;
-  if (!surahNumber || !startVerse || !endVerse) {
-    return res.status(400).json({ error: 'Missing surahNumber, startVerse, or endVerse' });
+  if (!surahNumber || !startVerse || !endVerse || isNaN(surahNumber) || isNaN(startVerse)) {
+    return res.status(400).json({ error: 'Invalid parameters' });
   }
 
   try {
     const { combinedText } = await getSurahDataRange(
-      parseInt(surahNumber),
-      parseInt(startVerse),
-      parseInt(endVerse),
-      null, // reciterEdition (not needed)
-      "quran-simple", // textEdition
-      null, // translationEdition (not needed)
-      null, // transliterationEdition (not needed)
-      true // textOnly
+      parseInt(surahNumber), parseInt(startVerse), parseInt(endVerse),
+      null, "quran-simple", null, null, true
     );
-    const verses = combinedText.split('\n').filter(Boolean);
-    res.json({ verses });
+    res.json({ verses: combinedText.split('\n').filter(Boolean) });
   } catch (error) {
-    console.error("Error fetching surah verses text:", error);
-    res.status(500).json({ error: 'Failed to fetch verse text' });
+    console.error("Error fetching text:", error);
+    res.status(500).json({ error: 'Failed to fetch text' });
   }
 });
 
 app.delete('/api/videos/:video', (req, res) => {
   const videoName = req.params.video;
-  
   if (videoName.includes('..') || videoName.includes('/')) {
     return res.status(400).json({ error: 'Invalid filename' });
   }
-
   const videoPath = path.resolve(__dirname, "Output_Video", videoName);
-
   if (fs.existsSync(videoPath)) {
     try {
       fs.unlinkSync(videoPath);
-      console.log(`Deleted video: ${videoName}`);
-      res.json({ success: true, message: 'Video deleted successfully' });
+      res.json({ success: true });
     } catch (err) {
-      console.error('Error deleting file:', err);
       res.status(500).json({ error: 'Failed to delete file' });
     }
   } else {
@@ -220,17 +191,27 @@ app.delete('/api/videos/:video', (req, res) => {
 });
 
 app.post('/upload-background', uploadBackground.single('backgroundFile'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded.');
-  }
+  if (!req.file) return res.status(400).send('No file uploaded.');
   res.json({ backgroundPath: req.file.path });
 });
 
-app.post('/upload-audio', upload.single('audio'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No audio uploaded.');
-  }
-  res.json({ audioPath: req.file.path });
+app.post('/upload-audio', (req, res) => {
+  uploadAudio.single('audio')(req, res, (err) => {
+    if (err) {
+      console.error("Multer error:", err);
+      return res.status(400).json({ error: "Audio upload failed" });
+    }
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({
+        error: "No audio file received by server"
+      });
+    }
+
+    const normalizedPath = req.file.path.replace(/\\/g, '/');
+    return res.status(200).json({
+      audioPath: normalizedPath
+    });
+  });
 });
 
 app.listen(PORT, () => {
