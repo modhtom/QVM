@@ -196,6 +196,29 @@ app.get('/api/surah-verses-text', async (req, res) => {
   }
 });
 
+app.delete('/api/videos/:video', (req, res) => {
+  const videoName = req.params.video;
+  
+  if (videoName.includes('..') || videoName.includes('/')) {
+    return res.status(400).json({ error: 'Invalid filename' });
+  }
+
+  const videoPath = path.resolve(__dirname, "Output_Video", videoName);
+
+  if (fs.existsSync(videoPath)) {
+    try {
+      fs.unlinkSync(videoPath);
+      console.log(`Deleted video: ${videoName}`);
+      res.json({ success: true, message: 'Video deleted successfully' });
+    } catch (err) {
+      console.error('Error deleting file:', err);
+      res.status(500).json({ error: 'Failed to delete file' });
+    }
+  } else {
+    res.status(404).json({ error: 'Video not found' });
+  }
+});
+
 app.post('/upload-background', uploadBackground.single('backgroundFile'), (req, res) => {
   if (!req.file) {
     return res.status(400).send('No file uploaded.');

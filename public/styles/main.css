@@ -1132,7 +1132,14 @@ body {
     box-shadow: var(--shadow-heavy);
 }
 
+.gallery-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
 .btn-mini {
+    flex: 1;
     background: var(--primary-color);
     color: var(--text-light);
     border: none;
