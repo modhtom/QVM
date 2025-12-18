@@ -270,10 +270,6 @@
       const videoElement = document.getElementById('previewVideo');
       const videoSrc = videoElement.src;
       
-      if (!videoSrc || videoSrc.includes('undefined')) {
-        return alert('لا يوجد فيديو متاح للتحميل');
-      }
-      
       const urlParts = videoSrc.split('/');
       const fileNameWithQuery = urlParts[urlParts.length - 1];
       const fileName = fileNameWithQuery.split('?')[0];
@@ -281,7 +277,7 @@
       if (!fileName) return alert('لا يمكن العثور على اسم الملف');
 
       const a = document.createElement('a');
-      a.href = `/Output_Video/${fileName}?download=true`;
+      a.href = `/videos/${fileName}?download=true`;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();

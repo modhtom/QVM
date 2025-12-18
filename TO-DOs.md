@@ -3,9 +3,8 @@
 ### Urgent: Bugs & Critical Fixes
 
 1.  **Resolve File Path and Storage Issues**: The application relies heavily on the local filesystem. This will fail on modern hosting platforms with ephemeral storage and doesn't scale.
-2.  **Correct Frontend Logic Errors**: The JavaScript for handling custom audio submissions is flawed, mixing up form data and causing failures. There are also event listeners attached to non-existent element IDs.
-3.  **Sanitize All User Inputs**: Inputs like Pexels queries or YouTube URLs are used to build commands and API requests without proper sanitization, posing a potential security risk.
-4.  **Add Comprehensive Error Handling**: The worker process can crash on unexpected errors (e.g., FFmpeg failure, API timeout), leaving jobs stalled. The frontend needs to better inform the user when a job fails permanently.
+2.  **Sanitize All User Inputs**: Inputs like Pexels queries or YouTube URLs are used to build commands and API requests without proper sanitization, posing a potential security risk.
+3.  **Add Comprehensive Error Handling**: The worker process can crash on unexpected errors (e.g., FFmpeg failure, API timeout), leaving jobs stalled. The frontend needs to better inform the user when a job fails permanently.
 
 ### High Priority: Performance & Refactoring
 

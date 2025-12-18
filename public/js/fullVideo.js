@@ -4,43 +4,11 @@ export async function handleFullVideoSubmit(e) {
   let requestBody = {};
   const customAudioFile = e.detail?.customAudioFile;
   const isCustomFlow = !!customAudioFile;
-  const ids = isCustomFlow ? {
-    color: "fontColorFullCustom",
-    size: "fontSizeFullCustom",
-    font: "fontNameFullCustom",
-    trans: "translationEditionFullCustom",
-    pos: "subtitlePositionFullCustom",
-    meta: "showMetadataFullCustom",
-    bgUpload: "backgroundUploadFullCustom",
-    vertical: "verticalVideoFullCustom",
-    pexels: "pexelsVideoFullCustom",
-    img: "imageLinkFullCustom",
-    yt: "youtubeLinkFullCustom",
-    surah: "fullSurahNumberCustom",
-    edition: "fullEditionFullCustom"
-  } : {
-    color: "fontColor",
-    size: "fontSize",
-    font: "fontNameFull",
-    trans: "translationEditionFull",
-    pos: "subtitlePositionFull",
-    meta: "showMetadataFull",
-    bgUpload: "backgroundUploadFull",
-    vertical: "verticalVideoFull",
-    pexels: "pexelsVideo",
-    img: "imageLink",
-    yt: "youtubeLink",
-    surah: "fullSurahNumber",
-    edition: "fullEdition"
-  };
-
-  const subtitlePosition = document.getElementById(ids.pos)?.value || 'bottom';
-  const showMetadata = document.getElementById(ids.meta)?.checked || false;
+  const getVal = (id) => document.getElementById(id)?.value;
+  const getChk = (id) => document.getElementById(id)?.checked;
 
   if (isCustomFlow) {
     requestBody = { ...e.detail };
-    requestBody.subtitlePosition = subtitlePosition;
-    requestBody.showMetadata = showMetadata;
     const audioFormData = new FormData();
     audioFormData.append('audio', customAudioFile);
     try {
@@ -52,53 +20,68 @@ export async function handleFullVideoSubmit(e) {
       return alert(`Error: ${error.message}`);
     }
   } else {
-    const backgroundUploadInput = document.getElementById(ids.bgUpload);
-    let uploadedBackgroundPath = null;
-    if (backgroundUploadInput?.files[0]) {
-      const backgroundFile = backgroundUploadInput.files[0];
-      const backgroundFormData = new FormData();
-      backgroundFormData.append('backgroundFile', backgroundFile);
-      try {
-        const uploadResponse = await fetch('/upload-background', { method: 'POST', body: backgroundFormData });
-        if (!uploadResponse.ok) throw new Error('Background upload failed');
-        const uploadData = await uploadResponse.json();
-        uploadedBackgroundPath = uploadData.backgroundPath;
-      } catch (error) {
-        return alert(`Error uploading background: ${error.message}`);
-      }
-    }
-    
-    const isVertical = document.getElementById(ids.vertical)?.checked;
-    const pexelsQuery = document.getElementById(ids.pexels)?.value;
-    const imageUrl = document.getElementById(ids.img)?.value;
-    const youtubeUrl = document.getElementById(ids.yt)?.value;
-
-    let videoData = 1, useCustomBg = false;
-    if (uploadedBackgroundPath) {
-      videoData = uploadedBackgroundPath; useCustomBg = true;
-    } else if (pexelsQuery) {
-      videoData = `unsplash:${pexelsQuery}`; useCustomBg = true;
-    } else if (imageUrl) {
-      videoData = imageUrl; useCustomBg = true;
-    } else if (youtubeUrl) {
-      videoData = youtubeUrl; useCustomBg = true;
-    }
-
-    requestBody = {
-      surahNumber: document.getElementById(ids.surah).value,
-      edition: document.getElementById(ids.edition)?.value,
-      color: document.getElementById(ids.color).value,
-      size: document.getElementById(ids.size).value,
-      fontName: document.getElementById(ids.font).value,
-      translationEdition: document.getElementById(ids.trans).value,
-      crop: isVertical ? "vertical" : "horizontal",
-      useCustomBackground: useCustomBg,
-      videoNumber: videoData,
-      removeFilesAfterCreation: true,
-      subtitlePosition,
-      showMetadata
-    };
+    requestBody.surahNumber = getVal("fullSurahNumber");
+    requestBody.edition = getVal("fullEdition");
   }
+
+  const bgUploadId = isCustomFlow ? "backgroundUploadFullCustom" : "backgroundUploadFull";
+  const pexelsId   = isCustomFlow ? "pexelsVideoFullCustom" : "pexelsVideo";
+  const imgId      = isCustomFlow ? "imageLinkFullCustom" : "imageLink";
+  const ytId       = isCustomFlow ? "youtubeLinkFullCustom" : "youtubeLink";
+
+  const backgroundUploadInput = document.getElementById(bgUploadId);
+  let uploadedBackgroundPath = null;
+
+  if (backgroundUploadInput?.files[0]) {
+    const backgroundFile = backgroundUploadInput.files[0];
+    const backgroundFormData = new FormData();
+    backgroundFormData.append('backgroundFile', backgroundFile);
+    try {
+      const uploadResponse = await fetch('/upload-background', { method: 'POST', body: backgroundFormData });
+      if (!uploadResponse.ok) throw new Error('Background upload failed');
+      const uploadData = await uploadResponse.json();
+      uploadedBackgroundPath = uploadData.backgroundPath;
+    } catch (error) {
+      return alert(`Error uploading background: ${error.message}`);
+    }
+  }
+
+  const pexelsQuery = getVal(pexelsId);
+  const imageUrl = getVal(imgId);
+  const youtubeUrl = getVal(ytId);
+
+  let videoData = 1, useCustomBg = false;
+  if (uploadedBackgroundPath) {
+    videoData = uploadedBackgroundPath; useCustomBg = true;
+  } else if (pexelsQuery) {
+    videoData = `unsplash:${pexelsQuery}`; useCustomBg = true;
+  } else if (imageUrl) {
+    videoData = imageUrl; useCustomBg = true;
+  } else if (youtubeUrl) {
+    videoData = youtubeUrl; useCustomBg = true;
+  }
+
+  const colorId = isCustomFlow ? "fontColorFullCustom" : "fontColor";
+  const sizeId  = isCustomFlow ? "fontSizeFullCustom" : "fontSize";
+  const fontId  = isCustomFlow ? "fontNameFullCustom" : "fontNameFull";
+  const transId = isCustomFlow ? "translationEditionFullCustom" : "translationEditionFull";
+  const vertId  = isCustomFlow ? "verticalVideoFullCustom" : "verticalVideoFull";
+  const posId   = isCustomFlow ? "subtitlePositionFullCustom" : "subtitlePositionFull";
+  const metaId  = isCustomFlow ? "showMetadataFullCustom" : "showMetadataFull";
+
+  Object.assign(requestBody, {
+    color: getVal(colorId) || "#ffffff",
+    size: getVal(sizeId) || 30,
+    fontName: getVal(fontId) || "TaseesRegular",
+    translationEdition: getVal(transId) || "en.sahih",
+    crop: getChk(vertId) ? "vertical" : "horizontal",
+    subtitlePosition: getVal(posId) || "bottom",
+    showMetadata: getChk(metaId) || false,
+    useCustomBackground: useCustomBg,
+    videoNumber: videoData,
+    removeFilesAfterCreation: true,
+    surahNumber: requestBody.surahNumber || getVal(isCustomFlow ? "fullSurahNumberCustom" : "fullSurahNumber"),
+  });
 
   try {
     console.log("Submitting job with data:", requestBody);
