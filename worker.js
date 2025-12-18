@@ -6,7 +6,6 @@ const connection = new IORedis({
   host: process.env.REDIS_HOST || '127.0.0.1',
   maxRetriesPerRequest: null
 });
-
 console.log('Worker connecting to Redis...');
 
 const worker = new Worker('video-queue', async (job) => {
@@ -14,13 +13,14 @@ const worker = new Worker('video-queue', async (job) => {
   const { type, videoData } = job.data;
 
   try {
-    let result;
     const progressCallback = (progress) => {
       job.updateProgress(progress);
-      console.log(`Job ${job.id} progress: ${progress.percent}% - ${progress.step}`);
+      if (progress.percent % 10 === 0 || progress.step.includes('Starting') || progress.step.includes('Complete')) {
+        console.log(`Job ${job.id}: ${progress.step} (${Math.round(progress.percent)}%)`);
+      }
     };
-    const subtitlePosition = videoData.subtitlePosition || 'bottom';
-    const showMetadata = videoData.showMetadata || false;
+
+    let result;
     if (type === 'partial') {
       result = await generatePartialVideo(
         videoData.surahNumber,
@@ -39,8 +39,8 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.transliterationEdition,
         progressCallback,
         videoData.userVerseTimings,
-        subtitlePosition,
-        showMetadata
+        videoData.subtitlePosition,
+        videoData.showMetadata
       );
     } else if (type === 'full') {
       result = await generateFullVideo(
@@ -58,28 +58,30 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.transliterationEdition,
         progressCallback,
         videoData.userVerseTimings,
-        subtitlePosition,
-        showMetadata
+        videoData.subtitlePosition,
+        videoData.showMetadata
       );
     } else {
-      throw new Error('Unknown job type');
+      throw new Error(`Unknown job type: ${type}`);
     }
-
-    console.log(`Job ${job.id} completed successfully. Video at: ${result.vidPath}`);
+    console.log(`Job ${job.id} completed. Output: ${result.vidPath}`);
     return result;
-
   } catch (error) {
-    console.error(`Job ${job.id} failed:`, error);
-    throw error;
+    console.error(`Job ${job.id} CRITICAL FAILURE:`, error);
+    throw new Error(error.message || "Unknown error occurred during video processing.");
   }
-}, { connection });
+}, {
+  connection,
+  concurrency: 1,
+  lockDuration: 600000 // 10 minutes lock to prevent stalls
+});
 
-worker.on('completed', (job, result) => {
-  console.log(`Job ${job.id} has completed.`);
+worker.on('completed', (job) => {
+  console.log(`[Worker] Job ${job.id} marked as completed.`);
 });
 
 worker.on('failed', (job, err) => {
-  console.log(`Job ${job.id} has failed with ${err.message}`);
+  console.log(`[Worker] Job ${job.id} marked as failed: ${err.message}`);
 });
 
 console.log('Video processing worker started.');

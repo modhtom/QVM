@@ -10,7 +10,9 @@ import path from "path";
 import os from 'os';
 
 const fontPosition = "1920,1080";
-
+const api = axios.create({
+  timeout: 10000 // 10 seconds timeout
+});
 function getHardwareEncoder() {
   const platform = os.platform();
   if (platform === 'darwin') { // For macOS
@@ -260,17 +262,13 @@ async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEditi
 async function getEndVerse(surahNumber, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
-
-      if (response.data && response.data.data && response.data.data.numberOfAyahs) {
+      const response = await api.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
+      if (response.data?.data?.numberOfAyahs) {
         return response.data.data.numberOfAyahs;
       }
     } catch (error) {
       console.error(`Error fetching end verse (Attempt ${i + 1}/${retries}): ${error.message}`);
-      if (i === retries - 1) {
-        console.error("All attempts to fetch surah data failed.");
-        return -1;
-      }
+      if (i === retries - 1) return -1;
       await new Promise(res => setTimeout(res, 1000));
     }
   }
