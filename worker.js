@@ -40,7 +40,8 @@ const worker = new Worker('video-queue', async (job) => {
         progressCallback,
         videoData.userVerseTimings,
         videoData.subtitlePosition,
-        videoData.showMetadata
+        videoData.showMetadata,
+        videoData.audioSource
       );
     } else if (type === 'full') {
       result = await generateFullVideo(
@@ -59,7 +60,8 @@ const worker = new Worker('video-queue', async (job) => {
         progressCallback,
         videoData.userVerseTimings,
         videoData.subtitlePosition,
-        videoData.showMetadata
+        videoData.showMetadata,
+        videoData.audioSource
       );
     } else {
       throw new Error(`Unknown job type: ${type}`);

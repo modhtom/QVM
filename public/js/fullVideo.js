@@ -81,7 +81,7 @@ export async function handleFullVideoSubmit(e) {
     color: getVal(colorId) || "#ffffff",
     size: getVal(sizeId) || 30,
     fontName: getVal(fontId) || "TaseesRegular",
-    translationEdition: getVal(transId) || "en.sahih",
+    translationEdition: getVal(transId),
     crop: getChk(vertId) ? "vertical" : "horizontal",
     subtitlePosition: getVal(posId) || "bottom",
     showMetadata: getChk(metaId) || false,

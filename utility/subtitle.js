@@ -100,7 +100,7 @@ export async function generateSubtitles(
             subtitles += `Dialogue: 1,0:00:00.00,${formatTime(audioLen)},Info,,0,0,0,,${infoText}\n`;
         }
 
-        if (userVerseTimings && userVerseTimings.length === textContent.length) {
+        if (userVerseTimings && userVerseTimings.length === (textContent.length+1)) {
             for (let i = 0; i < textContent.length; i++) {
                 const startTime = userVerseTimings[i].start;
                 let endTime = userVerseTimings[i].end;
@@ -151,7 +151,7 @@ export async function generateSubtitles(
                     const fullLine = buildFullLine(verseText, verseTransliteration, verseTranslation, color, fontName, size, alignment);
                     subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
                 }
-
+                currentTime += totalDuration;
                 if (!userVerseTimings) {
                     currentTime += totalDuration;
                 }
