@@ -8,20 +8,18 @@
 
 1.  **Refactor Backend Code**: Consolidate redundant logic in `video.js`, break down monolithic functions, and centralize configuration.
 2.  **Refactor Frontend Code**: Reduce code duplication between `fullVideo.js` and `partialVideo.js`, and manage application state more effectively instead of using global variables.
-3.  **Optimize FFmpeg Commands**: Fine-tune FFmpeg settings for a better balance of speed and quality, and make hardware acceleration more robust.
-4.  **Implement Caching for API Calls**: Cache responses from the Al-Quran Cloud API (for text/metadata) and Unsplash/Pexels to reduce latency and avoid rate-limiting.
+3.  **Implement Caching for API Calls**: Cache responses from the Al-Quran Cloud API (for text/metadata) and Unsplash/Pexels to reduce latency and avoid rate-limiting.
 
 ### Medium Priority: New Features
 
 1.  **Implement User Accounts**: Create a system for users to register, log in, and manage their own private video galleries.
 2.  **Add a Static Preview Feature**: Generate a single image preview of a verse with the selected styling _before_ starting the time-consuming video render.
-3.  **Enhance Text and Subtitle Customization**: Allow users to customize subtitle position, add outlines/shadows, and support more fonts.
+3.  **Enhance Text and Subtitle Customization**: Support more fonts and Allow users to upload their own font.
 4.  **Improve AI Background Generation**: Refine the keyword extraction and add more diverse and context-aware image sources.
 
 ### Low Priority: Future Enhancements
 
-1.  **Introduce Intro/Outro Templates**: Allow users to add a custom "Bismillah" intro or a concluding slide.
-2.  **Expand Translation and Reciter Library**: Integrate more language and reciter options.
+1.  **Expand Translation and Reciter Library**: Integrate more language and reciter options.
 
 ---
 
@@ -41,7 +39,6 @@
 
 ## Performance Optimization
 
-- **Optimize FFmpeg**: The current hardware acceleration check is basic.use a small library like `ffmpeg-hardware-acceleration-helper` to reliably detect the best available encoder (`vaapi`, `nvenc`, `videotoolbox`) and apply the correct pixel formats (`pix_fmt`) automatically.
 - **Stream, Don't Write**: The process of creating the final recitation audio involves saving multiple small `.mp3` files to disk and then merging them with FFmpeg.Do this entirely in memory by streaming the downloaded audio buffers directly to FFmpeg's `stdin`, avoiding slow disk I/O.
 - **Cache API Responses**: In `data.js`, cache audio files, which is excellent. should apply the same logic for text, translation, and Surah metadata API calls using `node-cache` to reduce external network requests.
 - **Use WebP for Images**: When generating AI backgrounds from Unsplash, download images as `.webp` instead of `.jpg`. They are smaller and will download faster, shortening the image fetching step.

@@ -13,12 +13,61 @@ const fontPosition = "1920,1080";
 const api = axios.create({
   timeout: 10000 // 10 seconds timeout
 });
-function getHardwareEncoder() {
-  const platform = os.platform();
-  if (platform === 'darwin') { // For macOS
-    return 'h264_videotoolbox';
+
+let cachedEncoder = null;
+async function detectBestEncoder() {
+  if (cachedEncoder) return cachedEncoder;
+
+  return new Promise((resolve) => {
+    ffmpeg.getAvailableCodecs((err, codecs) => {
+      if (err) {
+        console.warn("Failed to query FFmpeg codecs, defaulting to libx264");
+        cachedEncoder = 'libx264';
+        return resolve('libx264');
+      }
+
+      const platform = os.platform();
+      if (codecs['h264_nvenc']) {
+        cachedEncoder = 'h264_nvenc'; // NVIDIA GPU
+      } else if (platform === 'darwin' && codecs['h264_videotoolbox']) {
+        cachedEncoder = 'h264_videotoolbox'; // macOS Apple Silicon/Intel
+      } else if (codecs['h264_amf']) {
+        cachedEncoder = 'h264_amf'; // AMD GPU
+      } else if (codecs['h264_qsv']) {
+        cachedEncoder = 'h264_qsv'; // Intel QuickSync
+      } else if (codecs['h264_vaapi']) {
+        cachedEncoder = 'h264_vaapi'; // Linux Generic HW
+      } else {
+        cachedEncoder = 'libx264'; // CPU Fallback
+      }
+
+      console.log(`[FFmpeg] Optimal Encoder Detected: ${cachedEncoder}`);
+      resolve(cachedEncoder);
+    });
+  });
+}
+function getEncoderSettings(encoder) {
+  const common = ['-pix_fmt yuv420p', '-movflags +faststart'];
+
+  switch (encoder) {
+    case 'h264_nvenc':
+      // p4 = medium preset, rc=vbr_hq for better quality control
+      return [...common, '-preset p4', '-rc vbr_hq', '-cq 23', '-b:v 0'];
+    
+    case 'h264_videotoolbox':
+      // q:v is quality (0-100 on modern ffmpeg, roughly)
+      return [...common, '-q:v 60', '-allow_sw 1'];
+    
+    case 'h264_amf':
+      return [...common, '-usage transcoding', '-rc cqp', '-qp_i 23', '-qp_p 23'];
+    
+    case 'h264_qsv':
+      return [...common, '-global_quality 23', '-look_ahead 1'];
+    
+    case 'libx264':
+    default:
+      return [...common, '-preset veryfast', '-crf 23', '-tune film'];
   }
-  return 'libx264'; // Default for Windows and Linux
 }
 
 async function getMetadataInfo(surahNumber, editionIdentifier) {
@@ -155,8 +204,9 @@ if (audioSource === 'custom') {
   const outputFileName = `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}_${Date.now()}.mp4`;
   const outputPath = path.join(outputDir, outputFileName);
 
-  const encoder = getHardwareEncoder();
-  
+  const encoder = await detectBestEncoder();
+  const encoderOptions = getEncoderSettings(encoder);
+
   progressCallback({ step: 'Rendering final video', percent: 60 });
   await new Promise((resolve, reject) => {
     const escapedSubPath = subPath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "'\\''");
@@ -168,6 +218,7 @@ if (audioSource === 'custom') {
       .audioCodec("aac")
       .videoCodec(encoder)
       .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
+      .outputOptions(encoderOptions)
       .videoFilter(subtitleFilter)
       .output(outputPath);
 
@@ -181,7 +232,19 @@ if (audioSource === 'custom') {
       .on("error", (err, stdout, stderr) => {
         console.error("FFmpeg error:", stderr);
         if (encoder !== 'libx264') {
-          reject(new Error(stderr));
+          console.warn("Hardware encoding failed, retrying with CPU...");
+          cachedEncoder = 'libx264';
+          const cpuCommand = ffmpeg()
+            .input(backgroundPath)
+            .input(audioPath)
+            .audioCodec("aac")
+            .videoCodec("libx264")
+            .outputOptions(['-preset veryfast', '-crf 23', '-pix_fmt yuv420p', '-map 0:v:0', '-map 1:a:0'])
+            .videoFilter(subtitleFilter)
+            .output(outputPath)
+            .on('end', resolve)
+            .on('error', (e) => reject(new Error(e)));
+          cpuCommand.run();
         } else {
           reject(new Error(stderr));
         }
