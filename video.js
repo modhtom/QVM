@@ -4,6 +4,7 @@ import { partAudioAndText, getSurahDataRange } from "./utility/data.js";
 import { getBackgroundPath } from "./utility/background.js";
 import { deleteVidData, deleteOldVideosAndTempFiles } from "./utility/delete.js";
 import { generateSubtitles } from "./utility/subtitle.js";
+import { uploadToStorage, downloadFromStorage } from "./utility/storage.js";
 import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
@@ -132,22 +133,13 @@ export async function generatePartialVideo(
   
   let audioPath, textPath, durationsFile;
 
-if (audioSource === 'custom') {
-    if (!customAudioPath || typeof customAudioPath !== 'string' || customAudioPath.trim() === '') {
-        throw new Error("Job specifies custom audio but no path provided.");
-    }
-    
-    if (!fs.existsSync(customAudioPath)) {
-        throw new Error(`Custom audio file missing at: ${customAudioPath}`);
-    }
-
-    audioPath = customAudioPath;
-    progressCallback({ step: 'Using custom audio', percent: 10 });
-    progressCallback({ step: 'Fetching text data', percent: 20 });
-    const result = await fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition);
-    textPath = result.textPath;
-    durationsFile = result.durationsFile;
-  } else {
+if (customAudioPath.startsWith('uploads/')) {
+        progressCallback({ step: 'Downloading Audio from Cloud', percent: 5 });
+        const localTempAudio = path.resolve(`Data/temp/${path.basename(customAudioPath)}`);
+        await downloadFromStorage(customAudioPath, localTempAudio);
+        audioPath = localTempAudio;
+        customAudioPath = localTempAudio;
+    } else {
     progressCallback({ step: 'Fetching audio and text', percent: 10 });
     const result = await fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition);
     audioPath = result.audioPath;
@@ -252,14 +244,29 @@ if (audioSource === 'custom') {
       .run();
   });
   
-  progressCallback({ step: 'Cleaning up', percent: 98 });
+  progressCallback({ step: 'Uploading to Cloud', percent: 95 });
   try {
-    deleteVidData(removeFiles, audioPath, textPath, null, durationsFile, null, customAudioPath);
-  } catch(e){}
-  deleteOldVideosAndTempFiles();
+      const s3Key = `videos/${outputFileName}`;
+      await uploadToStorage(outputPath, s3Key, 'video/mp4');
 
-  progressCallback({ step: 'Complete', percent: 100 });
-  return {vidPath: outputFileName};
+      if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath);
+      }
+
+      try {
+        deleteVidData(removeFiles, audioPath, textPath, null, durationsFile, null, customAudioPath);
+      } catch(e) { console.warn('Cleanup warning:', e.message); }
+      
+      deleteOldVideosAndTempFiles();
+
+      progressCallback({ step: 'Complete', percent: 100 });
+      
+      return { vidPath: s3Key, isRemote: true };
+
+  } catch (error) {
+      console.error("Cloud upload failed:", error);
+      throw new Error("Video generated but failed to upload to cloud.");
+  }
 }
 
 async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition) {

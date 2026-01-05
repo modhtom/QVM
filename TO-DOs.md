@@ -2,24 +2,25 @@
 
 ### Urgent: Bugs & Critical Fixes
 
-1.  **Resolve File Path and Storage Issues**: The application relies heavily on the local filesystem. This will fail on modern hosting platforms with ephemeral storage and doesn't scale.
+1. **Munajjam Integration**: Automate verse synchronization.
+2.  **Implement User Accounts**: Create a system for users to register, log in, and manage their own private video galleries.
 
 ### High Priority: Performance & Refactoring
 
 1.  **Refactor Backend Code**: Consolidate redundant logic in `video.js`, break down monolithic functions, and centralize configuration.
 2.  **Refactor Frontend Code**: Reduce code duplication between `fullVideo.js` and `partialVideo.js`, and manage application state more effectively instead of using global variables.
-3.  **Implement Caching for API Calls**: Cache responses from the Al-Quran Cloud API (for text/metadata) and Unsplash/Pexels to reduce latency and avoid rate-limiting.
+
 
 ### Medium Priority: New Features
 
-1.  **Implement User Accounts**: Create a system for users to register, log in, and manage their own private video galleries.
-2.  **Add a Static Preview Feature**: Generate a single image preview of a verse with the selected styling _before_ starting the time-consuming video render.
-3.  **Enhance Text and Subtitle Customization**: Support more fonts and Allow users to upload their own font.
-4.  **Improve AI Background Generation**: Refine the keyword extraction and add more diverse and context-aware image sources.
+1.  **Add a Static Preview Feature**: Generate a single image preview of a verse with the selected styling _before_ starting the time-consuming video render.
+2.  **Enhance Text and Subtitle Customization**: Support more fonts and Allow users to upload their own font.
+3.  **Improve AI Background Generation**: Refine the keyword extraction and add more diverse and context-aware image sources.
 
 ### Low Priority: Future Enhancements
 
 1.  **Expand Translation and Reciter Library**: Integrate more language and reciter options.
+2.  **Implement Caching for API Calls**: Cache responses from the Al-Quran Cloud API (for text/metadata) and Unsplash/Pexels to reduce latency and avoid rate-limiting.
 
 ---
 
@@ -84,7 +85,7 @@ Implementing user accounts will make the gallery feature much more useful.
 
 The biggest challenge for hosting is the reliance on a local filesystem for temporary files and video output.
 
-### Step 1: Switch to Cloud Storage
+### Step 1: Switch to Cloud Storage  --DONE--
 
 **must** replace local file storage with a cloud provider. **Cloudflare R2** is an excellent choice because it's S3-compatible and has **zero egress fees**, making it the cheapest option for serving video files.
 

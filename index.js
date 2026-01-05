@@ -7,6 +7,9 @@ import cors from "cors";
 import multer from "multer";
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { S3_CONFIG } from "./utility/config.js";
+import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
 import {getSurahDataRange} from './utility/data.js'
 
 const __filename = fileURLToPath(import.meta.url);
@@ -90,14 +93,22 @@ app.get('/progress', (req, res) => {
   req.on('close', () => progressEmitter.removeListener('progress', sendProgress));
 });
 
-app.get("/api/videos", (req, res) => {
-  const videoDir = path.resolve(__dirname, "Output_Video");
-  if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir);
-  fs.readdir(videoDir, (err, files) => {
-    if (err) return res.status(500).json({ error: 'Unable to read videos' });
-    const videoFiles = files.filter(file => ['.mp4', '.mov', '.avi'].includes(path.extname(file).toLowerCase()));
-    res.json({ videos: videoFiles });
-  });
+app.get("/api/videos", async (req, res) => {
+  try {
+    const s3 = new S3Client(S3_CONFIG);
+    const command = new ListObjectsV2Command({
+      Bucket: S3_CONFIG.bucketName,
+      Prefix: "videos/",
+      Suffix:"?download=true"
+    });
+    
+    const response = await s3.send(command);
+    const videos = response.Contents ? response.Contents.map(item => item.Key): [];
+    res.json({ videos });
+  } catch (error) {
+    console.error("S3 List Error:", error);
+    res.status(500).json({ error: "Could not list videos" });
+  }
 });
 
 app.use("/videos", express.static(path.resolve(__dirname, "Output_Video")));
@@ -172,46 +183,55 @@ app.get('/api/surah-verses-text', async (req, res) => {
   }
 });
 
-app.delete('/api/videos/:video', (req, res) => {
-  const videoName = req.params.video;
-  if (videoName.includes('..') || videoName.includes('/')) {
-    return res.status(400).json({ error: 'Invalid filename' });
-  }
-  const videoPath = path.resolve(__dirname, "Output_Video", videoName);
-  if (fs.existsSync(videoPath)) {
-    try {
-      fs.unlinkSync(videoPath);
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to delete file' });
-    }
-  } else {
-    res.status(404).json({ error: 'Video not found' });
+app.get("/videos/*", (req, res) => {
+  const fileKey = req.params[0];
+  const publicUrl = `${process.env.R2_PUBLIC_URL}/${fileKey}`;
+  res.redirect(publicUrl);
+});
+
+app.delete('/api/videos/*', async (req, res) => {
+  const fileKey = req.params[0];
+  try {
+    await deleteFromStorage(fileKey);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete remote file' });
   }
 });
 
-app.post('/upload-background', uploadBackground.single('backgroundFile'), (req, res) => {
-  if (!req.file) return res.status(400).send('No file uploaded.');
-  res.json({ backgroundPath: req.file.path });
+app.post('/upload-background', uploadBackground.single('backgroundFile'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+
+  const localPath = req.file.path.split(path.sep).join('/');
+  const filename = path.basename(localPath);
+  const r2Key = `uploads/backgrounds/${filename}`;
+
+  try {
+    await uploadToStorage(localPath, r2Key, req.file.mimetype);
+    fs.unlinkSync(localPath);
+    res.json({ backgroundPath: r2Key, isRemote: true });
+  } catch (error) {
+    console.error("R2 Upload Failed:", error);
+    res.status(500).json({ error: "Failed to upload background" });
+  }
 });
 
-app.post('/upload-audio', (req, res) => {
-  uploadAudio.single('audio')(req, res, (err) => {
-    if (err) {
-      console.error("Multer error:", err);
-      return res.status(400).json({ error: "Audio upload failed" });
-    }
-    if (!req.file || !req.file.path) {
-      return res.status(400).json({
-        error: "No audio file received by server"
-      });
-    }
+app.post('/upload-audio', uploadAudio.single('audio'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No audio uploaded.' });
 
-    const normalizedPath = req.file.path.replace(/\\/g, '/');
-    return res.status(200).json({
-      audioPath: normalizedPath
-    });
-  });
+  const localPath = req.file.path.split(path.sep).join('/');
+  const filename = path.basename(localPath);
+  const r2Key = `uploads/audio/${filename}`;
+
+  try {
+    await uploadToStorage(localPath, r2Key, req.file.mimetype);
+    fs.unlinkSync(localPath);
+    console.log('Audio moved to cloud:', r2Key);
+    res.json({ audioPath: r2Key, isRemote: true });
+  } catch (error) {
+    console.error("R2 Upload Failed:", error);
+    res.status(500).json({ error: "Failed to upload audio to cloud" });
+  }
 });
 
 app.listen(PORT, () => {

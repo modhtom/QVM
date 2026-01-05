@@ -26,7 +26,8 @@ function splitTextIntoChunks(text, maxLength) {
     return chunks;
 }
 function buildFullLine(mainText, transliterationText, translationText, color, fontName, size, alignment) {
-    let line = `{\\an${alignment}\\c${color}\\q1\\bord2\\fn${fontName}}${mainText || ''}`;
+    const safeFont = fontName || "Arial";
+    let line = `{\\an${alignment}\\c${color}\\q1\\bord2\\fn${safeFont}}${mainText || ''}`;
     if (transliterationText) {
         line += `\\N{\\fs${size * 5}}${transliterationText}`;
     }
@@ -55,7 +56,6 @@ export async function generateSubtitles(
     const subtitlesOutputDir = path.resolve("Data/subtitles");
     const subtitlesOutputFile = path.join(subtitlesOutputDir, `Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`);
     if (!fs.existsSync(textFilePath)) {
-        console.error("Text or durations file not found.");
         throw new Error(`Subtitle generation failed: Text file not found at ${textFilePath}`);
     }
 
@@ -73,15 +73,13 @@ export async function generateSubtitles(
         if ((!audioLen || isNaN(audioLen) || audioLen <= 0) && audioPath && fs.existsSync(audioPath)) {
             try {
                 const meta = await mm.parseFile(audioPath);
-                audioLen = Math.ceil(meta.format.duration || 0);
+                audioLen = meta.format.duration || 0;
             } catch (e) {
-                console.warn("Could not read audio metadata in subtitles generator:", e.message);
-                audioLen = null;
+                console.warn("Could not read audio metadata:", e.message);
             }
         }
 
         let pos = position.split(',');
-        
         const alignment = subtitlePosition === 'middle' ? 5 : 2;
         const marginV = subtitlePosition === 'middle' ? 0 : 50;
 
@@ -96,65 +94,65 @@ export async function generateSubtitles(
         subtitles += `\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
 
         if (metadata && audioLen) {
-            const infoText = `${metadata.surahName} | ${metadata.reciterName || 'Custom Recitation'}`;
+            const infoText = `${metadata.surahName} | ${metadata.reciterName || 'Recitation'}`;
             subtitles += `Dialogue: 1,0:00:00.00,${formatTime(audioLen)},Info,,0,0,0,,${infoText}\n`;
         }
 
-        if (userVerseTimings && userVerseTimings.length === (textContent.length+1)) {
+        const useUserTimings = userVerseTimings && userVerseTimings.length >= textContent.length;
+
+        if (useUserTimings) {
+            console.log("Using User Custom Timings");
             for (let i = 0; i < textContent.length; i++) {
                 const startTime = userVerseTimings[i].start;
                 let endTime = userVerseTimings[i].end;
-                if (i === textContent.length - 1 && audioLen) {
-                    endTime = Math.max(endTime, audioLen);
-                }
+                if (i === textContent.length - 1 && audioLen) endTime = Math.max(endTime, audioLen);
+                
                 let fullLine = buildFullLine(textContent[i], transliterationContent[i], translationContent[i], color, fontName, size, alignment);
                 subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
             }
         } else {
-            const durationPerAyah = JSON.parse(fs.readFileSync(durationsFilePath, "utf-8"));
+            console.log("Using Automatic Timings with Scaling");
+            
+            let durationPerAyah = [];
+            try {
+                durationPerAyah = JSON.parse(fs.readFileSync(durationsFilePath, "utf-8"));
+            } catch(e) { console.warn("Duration file corrupt, using defaults"); }
+
             if (textContent.length !== durationPerAyah.length) {
-                const avg = durationPerAyah.reduce((a,b)=>a+b,0)/durationPerAyah.length || 1;
+                const avg = durationPerAyah.reduce((a,b)=>a+b,0)/durationPerAyah.length || 3;
                 while (durationPerAyah.length < textContent.length) durationPerAyah.push(avg);
             }
+
+            const totalApiDuration = durationPerAyah.reduce((a, b) => a + b, 0);
+            
+            const actualDuration = audioLen || totalApiDuration;
+            
+            const timeRatio = (actualDuration > 0 && totalApiDuration > 0)
+                ? (actualDuration / totalApiDuration)
+                : 1;
+
+            console.log(`Timing Scaling: API Total=${totalApiDuration.toFixed(2)}s, Actual=${actualDuration.toFixed(2)}s, Ratio=${timeRatio.toFixed(3)}`);
+
             let currentTime = 0;
+            
             for (let i = 0; i < textContent.length; i++) {
                 const verseText = textContent[i];
-                const verseTranslation = translationContent[i] || '';
-                const verseTransliteration = transliterationContent[i] || '';
-                const totalDuration = durationPerAyah[i];
+                const originalDuration = durationPerAyah[i];
+                const scaledDuration = originalDuration * timeRatio;
 
                 const startTime = currentTime;
+                let endTime = startTime + scaledDuration;
 
-                if (verseText.length > MAX_CHARS_PER_LINE) {
-                    const textChunks = splitTextIntoChunks(verseText, MAX_CHARS_PER_LINE);
-                    const translationChunks = splitTextIntoChunks(verseTranslation, MAX_CHARS_PER_LINE);
-                    const numChunks = Math.max(textChunks.length, translationChunks.length);
-                    const chunkDuration = totalDuration / numChunks;
+                const fullLine = buildFullLine(
+                    verseText,
+                    transliterationContent[i],
+                    translationContent[i],
+                    color, fontName, size, alignment
+                );
+                
+                subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
 
-                    for (let j = 0; j < numChunks; j++) {
-                        const chunkStartTime = startTime + (j * chunkDuration);
-                        let chunkEndTime = chunkStartTime + chunkDuration;
-                        if (i === textContent.length - 1 && audioLen) {
-                            if (j === numChunks - 1) chunkEndTime = Math.max(chunkEndTime, audioLen);
-                        }
-                        const chunkText = textChunks[j] || '';
-                        const chunkTranslation = translationChunks[j] || '';
-
-                        const fullLine = buildFullLine(chunkText, '', chunkTranslation, color, fontName, size, alignment);
-                        subtitles += `Dialogue: 0,${formatTime(chunkStartTime)},${formatTime(chunkEndTime)},Default,,0,0,0,,${fullLine}\n`;
-                    }
-                } else {
-                    let endTime = startTime + totalDuration;
-                    if (i === textContent.length - 1 && audioLen) {
-                        endTime = Math.max(endTime, audioLen);
-                    }
-                    const fullLine = buildFullLine(verseText, verseTransliteration, verseTranslation, color, fontName, size, alignment);
-                    subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
-                }
-                currentTime += totalDuration;
-                if (!userVerseTimings) {
-                    currentTime += totalDuration;
-                }
+                currentTime += scaledDuration;
             }
         }
 

@@ -70,6 +70,7 @@ Quran Video Maker is a full-stack web application that enables users to create p
 - FontConfig (for Arabic text rendering on the server)
 - Redis v6+
 - Docker
+- Cloudflare R2 Bucket
 
 ## Installation
 
@@ -79,7 +80,17 @@ The easiest and most reliable way to run this project is with Docker Compose. It
 
 1. **Install Docker and Docker Compose:** Ensure you have both installed on your system.
 
-2. **Configure Environment:** Create a `.env` file in the root directory by copying the `.env.example` file. Then, add your `UNSPLASH_ACCESS_KEY`.
+2. **Configure Environment:** Create a `.env` file in the root directory. You **must** provide your Unsplash Key and R2 Storage credentials:
+
+   ```env
+   UNSPLASH_ACCESS_KEY=your_key_here
+   UNSPLASH_Secret_KEY=your_key_here
+   R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+   R2_ACCESS_KEY_ID=your_access_key_id
+   R2_SECRET_ACCESS_KEY=your_secret_access_key
+   R2_BUCKET_NAME=qvm-videos
+   R2_PUBLIC_URL=https://pub-<id>.r2.dev
+   ```
 
 3. **Run the application:** Open a terminal in the project's root directory and run a single command:
 
