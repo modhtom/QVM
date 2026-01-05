@@ -2,8 +2,7 @@
 
 ### Urgent: Bugs & Critical Fixes
 
-1. **Munajjam Integration**: Automate verse synchronization.
-2.  **Implement User Accounts**: Create a system for users to register, log in, and manage their own private video galleries.
+1.  **Implement User Accounts**: Create a system for users to register, log in, and manage their own private video galleries.
 
 ### High Priority: Performance & Refactoring
 

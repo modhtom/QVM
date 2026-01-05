@@ -3,9 +3,27 @@ import { handleFullVideoSubmit } from "./fullVideo.js";
 import { loadVideos } from "./videos.js";
 import { surahs } from "./data/surahs.js";
 import { editions } from "./data/editions.js";
-let waveSurfer;
 
+let waveSurfer;
 window.tempVideoFormData = {};
+const VideoState = {
+  _data: null,
+  set(data) {
+    this._data = { ...data };
+    console.log('State Updated:', this._data);
+  },
+  get() {
+    if (!this._data) {
+      console.warn('State accessed but data is empty');
+      return null;
+    }
+    return { ...this._data };
+  },
+  clear() {
+    this._data = null;
+    console.log('State Cleared');
+  }
+};
 
 async function pollJobStatus(jobId) {
   const progressContainer = document.getElementById('progress-container');
@@ -374,6 +392,84 @@ document.addEventListener('DOMContentLoaded', () => {
   const partFormBtn = document.querySelector('#partForm .create-btn');
   const fullCustomFormBtn = document.querySelector('#fullFormCustom .create-btn');
   const partCustomFormBtn = document.querySelector('#partFormCustom .create-btn');
+  const autoSyncPartBtn = document.getElementById('autoSyncBtnPart');
+  const autoSyncFullBtn = document.getElementById('autoSyncBtnFull');
+
+  if (autoSyncPartBtn) {
+      autoSyncPartBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const customAudio = document.getElementById("customAudioPart").files[0];
+          if (!customAudio) return alert("يرجى رفع ملف صوتي أولاً");
+
+          VideoState.set({
+              customAudioFile: customAudio,
+              isFullSurah: false,
+              autoSync: true,
+              surahNumber: document.getElementById("surahNumberCustom").value,
+              startVerse: parseInt(document.getElementById("startVerseCustom").value),
+              endVerse: parseInt(document.getElementById("endVerseCustom").value),
+              edition: "quran-simple",
+              color: document.getElementById("fontColorPartCustom").value,
+              size: document.getElementById("fontSizePartCustom").value,
+              fontName: document.getElementById("fontNamePartCustom").value,
+              subtitlePosition: document.getElementById("subtitlePositionPartCustom")?.value,
+              showMetadata: document.getElementById("showMetadataPartCustom")?.checked,
+              crop: document.getElementById("verticalVideoPartCustom")?.checked ? "vertical" : "horizontal",
+              useCustomBackground: false,
+              videoNumber: 1
+          });
+
+          const formData = VideoState.get();
+          const event = {
+              preventDefault: () => {},
+              detail: formData
+          };
+          handlePartialVideoSubmit(event);
+      });
+  }
+
+  if (autoSyncFullBtn) {
+    autoSyncFullBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const customAudio = document.getElementById("customAudioFull").files[0];
+        if (!customAudio) return alert("يرجى رفع ملف صوتي أولاً");
+
+        const surahNum = document.getElementById("fullSurahNumberCustom").value;
+        let endVerse;
+        try {
+            const res = await fetch(`http://api.alquran.cloud/v1/surah/${surahNum}`);
+            const data = await res.json();
+            endVerse = data.data.numberOfAyahs;
+        } catch(err) {
+            console.warn("Could not fetch surah length, defaulting to 1");
+            endVerse = 1;
+        }
+
+        VideoState.set({
+            customAudioFile: customAudio,
+            isFullSurah: true,
+            autoSync: true,
+            surahNumber: surahNum,
+            startVerse: 1,
+            endVerse: endVerse,
+            edition: "quran-simple",
+            color: document.getElementById("fontColorFullCustom").value,
+            size: document.getElementById("fontSizeFullCustom").value,
+            fontName: document.getElementById("fontNameFullCustom").value,
+            subtitlePosition: document.getElementById("subtitlePositionFullCustom")?.value || 'bottom',
+            showMetadata: document.getElementById("showMetadataFullCustom")?.checked,
+            crop: document.getElementById("verticalVideoFullCustom")?.checked ? "vertical" : "horizontal",
+            useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
+            videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `unsplash:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
+        });
+
+        const formData = VideoState.get();
+        handleFullVideoSubmit({
+            preventDefault: () => {},
+            detail: formData
+        });
+    });
+  }
 
   if (fullCustomFormBtn) {
     fullCustomFormBtn.addEventListener('click', async (e) => {

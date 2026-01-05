@@ -84,7 +84,7 @@
             <h3>(اختياري) إعدادات الفيديو</h3>
             <div class="form-group"><label for="fontColor">لون النص</label><input type="color" id="fontColor" value="#ffffff"></div>
             <div class="form-group"><label for="fontSize">حجم الخط</label><input type="range" id="fontSize" min="1" max="72" value="10"><span id="fontSizeValue">10px</span></div>
-            <div class="form-group"><label for="fontNameFull">الخط</label><select id="fontNameFull" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="fontNameFull">الخط</label><select id="fontNameFull" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
             <div class="form-group"><label for="subtitlePositionFull">موقع النص</label><select id="subtitlePositionFull" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
             <div class="checkbox-group"><input type="checkbox" id="showMetadataFull"><label for="showMetadataFull">عرض معلومات السورة والقارئ</label></div>
             <div class="form-group"><label for="translationEditionFull">الترجمة</label><select id="translationEditionFull" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
@@ -115,7 +115,7 @@
             <h3>(اختياري) إعدادات الفيديو</h3>
             <div class="form-group"><label for="fontColorPart">لون النص</label><input type="color" id="fontColorPart" value="#ffffff"></div>
             <div class="form-group"><label for="fontSizePart">حجم الخط</label><input type="range" id="fontSizePart" min="1" max="72" value="10"><span id="fontSizeValuePart">10px</span></div>
-            <div class="form-group"><label for="fontNamePart">الخط</label><select id="fontNamePart" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="fontNamePart">الخط</label><select id="fontNamePart" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
             <div class="form-group"><label for="subtitlePositionPart">موقع النص</label><select id="subtitlePositionPart" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
             <div class="checkbox-group"><input type="checkbox" id="showMetadataPart"><label for="showMetadataPart">عرض معلومات السورة والقارئ</label></div>
             <div class="form-group"><label for="translationEditionPart">الترجمة</label><select id="translationEditionPart" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
@@ -148,7 +148,7 @@
             <h3>(اختياري) إعدادات الفيديو</h3>
             <div class="form-group"><label for="fontColorFullCustom">لون النص</label><input type="color" id="fontColorFullCustom" value="#ffffff"></div>
             <div class="form-group"><label for="fontSizeFullCustom">حجم الخط</label><input type="range" id="fontSizeFullCustom" min="1" max="72" value="10"><span id="fontSizeValueFullCustom">10px</span></div>
-            <div class="form-group"><label for="fontNameFullCustom">الخط</label><select id="fontNameFullCustom" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="fontNameFullCustom">الخط</label><select id="fontNameFullCustom" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
 
             <div class="form-group"><label for="subtitlePositionFullCustom">موقع النص</label><select id="subtitlePositionFullCustom" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
             <div class="checkbox-group"><input type="checkbox" id="showMetadataFullCustom"><label for="showMetadataFullCustom">عرض معلومات السورة</label></div>
@@ -163,7 +163,17 @@
             <div class="form-group"><label for="fullSurahNumberCustom">السورة</label><select id="fullSurahNumberCustom" class="form-control"></select></div>
             <div class="form-group"><label for="customAudioFull">رفع التلاوة</label><input type="file" id="customAudioFull" accept="audio/*"></div>
             <div class="checkbox-group"><input type="checkbox" id="verticalVideoFullCustom"><label for="verticalVideoFullCustom">فيديو عمودي (9:16)</label></div>
-            <button class="action-btn create-btn">مزامنة الصوت</button>
+            <div class="form-group" style="margin-top: 20px;">
+                <label>طريقة المزامنة</label>
+                <div style="display: flex; gap: 10px;">
+                    <button id="autoSyncBtnFull" class="action-btn" style="background: #2d7d5a; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-magic"></i> مزامنة تلقائية
+                    </button>
+                    <button class="action-btn create-btn" style="margin-top: 0; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-hand-pointer"></i> مزامنة يدوية
+                    </button>
+                </div>
+            </div>
           </div>
         </div>
       </div>
@@ -180,7 +190,7 @@
             <h3>(اختياري) إعدادات الفيديو</h3>
             <div class="form-group"><label for="fontColorPartCustom">لون النص</label><input type="color" id="fontColorPartCustom" value="#ffffff"></div>
             <div class="form-group"><label for="fontSizePartCustom">حجم الخط</label><input type="range" id="fontSizePartCustom" min="1" max="72" value="10"><span id="fontSizeValuePartCustom">10px</span></div>
-            <div class="form-group"><label for="fontNamePartCustom">الخط</label><select id="fontNamePartCustom" class="form-control"><option value="TaseesRegular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="fontNamePartCustom">الخط</label><select id="fontNamePartCustom" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DTHULUTH-II-1">DTHULUTH II</option></select></div>
             
             <div class="form-group"><label for="subtitlePositionPartCustom">موقع النص</label><select id="subtitlePositionPartCustom" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
             <div class="checkbox-group"><input type="checkbox" id="showMetadataPartCustom"><label for="showMetadataPartCustom">عرض معلومات السورة</label></div>
@@ -197,7 +207,17 @@
             <div class="arabic-input"><div class="arabic-label">آية النهاية</div><input type="text" id="endVerseCustom" placeholder="رقم آية النهاية"></div>
             <div class="form-group"><label for="customAudioPart">رفع التلاوة</label><input type="file" id="customAudioPart" accept="audio/*"></div>
             <div class="checkbox-group"><input type="checkbox" id="verticalVideoPartCustom"><label for="verticalVideoPartCustom">فيديو عمودي (9:16)</label></div>
-            <button class="action-btn create-btn">مزامنة الصوت</button>
+            <div class="form-group" style="margin-top: 20px;">
+                <label>طريقة المزامنة</label>
+                <div style="display: flex; gap: 10px;">
+                    <button id="autoSyncBtnPart" class="action-btn" style="background: #2d7d5a; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-magic"></i> مزامنة تلقائية
+                    </button>
+                    <button class="action-btn create-btn" style="margin-top: 0; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-hand-pointer"></i> مزامنة يدوية
+                    </button>
+                </div>
+            </div>
           </div>
         </div>
       </div>

@@ -22,6 +22,7 @@
     "express": "^4.21.2",
     "ffprobe": "^1.1.2",
     "fluent-ffmpeg": "^2.1.3",
+    "groq-sdk": "^0.37.0",
     "ioredis": "^5.7.0",
     "multer": "^2.0.2",
     "music-metadata": "^10.6.2",
@@ -29,6 +30,7 @@
     "pm2": "^5.4.2",
     "prompt-sync": "^4.2.0",
     "readline": "^1.3.0",
+    "string-similarity": "^4.0.4",
     "youtube-dl-exec": "^2.4.0"
   },
   "devDependencies": {

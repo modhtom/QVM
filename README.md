@@ -63,11 +63,23 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ---
 
+### 7\. AI & Manual Synchronization
+- **AI Auto-Sync (New):** Uses **Groq API (Whisper Large v3)** to automatically listen to your custom audio recitation and synchronize it with the Quranic text word-for-word in seconds. No manual timing required!
+- **Tap-to-Sync:** A fallback manual interface featuring a visual audio waveform for precise, human-controlled timing.
+
+---
+
+### 8\. Cloud-Native & Stateless
+- **Cloud Storage:** Fully integrated with **Cloudflare R2** (S3-compatible). User uploads (audio/images) and generated videos are stored securely in the cloud.
+- **Stateless Architecture:** The application does not rely on local disk storage for persistence, making it ready for containerized deployment (Docker/Kubernetes) on any platform.
+
+---
+
 ## System Requirements
 
 - Node.js v16+
 - FFmpeg v5+
-- FontConfig (for Arabic text rendering on the server)
+- FontConfig (Arabic fonts must be installed on the host system (e.g., `Tasees Regular`)).
 - Redis v6+
 - Docker
 - Cloudflare R2 Bucket
@@ -80,7 +92,7 @@ The easiest and most reliable way to run this project is with Docker Compose. It
 
 1. **Install Docker and Docker Compose:** Ensure you have both installed on your system.
 
-2. **Configure Environment:** Create a `.env` file in the root directory. You **must** provide your Unsplash Key and R2 Storage credentials:
+2. **Configure Environment:** Create a `.env` file in the root directory. You **must** provide your Unsplash Key, GROQ, and R2 Storage credentials:
 
    ```env
    UNSPLASH_ACCESS_KEY=your_key_here
@@ -90,6 +102,7 @@ The easiest and most reliable way to run this project is with Docker Compose. It
    R2_SECRET_ACCESS_KEY=your_secret_access_key
    R2_BUCKET_NAME=qvm-videos
    R2_PUBLIC_URL=https://pub-<id>.r2.dev
+   GROQ_API_KEY=your_key_here
    ```
 
 3. **Run the application:** Open a terminal in the project's root directory and run a single command:
@@ -244,13 +257,52 @@ The following is an example of the JSON data sent to the server to generate a vi
 
     ```mermaid
     graph TD
-        A[User Request] --> B{Express Server};
-        B --> |1. Add Job| C[Redis Queue];
-        C --> |2. Pick up Job| D[Worker Process];
-        D --> |3. Process Video| E[FFmpeg Rendering];
-        E --> |4. Mark as Complete| C;
-        F[User's Browser] <-->|Poll for Status| B;
-        F -->|On Complete| G[Download Video];
+        subgraph Client ["Client Side"]
+            UI[User Interface]
+            Poll[Polling Service]
+        end
+
+        subgraph Server ["Web Server (Express)"]
+            API[API Endpoints]
+            Upload[Multer Upload]
+        end
+
+        subgraph Cloud ["Cloud Infrastructure"]
+            R2[(Cloudflare R2 Storage)]
+            Redis[(Redis Queue)]
+        end
+
+        subgraph WorkerNode ["Worker Service"]
+            Worker[Job Processor]
+            AutoSync[AI Auto-Sync]
+            FFmpeg[Video Rendering]
+        end
+
+        subgraph External ["External APIs"]
+            Groq[Groq AI - Whisper]
+            QuranAPI[Al-Quran Cloud]
+            Unsplash[Unsplash API]
+        end
+
+        UI -->|1. Upload Audio/Bg| Upload
+        Upload -->|2. Stream to Cloud| R2
+        Upload -->|3. Add Job - ref keys| Redis
+        
+        Redis -->|4. Trigger| Worker
+        Worker -->|5. Download Assets| R2
+        
+        Worker -->|6. Fetch Text| QuranAPI
+        Worker -->|7. Fetch Images| Unsplash
+        
+        Worker -->|8. Transcribe Audio| AutoSync
+        AutoSync <-->|9. Get Timestamps| Groq
+        
+        Worker -->|10. Render Video| FFmpeg
+        FFmpeg -->|11. Upload Result| R2
+        
+        Worker -->|12. Update Status| Redis
+        Poll <-->|13. Check Status| API
+        UI -->|14. Stream/Download| R2
     ```
 
 ---

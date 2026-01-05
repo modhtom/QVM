@@ -1,1 +1,1 @@
-npm install express fluent-ffmpeg axios node-cache music-metadata youtube-dl-exec cors multer fontconfig
+npm install express fluent-ffmpeg axios node-cache music-metadata youtube-dl-exec cors multer fontconfig groq-sdk string-similarity @aws-sdk/client-s3 @aws-sdk/lib-storage dotenv  bullmq ioredis

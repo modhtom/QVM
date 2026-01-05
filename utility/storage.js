@@ -1,7 +1,8 @@
-import { S3Client, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import { pipeline } from "stream/promises";
 import fs from "fs";
+import path from "path";
 import { S3_CONFIG } from "./config.js";
 
 const s3 = new S3Client(S3_CONFIG);

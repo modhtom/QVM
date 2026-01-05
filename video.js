@@ -5,6 +5,7 @@ import { getBackgroundPath } from "./utility/background.js";
 import { deleteVidData, deleteOldVideosAndTempFiles } from "./utility/delete.js";
 import { generateSubtitles } from "./utility/subtitle.js";
 import { uploadToStorage, downloadFromStorage } from "./utility/storage.js";
+import { runAutoSync } from "./utility/autoSync.js";
 import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
@@ -98,7 +99,7 @@ export async function generateFullVideo(
   userVerseTimings = null,
   subtitlePosition = 'bottom',
   showMetadata = false,
-  audioSource = 'api'
+  audioSource = 'api',autoSync = false
 ) {
   const endVerse = await getEndVerse(surahNumber);
   if (endVerse === -1) {
@@ -106,7 +107,7 @@ export async function generateFullVideo(
   }
   progressCallback({ step: 'Starting full video generation', percent: 0 });
   return generatePartialVideo(
-    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource
+    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource, autoSync
   );
 }
 export async function generatePartialVideo(
@@ -115,7 +116,7 @@ export async function generatePartialVideo(
   userVerseTimings = null,
   subtitlePosition = 'bottom',
   showMetadata = false,
-  audioSource = 'api'
+  audioSource = 'api',autoSync = false
 ) {
   console.log("MAKING A VIDEO");
   console.log("DEBUG ARGS:", { surahNumber, startVerse, edition, customAudioPath });
@@ -133,20 +134,45 @@ export async function generatePartialVideo(
   
   let audioPath, textPath, durationsFile;
 
-if (customAudioPath.startsWith('uploads/')) {
+  if (audioSource === 'custom') {
+    if (customAudioPath.startsWith('uploads/')) {
         progressCallback({ step: 'Downloading Audio from Cloud', percent: 5 });
         const localTempAudio = path.resolve(`Data/temp/${path.basename(customAudioPath)}`);
         await downloadFromStorage(customAudioPath, localTempAudio);
         audioPath = localTempAudio;
         customAudioPath = localTempAudio;
     } else {
-    progressCallback({ step: 'Fetching audio and text', percent: 10 });
-    const result = await fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition);
-    audioPath = result.audioPath;
+        if (!fs.existsSync(customAudioPath)) throw new Error(`Audio missing: ${customAudioPath}`);
+        audioPath = customAudioPath;
+    }
+
+    progressCallback({ step: 'Fetching text data', percent: 10 });
+    const result = await fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition);
     textPath = result.textPath;
     durationsFile = result.durationsFile;
+
+    if (autoSync) {
+        progressCallback({ step: 'Auto-Syncing (Groq)...', percent: 15 });
+        try {
+            console.log("Running Auto-Syncing on:", audioPath);
+            const aiTimings = await runAutoSync(
+                audioPath,
+                surahNumber,
+                startVerse,
+                endVerse
+            );
+            userVerseTimings = aiTimings;
+            console.log("AI Timings Applied:", userVerseTimings.length, "segments");
+            if (!userVerseTimings || userVerseTimings.length === 0) {
+                throw new Error("AI returned 0 segments. Check audio clarity.");
+            }
+        } catch (err) {
+            console.error("AI Sync Failed:", err);
+            throw new Error(`AI Synchronization failed: ${err.message}`);
+        }
+    }
   }
-  
+
   await new Promise((resolve, reject) => {
     let attempts = 0;
     const checkAudioFile = setInterval(() => {
