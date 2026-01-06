@@ -9,14 +9,15 @@ RUN apk update && apk add --no-cache \
     ffmpeg \
     fontconfig \
     ttf-freefont \
-    yt-dlp
+    yt-dlp \
+    python3
 
 
 # Create font directory for Arabic fonts
 RUN mkdir -p /usr/share/fonts/truetype/custom/
 
 # Copy custom fonts (if available)
-COPY Data/Font/*.ttf /usr/share/fonts/truetype/custom/
+COPY fonts/*.ttf /usr/share/fonts/truetype/custom/
 
 # Update font cache
 RUN fc-cache -fv
@@ -32,15 +33,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 
+# Install PM2 globally
+RUN npm install -g pm2
+
 # Copy the rest of the application code
 COPY . .
 
-# Install PM2 globally within the container
-RUN npm install -g pm2
-
-# Expose the port your app runs on
+# Expose the port
 EXPOSE 3001
 
-# The command to start both the server and worker using pm2-runtime
-# pm2-runtime is the recommended way to run PM2 in a container
+# Start via PM2
 CMD ["pm2-runtime", "start", "ecosystem.config.cjs"]
