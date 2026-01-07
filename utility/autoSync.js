@@ -88,8 +88,13 @@ export async function runAutoSync(audioPath, surah, startVerse, endVerse) {
             timings[i].end = timings[i+1].start;
         }
     }
-    if (timings.length > 0 && transcription.duration) {
-        timings[timings.length - 1].end = transcription.duration;
+    const lastIdx = timings.length - 1;
+    if (timings.length > 0) {
+        let bufferedEnd = timings[lastIdx].end + 1.5;
+        if (transcription.duration) {
+            bufferedEnd = Math.min(bufferedEnd, transcription.duration);
+        }
+        timings[lastIdx].end = bufferedEnd;
     }
 
     return timings;

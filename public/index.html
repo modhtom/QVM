@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QVM</title>
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="styles/main.css">
 </head>
@@ -95,8 +96,9 @@
           </div>
           <div class="form-section">
             <h3>إعدادات القرآن</h3>
-            <div class="form-group"><label for="fullSurahNumber">السورة</label><select id="fullSurahNumber" class="form-control"></select></div>
+            <div class="form-group"><label>الرواية</label><select id="fullMushaf" class="form-control"></select></div>
             <div class="form-group"><label for="fullEdition">القارئ</label><select id="fullEdition" class="form-control"></select></div>
+            <div class="form-group"><label for="fullSurahNumber">السورة</label><select id="fullSurahNumber" class="form-control"></select></div>
             <div class="checkbox-group"><input type="checkbox" id="verticalVideoFull"><label for="verticalVideoFull">فيديو عمودي (9:16)</label></div>
             <button class="action-btn create-btn">إنشاء الفيديو</button>
           </div>
@@ -126,10 +128,11 @@
           </div>
           <div class="form-section">
             <h3>إعدادات القرآن</h3>
+            <div class="form-group"><label>الرواية</label><select id="partMushaf" class="form-control"></select></div>
+            <div class="form-group"><label for="edition">القارئ</label><select id="edition" class="form-control"></select></div>
             <div class="form-group"><label for="surahNumber">السورة</label><select id="surahNumber" class="form-control"></select></div>
             <div class="arabic-input"><div class="arabic-label">آية البداية</div><input type="text" id="startVerse" placeholder="رقم آية البداية"></div>
             <div class="arabic-input"><div class="arabic-label">آية النهاية</div><input type="text" id="endVerse" placeholder="رقم آية النهاية"></div>
-            <div class="form-group"><label for="edition">القارئ</label><select id="edition" class="form-control"></select></div>
             <div class="checkbox-group"><input type="checkbox" id="verticalVideoPart"><label for="verticalVideoPart">فيديو عمودي (9:16)</label></div>
             <button class="action-btn create-btn">إنشاء الفيديو</button>
           </div>
@@ -272,6 +275,7 @@
   </div>
 
   <script src="https://unpkg.com/wavesurfer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
   <script type="module" src="js/main.js"></script>
   <script>
     let previousPage = '';

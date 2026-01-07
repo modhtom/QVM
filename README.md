@@ -218,18 +218,26 @@ The following is an example of the JSON data sent to the server to generate a vi
   "size": 28,
   "fontName": "Amiri",
   "translationEdition": "en.sahih",
+  "transliterationEdition": "en.sahih",
   "useCustomBackground": true,
   "videoNumber": "unsplash:space",
-  "crop": "horizontal"
+  "crop": "horizontal",
+  "removeFiles":"y",
+  "customAudioPath":"/AUDIO/NAME.mp3"
 }
 ```
 
 ## API Integrations
 
-### 1\. Al-Quran Cloud API
+### 1\. Quran APIs
 
+##### Al-Quran Cloud API
 - **Verse Text Retrieval**: Fetches Arabic text, translations, and transliterations.
 - **Surah Metadata**: Gathers information about each surah, such as the number of verses.
+- **Recitation Audio**: Provides access to a wide library of recitation audio files.
+
+##### MP3Quran API
+- **Verse Text Retrieval**: Fetches Arabic text, translations, and transliterations.
 - **Recitation Audio**: Provides access to a wide library of recitation audio files.
 
 ---
@@ -377,5 +385,6 @@ This project is licensed under **CUSTOM License**. See the `LICENSE` file for de
 
 - [Fluent-FFMPEG](https://github.com/fluent-ffmpeg/node-fluent-ffmpeg) for its powerful video manipulation library.
 - [Al-Quran Cloud API](http://alquran.cloud/) for providing comprehensive Quranic data.
+- [MP3Quran API](https://www.mp3quran.net/ar/api) for providing comprehensive Quranic data.
 - [Unsplash](https://www.Unsplash.com/) for its library of high-quality video content.
 - [BullMQ](https://bullmq.io/) for its robust and efficient job queue system.

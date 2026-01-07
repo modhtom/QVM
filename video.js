@@ -73,24 +73,65 @@ function getEncoderSettings(encoder) {
 }
 
 async function getMetadataInfo(surahNumber, editionIdentifier) {
-    try {
-        const surahRes = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
-        const surahName = surahRes.data.data.name;
-        let reciterName = "";
-        if (editionIdentifier) {
-            try {
-                const editionRes = await axios.get(`http://api.alquran.cloud/v1/edition`);
-                const edition = editionRes.data.data.find(e => e.identifier === editionIdentifier);
-                if (edition) reciterName = edition.name;
-            } catch(e) {
-                console.warn("Could not fetch reciter name");
+  try {
+    const surahRes = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
+    const surahName = surahRes.data.data.name;
+    
+    let reciterName = "";
+    let rewayat = "";
+
+    if (editionIdentifier) {
+      if (editionIdentifier.startsWith('http')) {
+          try {
+              const metadataPath = path.resolve("Data/metadata.json");
+              if (fs.existsSync(metadataPath)) {
+                  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+                  const targetUrl = editionIdentifier.replace(/\/$/, "");
+
+                  let found = false;
+                  for (const reciter of metadata.reciters) {
+                      for (const moshaf of reciter.moshafs) {
+                          const moshafUrl = moshaf.server.replace(/\/$/, "");
+                          
+                          if (moshafUrl === targetUrl) {
+                              reciterName = reciter.name;
+                              rewayat = moshaf.name;
+                              found = true;
+                              break;
+                          }
+                      }
+                      if (found) break;
+                  }
+              }
+
+              if (!reciterName) {
+                  const parsedUrl = new URL(editionIdentifier);
+                  const parts = parsedUrl.pathname.split("/").filter(Boolean);
+                  reciterName = parts[0] || "";
+                  rewayat = parts[1] || "";
+              }
+
+          } catch (err) {
+              console.error("Error looking up Arabic names:", err);
+          }
+      } else {
+        try {
+            const editionRes = await axios.get(`http://api.alquran.cloud/v1/edition`);
+            const edition = editionRes.data.data.find(e => e.identifier === editionIdentifier);
+            if (edition) {
+                reciterName = edition.name;
+                rewayat = edition.englishName;
             }
-        }
-        return { surahName, reciterName };
-    } catch (error) {
-        console.error("Error fetching metadata info:", error.message);
-        return { surahName: `Surah ${surahNumber}`, reciterName: "" };
+        } catch(e) {}
+      }
     }
+
+    return { surahName, reciterName, rewayat };
+
+  } catch (error) {
+      console.error("Error fetching metadata info:", error.message);
+      return { surahName: `Surah ${surahNumber}`, reciterName: "", rewayat: "" };
+  }
 }
 
 export async function generateFullVideo(
@@ -171,6 +212,15 @@ export async function generatePartialVideo(
             throw new Error(`AI Synchronization failed: ${err.message}`);
         }
     }
+  } else {
+    progressCallback({ step: 'Fetching audio and text', percent: 10 });
+    const result = await fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition);
+    audioPath = result.audioPath;
+    textPath = result.textPath;
+    durationsFile = result.durationsFile;
+    if (result.aiTimings) {
+        userVerseTimings = result.aiTimings;
+    }
   }
 
   await new Promise((resolve, reject) => {
@@ -197,6 +247,18 @@ export async function generatePartialVideo(
     } else {
         throw new Error("Could not determine audio length.");
     }
+  }
+
+  let startTimeOffset = 0;
+  if (userVerseTimings && userVerseTimings.length > 0) {
+      const firstVerse = userVerseTimings[0];
+      const lastVerse = userVerseTimings[userVerseTimings.length - 1];
+      startTimeOffset = firstVerse.start;
+      const endTimeOffset = lastVerse.end;
+      audioLen = endTimeOffset - startTimeOffset;
+      console.log(`[Trim] Seeking to ${startTimeOffset.toFixed(2)}s, Duration: ${audioLen.toFixed(2)}s`);
+  } else {
+      audioLen = Math.ceil(audioLen || 0) + 1;
   }
 
   progressCallback({ step: 'Preparing background video', percent: 40 });
@@ -232,13 +294,17 @@ export async function generatePartialVideo(
     
     const command = ffmpeg()
       .input(backgroundPath)
-      .input(audioPath)
+      .input(audioPath);
+      if (startTimeOffset > 0) command.inputOptions(`-ss ${startTimeOffset}`);
+    command
       .audioCodec("aac")
       .videoCodec(encoder)
       .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
       .outputOptions(encoderOptions)
       .videoFilter(subtitleFilter)
       .output(outputPath);
+    
+    if (audioLen) command.duration(audioLen);
 
     if (encoder === 'libx264') command.outputOptions("-preset", "veryfast");
       
@@ -254,12 +320,21 @@ export async function generatePartialVideo(
           cachedEncoder = 'libx264';
           const cpuCommand = ffmpeg()
             .input(backgroundPath)
-            .input(audioPath)
-            .audioCodec("aac")
+            .input(audioPath);
+
+            if (startTimeOffset > 0) cpuCommand.inputOptions(`-ss ${startTimeOffset}`);
+          
+            cpuCommand.audioCodec("aac")
             .videoCodec("libx264")
             .outputOptions(['-preset veryfast', '-crf 23', '-pix_fmt yuv420p', '-map 0:v:0', '-map 1:a:0'])
             .videoFilter(subtitleFilter)
-            .output(outputPath)
+            .output(outputPath);
+            
+            if (audioLen) cpuCommand.duration(audioLen);
+            cpuCommand.on('progress', (progress) => {
+                const mappedProgress = 60 + (progress.percent * 0.3);
+                progressCallback({ step: `Rendering: ${Math.round(progress.percent || 0)}%`, percent: Math.min(90, mappedProgress) });
+              })
             .on('end', resolve)
             .on('error', (e) => reject(new Error(e)));
           cpuCommand.run();
@@ -296,11 +371,52 @@ export async function generatePartialVideo(
 }
 
 async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition) {
-  const audioPath = `Data/audio/Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`;
-  const textPath = `Data/text/Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`;
-  const durationsFile = `Data/text/Surah_${surahNumber}_Durations_from_${startVerse}_to_${endVerse}.json`;
-  await partAudioAndText(surahNumber, startVerse, endVerse, edition, "quran-simple", translationEdition, transliterationEdition);
-  return { audioPath, textPath, durationsFile };
+  const isMp3Quran = edition && edition.startsWith('http');
+  const pad3 = (n) => String(n).padStart(3, '0');
+  let audioPath;
+  let aiTimings = null;
+  console.log(`[FetchAudio] Starting... Edition: ${edition}, MP3Quran: ${isMp3Quran}`);
+  const textResult = await fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition);
+
+  if (isMp3Quran) {
+      console.log(`[Audio] Detected MP3Quran URL: ${edition}`);
+      const fileName = `${pad3(surahNumber)}.mp3`;
+      const baseUrl = edition.endsWith('/') ? edition : `${edition}/`;
+      const fullUrl = `${baseUrl}${fileName}`;
+      const tempFullAudio = path.resolve(`Data/temp/${Date.now()}_${fileName}`);
+      console.log(`[Audio] Downloading from: ${fullUrl}`);
+
+      try {
+          await downloadFile(fullUrl, tempFullAudio);
+          console.log(`[Audio] Downloaded to: ${tempFullAudio}`);
+          audioPath = tempFullAudio;
+          console.log("[Audio] Starting Auto-Sync...");
+          aiTimings = await runAutoSync(tempFullAudio, surahNumber, startVerse, endVerse);
+          console.log("[Audio] Auto-Sync successful");
+      } catch (e) {
+          console.error("[Audio] Error during MP3Quran processing:", e);
+          if (fs.existsSync(tempFullAudio)) {
+              audioPath = tempFullAudio;
+          } else {
+              throw new Error(`Failed to download audio from ${fullUrl}: ${e.message}`);
+          }
+      }
+
+  } else {
+      const res = await partAudioAndText(surahNumber, startVerse, endVerse, edition, "quran-simple", translationEdition, transliterationEdition);
+      if (res === -1) throw new Error("API Fetch failed for Al-Quran Cloud");
+      audioPath = `Data/audio/Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`;
+  }
+
+  if (!audioPath) {
+      throw new Error("fetchAudioAndText failed to determine an audio path.");
+  }
+  return {
+      audioPath,
+      textPath: textResult.textPath,
+      durationsFile: textResult.durationsFile,
+      aiTimings
+  };
 }
 
 async function getAudioDuration(audioPath) {
@@ -350,6 +466,16 @@ async function getEndVerse(surahNumber, retries = 3) {
     }
   }
   return -1;
+}
+
+async function downloadFile(url, dest) {
+    const writer = fs.createWriteStream(dest);
+    const response = await axios({ url, method: 'GET', responseType: 'stream' });
+    response.data.pipe(writer);
+    return new Promise((resolve, reject) => {
+        writer.on('finish', resolve);
+        writer.on('error', reject);
+    });
 }
 
 const cssColorToASS = (cssColor) => {

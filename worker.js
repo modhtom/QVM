@@ -25,29 +25,13 @@ const worker = new Worker('video-queue', async (job) => {
     if (videoData.audioSource === 'custom' && videoData.autoSync === true) {
         progressCallback({ step: 'Running AI Auto-Sync...', percent: 15 });
         try {
-            // Ensure we have a local file path (downloaded from R2 by video.js logic later, 
-            // but for now we assume video.js handles the download. 
-            // WAIT: worker.js calls video.js which downloads the file.
-            // We need to download the file HERE if we want to sync it before generation, 
-            // OR update video.js to expose a "download only" method.
-            
-            // SIMPLER APPROACH: Let video.js handle download, but we pass a flag to generate* functions
-            // asking them to run sync after download.
-            // HOWEVER, video.js is structured to run linearly. 
-            
-            // FOR NOW: We assume the user uploaded the file and it's available locally 
-            // OR we rely on the fact that Munajjam needs a local file.
-            
-            // NOTE: Since we moved to R2, the file in videoData.customAudioPath is an R2 key (uploads/audio/...).
-            // We cannot run Python on an R2 key.
-            // We must download it first.
-            
-            // To avoid code duplication, we will let generatePartialVideo handle the download
-            // and we will inject the "runAutoSync" call INSIDE generatePartialVideo/FullVideo
-            // right after it downloads the custom audio.
-            
-            // SEE UPDATED video.js BELOW for this integration.
-            
+            const aiTimings = await runAutoSync(
+                videoData.customAudioPath,
+                videoData.surahNumber,
+                videoData.startVerse,
+                videoData.endVerse
+            );
+            finalTimings = aiTimings;
         } catch (e) {
             console.error("Auto-sync preparation failed:", e);
         }

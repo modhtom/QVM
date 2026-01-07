@@ -94,7 +94,7 @@ export async function generateSubtitles(
         subtitles += `\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;
 
         if (metadata && audioLen) {
-            const infoText = `${metadata.surahName} | ${metadata.reciterName || 'Recitation'}`;
+            const infoText = `${metadata.surahName} | ${metadata.reciterName || 'Recitation'} | ${metadata.rewayat || 'Rewayat'}`;
             subtitles += `Dialogue: 1,0:00:00.00,${formatTime(audioLen)},Info,,0,0,0,,${infoText}\n`;
         }
 

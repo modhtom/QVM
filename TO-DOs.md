@@ -18,8 +18,7 @@
 
 ### Low Priority: Future Enhancements
 
-1.  **Expand Translation and Reciter Library**: Integrate more language and reciter options.
-2.  **Implement Caching for API Calls**: Cache responses from the Al-Quran Cloud API (for text/metadata) and Unsplash/Pexels to reduce latency and avoid rate-limiting.
+1.  **Implement Caching for API Calls**: Cache responses from the Al-Quran Cloud API (for text/metadata) and Unsplash/Pexels to reduce latency and avoid rate-limiting.
 
 ---
 

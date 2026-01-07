@@ -17,7 +17,7 @@ RUN apk update && apk add --no-cache \
 RUN mkdir -p /usr/share/fonts/truetype/custom/
 
 # Copy custom fonts (if available)
-COPY fonts/*.ttf /usr/share/fonts/truetype/custom/
+COPY Data/Font/*.ttf /usr/share/fonts/truetype/custom/
 
 # Update font cache
 RUN fc-cache -fv

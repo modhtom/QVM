@@ -234,6 +234,15 @@ app.post('/upload-audio', uploadAudio.single('audio'), async (req, res) => {
   }
 });
 
+app.get('/api/metadata', (req, res) => {
+    const metadataPath = path.resolve(__dirname, 'Data/metadata.json');
+    if (fs.existsSync(metadataPath)) {
+        res.sendFile(metadataPath);
+    } else {
+        res.status(404).json({ error: "Metadata not found. Please run fetchMetaData.js" });
+    }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
