@@ -200,7 +200,8 @@ export async function generatePartialVideo(
                 audioPath,
                 surahNumber,
                 startVerse,
-                endVerse
+                endVerse,
+                limit
             );
             userVerseTimings = aiTimings;
             console.log("AI Timings Applied:", userVerseTimings.length, "segments");
@@ -223,6 +224,10 @@ export async function generatePartialVideo(
     }
   }
 
+  if ( (!userVerseTimings || userVerseTimings.length === 0) && audioSource !== 'custom') {
+    throw new Error("Auto-Sync failed to find matching verses. Aborting to prevent full-length video rendering.");
+  }
+
   await new Promise((resolve, reject) => {
     let attempts = 0;
     const checkAudioFile = setInterval(() => {
@@ -239,24 +244,26 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Processing audio', percent: 30 });
   let audioLen = await getAudioDuration(audioPath);
-  audioLen = Math.ceil(audioLen || 0) + 1;
   
-  if (isNaN(audioLen) || audioLen <= 0) {
-    if (userVerseTimings && userVerseTimings.length > 0) {
-        audioLen = Math.ceil(userVerseTimings[userVerseTimings.length - 1].end) + 2;
-    } else {
-        throw new Error("Could not determine audio length.");
-    }
-  }
-
   let startTimeOffset = 0;
+  let shiftedTimings = null;
+
   if (userVerseTimings && userVerseTimings.length > 0) {
       const firstVerse = userVerseTimings[0];
       const lastVerse = userVerseTimings[userVerseTimings.length - 1];
+      
       startTimeOffset = firstVerse.start;
       const endTimeOffset = lastVerse.end;
+      
       audioLen = endTimeOffset - startTimeOffset;
-      console.log(`[Trim] Seeking to ${startTimeOffset.toFixed(2)}s, Duration: ${audioLen.toFixed(2)}s`);
+      console.log(`[Trim] Seeking to ${startTimeOffset.toFixed(2)}s, New Duration: ${audioLen.toFixed(2)}s`);
+
+      shiftedTimings = userVerseTimings.map(v => ({
+          verse_num: v.verse_num,
+          start: v.start - startTimeOffset,
+          end: v.end - startTimeOffset
+      }));
+
   } else {
       audioLen = Math.ceil(audioLen || 0) + 1;
   }
@@ -274,8 +281,8 @@ export async function generatePartialVideo(
   }
 
   await generateSubtitles(
-      surahNumber, startVerse, endVerse, aColor, fontPosition, fontName, size, 
-      audioLen, customAudioPath || audioPath, userVerseTimings, 
+      surahNumber, startVerse, endVerse, aColor, fontPosition, fontName, size,
+      audioLen, customAudioPath || audioPath, shiftedTimings || userVerseTimings,
       subtitlePosition, metadata
   );
 
@@ -294,13 +301,18 @@ export async function generatePartialVideo(
     
     const command = ffmpeg()
       .input(backgroundPath)
-      .input(audioPath);
-      if (startTimeOffset > 0) command.inputOptions(`-ss ${startTimeOffset}`);
+      .inputOptions(['-stream_loop -1']);
+    const audioInput = command.input(audioPath);
+    if (startTimeOffset > 0) {
+        audioInput.seekInput(startTimeOffset);
+    }
+
     command
       .audioCodec("aac")
       .videoCodec(encoder)
       .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
       .outputOptions(encoderOptions)
+      .outputOptions(['-ar 44100', '-ac 2', '-b:a 128k'])
       .videoFilter(subtitleFilter)
       .output(outputPath);
     
@@ -320,13 +332,17 @@ export async function generatePartialVideo(
           cachedEncoder = 'libx264';
           const cpuCommand = ffmpeg()
             .input(backgroundPath)
-            .input(audioPath);
-
-            if (startTimeOffset > 0) cpuCommand.inputOptions(`-ss ${startTimeOffset}`);
+            .inputOptions(['-stream_loop -1']);
+          
+          const cpuAudio = cpuCommand.input(audioPath);
+          if (startTimeOffset > 0) {
+            cpuAudio.seekInput(startTimeOffset);
+          }
           
             cpuCommand.audioCodec("aac")
             .videoCodec("libx264")
             .outputOptions(['-preset veryfast', '-crf 23', '-pix_fmt yuv420p', '-map 0:v:0', '-map 1:a:0'])
+            .outputOptions(['-ar 44100', '-ac 2', '-b:a 128k'])
             .videoFilter(subtitleFilter)
             .output(outputPath);
             
@@ -391,7 +407,8 @@ async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, tra
           console.log(`[Audio] Downloaded to: ${tempFullAudio}`);
           audioPath = tempFullAudio;
           console.log("[Audio] Starting Auto-Sync...");
-          aiTimings = await runAutoSync(tempFullAudio, surahNumber, startVerse, endVerse);
+          const totalVerses = await getEndVerse(surahNumber);
+          aiTimings = await runAutoSync(tempFullAudio, surahNumber, startVerse, endVerse, totalVerses);
           console.log("[Audio] Auto-Sync successful");
       } catch (e) {
           console.error("[Audio] Error during MP3Quran processing:", e);
@@ -437,17 +454,23 @@ async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEditi
   if (combinedText) {
     const textOutputDir = path.resolve("Data/text");
     if (!fs.existsSync(textOutputDir)) fs.mkdirSync(textOutputDir, { recursive: true });
-    fs.writeFileSync(textPath, combinedText, "utf-8");
+
+    let finalText = combinedText;
+    let finalTrans = combinedTranslation;
+    let finalTranslit = combinedTransliteration;
+    let finalDurations = durationPerAyah;
     
-    if (combinedTranslation) {
+    fs.writeFileSync(textPath, finalText, "utf-8");
+    
+    if (finalTrans) {
         const translationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
-        fs.writeFileSync(translationOutputFile, combinedTranslation, "utf-8");
+        fs.writeFileSync(translationOutputFile, finalTrans, "utf-8");
     }
-    if (combinedTransliteration) {
+    if (finalTranslit) {
         const transliterationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`);
-        fs.writeFileSync(transliterationOutputFile, combinedTransliteration, "utf-8");
+        fs.writeFileSync(transliterationOutputFile, finalTranslit, "utf-8");
     }
-    fs.writeFileSync(durationsFile, JSON.stringify(durationPerAyah), "utf-8");
+    fs.writeFileSync(durationsFile, JSON.stringify(finalDurations), "utf-8");
   }
   return { textPath, durationsFile };
 }
