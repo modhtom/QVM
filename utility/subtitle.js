@@ -98,11 +98,16 @@ export async function generateSubtitles(
             subtitles += `Dialogue: 1,0:00:00.00,${formatTime(audioLen)},Info,,0,0,0,,${infoText}\n`;
         }
 
-        const useUserTimings = userVerseTimings && userVerseTimings.length >= textContent.length;
+        const useUserTimings = userVerseTimings && userVerseTimings.length > 0;
 
         if (useUserTimings) {
             console.log("Using User Custom Timings");
             for (let i = 0; i < textContent.length; i++) {
+                const timing = userVerseTimings[i];
+                if (!timing) {
+                    console.warn(`[Subtitles] Warning: No timing found for line ${i+1}. Skipping.`);
+                    continue;
+                }
                 const startTime = userVerseTimings[i].start;
                 let endTime = userVerseTimings[i].end;
                 if (i === textContent.length - 1 && audioLen) endTime = Math.max(endTime, audioLen);

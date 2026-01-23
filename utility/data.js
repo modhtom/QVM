@@ -38,16 +38,22 @@ export async function getSurahDataRange(
   textOnly = false,
 ) {
   if (surahNumber !== "1" && surahNumber !== "9") {
-      const bismillahData = await getSurahData(1, 1, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly, true);
+      //const bismillahData = await getSurahData(1, 1, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly, true);
       const mainData = await fetchRange(surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly);
-      
       return {
-          audioBuffers: [bismillahData, ...mainData.audioBuffers].filter(b => b.audio),
-          combinedText: `${bismillahData.text}\n${mainData.combinedText}`,
-          combinedTranslation: `${bismillahData.translation || ''}\n${mainData.combinedTranslation}`,
-          combinedTransliteration: `${bismillahData.transliteration || ''}\n${mainData.combinedTransliteration}`,
-          durationPerAyah: [bismillahData.duration, ...mainData.durationPerAyah]
-      };
+          audioBuffers: [...mainData.audioBuffers].filter(b => b.audio),
+            combinedText: `${mainData.combinedText}`,
+            combinedTranslation: `${mainData.combinedTranslation}`,
+          combinedTransliteration: `${mainData.combinedTransliteration}`,
+          durationPerAyah: [...mainData.durationPerAyah]
+      };      
+    //   return {
+    //       audioBuffers: [bismillahData, ...mainData.audioBuffers].filter(b => b.audio),
+    //       combinedText: `${bismillahData.text}\n${mainData.combinedText}`,
+    //       combinedTranslation: `${bismillahData.translation || ''}\n${mainData.combinedTranslation}`,
+    //       combinedTransliteration: `${bismillahData.transliteration || ''}\n${mainData.combinedTransliteration}`,
+    //       durationPerAyah: [bismillahData.duration, ...mainData.durationPerAyah]
+    //   };
   }
   return fetchRange(surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly);
 }

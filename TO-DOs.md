@@ -19,7 +19,7 @@
 ### Low Priority: Future Enhancements
 
 1.  **Implement Caching for API Calls**: Cache responses from the Al-Quran Cloud API (for text/metadata) and Unsplash/Pexels to reduce latency and avoid rate-limiting.
-
+2. **Add Bismillah**: add Bismillah audio + subtitle at the beginning of every video. [Need to be fixed]
 ---
 
 ## Bugs and Errors

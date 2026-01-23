@@ -252,10 +252,10 @@ export async function generatePartialVideo(
       const firstVerse = userVerseTimings[0];
       const lastVerse = userVerseTimings[userVerseTimings.length - 1];
       
-      startTimeOffset = firstVerse.start;
+      startTimeOffset = firstVerse.start - 0.2; // Small lead-in
       const endTimeOffset = lastVerse.end;
       
-      audioLen = endTimeOffset - startTimeOffset;
+      audioLen = (endTimeOffset - startTimeOffset) + 0.5; // Small lead-out
       console.log(`[Trim] Seeking to ${startTimeOffset.toFixed(2)}s, New Duration: ${audioLen.toFixed(2)}s`);
 
       shiftedTimings = userVerseTimings.map(v => ({
