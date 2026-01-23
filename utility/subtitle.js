@@ -29,10 +29,10 @@ function buildFullLine(mainText, transliterationText, translationText, color, fo
     const safeFont = fontName || "Arial";
     let line = `{\\an${alignment}\\c${color}\\q1\\bord2\\fn${safeFont}}${mainText || ''}`;
     if (transliterationText) {
-        line += `\\N{\\fs${size * 5}}${transliterationText}`;
+        line += `\\N{\\fs${Math.round(size * 5)}}${transliterationText}`;
     }
     if (translationText) {
-        line += `\\N{\\fs${size * 5}}${translationText}`;
+        line += `\\N{\\fs${Math.round(size * 5)}}${translationText}`;
     }
     return line;
 }
@@ -148,12 +148,11 @@ export async function generateSubtitles(
                 const startTime = currentTime;
                 let endTime = startTime + scaledDuration;
 
-                const fullLine = buildFullLine(
-                    verseText,
-                    transliterationContent[i],
-                    translationContent[i],
-                    color, fontName, size, alignment
-                );
+                const wrappedMain = splitTextIntoChunks(textContent[i], MAX_CHARS_PER_LINE).join("\\N");
+                const wrappedTranslit = splitTextIntoChunks(transliterationContent[i], MAX_CHARS_PER_LINE).join("\\N");
+                const wrappedTrans = splitTextIntoChunks(translationContent[i], MAX_CHARS_PER_LINE).join("\\N");
+
+                const fullLine = buildFullLine(wrappedMain, wrappedTranslit, wrappedTrans, color, fontName, size, alignment);
                 
                 subtitles += `Dialogue: 0,${formatTime(startTime)},${formatTime(endTime)},Default,,0,0,0,,${fullLine}\n`;
 

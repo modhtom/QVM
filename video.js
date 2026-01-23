@@ -449,27 +449,40 @@ async function getAudioDuration(audioPath) {
 async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition) {
   const textPath = `Data/text/Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`;
   const durationsFile = `Data/text/Surah_${surahNumber}_Durations_from_${startVerse}_to_${endVerse}.json`;
-  const { combinedText, combinedTranslation, combinedTransliteration, durationPerAyah } = await getSurahDataRange(surahNumber, startVerse, endVerse, null, "quran-simple", translationEdition, transliterationEdition, true);
+  const transId = (!translationEdition || translationEdition === "null") ? null : translationEdition;
+  const { combinedText, combinedTranslation, combinedTransliteration, durationPerAyah } = await getSurahDataRange(surahNumber, startVerse, endVerse, null, "quran-simple", transId, transliterationEdition, true);
 
   if (combinedText) {
     const textOutputDir = path.resolve("Data/text");
     if (!fs.existsSync(textOutputDir)) fs.mkdirSync(textOutputDir, { recursive: true });
 
-    let finalText = combinedText;
-    let finalTrans = combinedTranslation;
-    let finalTranslit = combinedTransliteration;
-    let finalDurations = durationPerAyah;
-    
+    const requestedCount = parseInt(endVerse) - parseInt(startVerse) + 1;
+    const sliceStart = parseInt(startVerse) - 1;
+    const sliceEnd = parseInt(endVerse);
+    let finalText = combinedText, finalTrans = combinedTranslation, finalTranslit = combinedTransliteration, finalDurations = durationPerAyah;
+
+    if (combinedText.split('\n').filter(l=>l.trim()).length > requestedCount) {
+        finalText = combinedText.split('\n').filter(l=>l.trim()).slice(sliceStart, sliceEnd).join('\n');
+        if (combinedTranslation) finalTrans = combinedTranslation.split('\n').filter(l=>l.trim()).slice(sliceStart, sliceEnd).join('\n');
+        if (combinedTransliteration) finalTranslit = combinedTransliteration.split('\n').filter(l=>l.trim()).slice(sliceStart, sliceEnd).join('\n');
+        if (Array.isArray(durationPerAyah)) finalDurations = durationPerAyah.slice(sliceStart, sliceEnd);
+    }
     fs.writeFileSync(textPath, finalText, "utf-8");
     
+    const translationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
     if (finalTrans) {
-        const translationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
         fs.writeFileSync(translationOutputFile, finalTrans, "utf-8");
+    } else if (fs.existsSync(translationOutputFile)) {
+        fs.unlinkSync(translationOutputFile);
     }
+
+    const transliterationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`);
     if (finalTranslit) {
-        const transliterationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`);
         fs.writeFileSync(transliterationOutputFile, finalTranslit, "utf-8");
+    } else if (fs.existsSync(transliterationOutputFile)) {
+        fs.unlinkSync(transliterationOutputFile);
     }
+
     fs.writeFileSync(durationsFile, JSON.stringify(finalDurations), "utf-8");
   }
   return { textPath, durationsFile };

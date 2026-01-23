@@ -286,6 +286,17 @@ QVM/
 ### 7. Auto-Synchronization (`utility/autoSync.js`)
 **Purpose**: AI-powered audio-text alignment using Whisper Large v3.
 
+```mermaid
+sequenceDiagram
+    User->>Server: Uploads Audio
+    Server->>Worker: Queues Job
+    Worker->>Groq API: Sends Compressed Audio
+    Groq API-->>Worker: Returns Transcription JSON
+    Worker->>Worker: Normalizes Text & Align (LCS)
+    Worker->>Worker: Generates Timings Array
+    Worker->>Video Gen: Generates Subtitles (.ass)
+```
+
 **Process**:
 1. Audio compression and optimization
 2. Whisper transcription with word-level timestamps
@@ -605,6 +616,8 @@ deleteVidData(removeFiles, audioPath, textPath, ...);
 ```
 
 ## Storage & Cloud Integration
+
+>The hosting environment requires Ephemeral Disk Storage. This is important because this application cannot run on standard Serverless Functions (like AWS Lambda or Vercel) without specific configuration due to the heavy disk I/O required by FFmpeg.
 
 ### Cloudflare R2 Configuration
 ```javascript
