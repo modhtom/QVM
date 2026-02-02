@@ -18,8 +18,7 @@
 
 ### Low Priority: Future Enhancements
 
-1.  **Implement Caching for API Calls**: Cache responses from the Al-Quran Cloud API (for text/metadata) and Unsplash/Pexels to reduce latency and avoid rate-limiting.
-2. **Add Bismillah**: add Bismillah audio + subtitle at the beginning of every video. [Need to be fixed]
+1. **Add Bismillah**: add Bismillah audio + subtitle at the beginning of every video. [Need to be fixed]
 ---
 
 ## Bugs and Errors
@@ -39,7 +38,6 @@
 ## Performance Optimization
 
 - **Stream, Don't Write**: The process of creating the final recitation audio involves saving multiple small `.mp3` files to disk and then merging them with FFmpeg.Do this entirely in memory by streaming the downloaded audio buffers directly to FFmpeg's `stdin`, avoiding slow disk I/O.
-- **Cache API Responses**: In `data.js`, cache audio files, which is excellent. should apply the same logic for text, translation, and Surah metadata API calls using `node-cache` to reduce external network requests.
 - **Use WebP for Images**: When generating AI backgrounds from Unsplash, download images as `.webp` instead of `.jpg`. They are smaller and will download faster, shortening the image fetching step.
 
 ---
@@ -49,7 +47,6 @@
 The code is functional but could be more maintainable.
 
 - **Consolidate Video Generation Logic**: `generateFullVideo` and `generatePartialVideo` in `video.js` share about 90% of their code. They can be merged into a single `generateVideo` function that accepts a `params` object, with a small pre-processing step to calculate the `endVerse` for the "full Surah" case.
-- **Create a Config File**: Move hardcoded values like `MAX_CHARS_PER_LINE`, API endpoints, and default font settings into a separate `config.js` file.
 - **Abstract Frontend Handlers**: The `handleFullVideoSubmit` and `handlePartialVideoSubmit` functions are nearly identical. Create a single `handleVideoSubmit(formType)` function that reads values based on the `formType` (`'full'` or `'partial'`) to eliminate code duplication.
 - **Use a Central State Manager on Frontend**: Instead of using global variables like `window.tempVideoFormData`, consider a simple state management object to hold form data and application state. This makes data flow predictable and easier to debug.
 

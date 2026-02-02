@@ -3,28 +3,51 @@ import axios from "axios";
 import ffmpeg from "fluent-ffmpeg";
 import path from "path";
 import * as mm from "music-metadata";
+import { cache } from "./cache.js";
 
 const audioCacheDir = path.resolve("Data/audio/cache");
 if (!fs.existsSync(audioCacheDir)) {
     fs.mkdirSync(audioCacheDir, { recursive: true });
 }
 
+// --- HELPER: AUDIO CACHING ---
 async function getCachedAudio(reciterEdition, surahNumber, verseNumber) {
     const reciterDir = path.join(audioCacheDir, reciterEdition);
     const audioFile = path.join(reciterDir, `${surahNumber}_${verseNumber}.mp3`);
-    if (fs.existsSync(audioFile)) {
-        return fs.readFileSync(audioFile);
-    }
+    if (fs.existsSync(audioFile)) return fs.readFileSync(audioFile);
     return null;
 }
 
 async function cacheAudio(reciterEdition, surahNumber, verseNumber, buffer) {
     const reciterDir = path.join(audioCacheDir, reciterEdition);
-    if (!fs.existsSync(reciterDir)) {
-        fs.mkdirSync(reciterDir, { recursive: true });
-    }
+    if (!fs.existsSync(reciterDir)) fs.mkdirSync(reciterDir, { recursive: true });
     const audioFile = path.join(reciterDir, `${surahNumber}_${verseNumber}.mp3`);
     fs.writeFileSync(audioFile, buffer);
+}
+
+// --- CORE: SMART DATA FETCHING ---
+
+// Fetch FULL Surah Text/Translation from API (1 Call instead of 286)
+async function fetchFullSurahData(surahNumber, edition) {
+    const cacheKey = `surah:${surahNumber}:edition:${edition}`;
+    
+    // 1. Check Redis
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+
+    // 2. Fetch from API (Single Request for whole Surah)
+    console.log(`[API] Fetching full Surah ${surahNumber} (${edition})...`);
+    try {
+        const response = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}/${edition}`);
+        const data = response.data.data;
+        
+        // 3. Save to Redis (TTL 24h)
+        await cache.set(cacheKey, data, 86400);
+        return data;
+    } catch (e) {
+        console.error(`[API Error] Failed to fetch Surah ${surahNumber}: ${e.message}`);
+        throw e;
+    }
 }
 
 export async function getSurahDataRange(
@@ -37,110 +60,122 @@ export async function getSurahDataRange(
   transliterationEdition = null,
   textOnly = false,
 ) {
-  if (surahNumber !== "1" && surahNumber !== "9") {
-      //const bismillahData = await getSurahData(1, 1, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly, true);
-      const mainData = await fetchRange(surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly);
-      return {
-          audioBuffers: [...mainData.audioBuffers].filter(b => b.audio),
-            combinedText: `${mainData.combinedText}`,
-            combinedTranslation: `${mainData.combinedTranslation}`,
-          combinedTransliteration: `${mainData.combinedTransliteration}`,
-          durationPerAyah: [...mainData.durationPerAyah]
-      };      
-    //   return {
-    //       audioBuffers: [bismillahData, ...mainData.audioBuffers].filter(b => b.audio),
-    //       combinedText: `${bismillahData.text}\n${mainData.combinedText}`,
-    //       combinedTranslation: `${bismillahData.translation || ''}\n${mainData.combinedTranslation}`,
-    //       combinedTransliteration: `${bismillahData.transliteration || ''}\n${mainData.combinedTransliteration}`,
-    //       durationPerAyah: [bismillahData.duration, ...mainData.durationPerAyah]
-    //   };
-  }
-  return fetchRange(surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly);
-}
+    // Logic: Only include Basmalah if it's the very start of the Surah (Verse 1)
+    // AND it's not Surah 1 or 9 (which handle Basmalah differently/internally)
+    const shouldAddBasmalah = surahNumber !== "1" && surahNumber !== "9" && parseInt(startVerse) === 1;
 
-async function fetchRange(surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly) {
+    let bismillahData = null;
+    if (shouldAddBasmalah) {
+        // Fetch Verse 1 of Surah 1 as the Basmalah reference
+        const bsText = await fetchFullSurahData(1, textEdition);
+        const bsTrans = translationEdition ? await fetchFullSurahData(1, translationEdition) : null;
+        const bsTranslit = transliterationEdition ? await fetchFullSurahData(1, transliterationEdition) : null;
+        
+        // Audio for Basmalah (Verse 1:1)
+        let bsAudio = null;
+        if (!textOnly && reciterEdition) {
+            bsAudio = await getOrFetchAudio(1, 1, reciterEdition);
+        }
+
+        bismillahData = {
+            text: bsText.ayahs[0].text,
+            translation: bsTrans ? bsTrans.ayahs[0].text : "",
+            transliteration: bsTranslit ? bsTranslit.ayahs[0].text : "",
+            audio: bsAudio ? bsAudio.buffer : null,
+            duration: bsAudio ? bsAudio.duration : 0
+        };
+    }
+
+    // --- OPTIMIZED FETCHING ---
+    // Fetch full surah texts once (cached), then slice arrays
+    const fullTextObj = await fetchFullSurahData(surahNumber, textEdition);
+    const fullTransObj = translationEdition ? await fetchFullSurahData(surahNumber, translationEdition) : null;
+    const fullTranslitObj = transliterationEdition ? await fetchFullSurahData(surahNumber, transliterationEdition) : null;
+
     const audioBuffers = [];
     const durationPerAyah = [];
     let combinedText = "";
     let combinedTranslation = "";
     let combinedTransliteration = "";
 
-    for (let verse = startVerse; verse <= endVerse; verse++) {
-        const { audio, text, duration, translation, transliteration } = await getSurahData(
-            surahNumber, verse, reciterEdition, textEdition, translationEdition, transliterationEdition, textOnly
-        );
-        if (audio) audioBuffers.push({ verse, audio });
-        if (text) {
-            durationPerAyah.push(duration || 0);
-            combinedText += text + "\n";
-            if (translation) combinedTranslation += translation + "\n";
-            if (transliteration) combinedTransliteration += transliteration + "\n";
+    // Add Basmalah if needed
+    if (bismillahData) {
+        if (bismillahData.audio) audioBuffers.push({ verse: 0, audio: bismillahData.audio });
+        durationPerAyah.push(bismillahData.duration);
+        combinedText += bismillahData.text + "\n";
+        combinedTranslation += bismillahData.translation + "\n";
+        combinedTransliteration += bismillahData.transliteration + "\n";
+    }
+
+    // Loop through requested range (In-Memory Slicing)
+    // Note: API arrays are 0-indexed, Verse numbers are 1-indexed.
+    for (let v = startVerse; v <= endVerse; v++) {
+        const idx = v - 1; // Array index
+        
+        // 1. Text
+        if (fullTextObj.ayahs[idx]) {
+            combinedText += fullTextObj.ayahs[idx].text + "\n";
+        }
+        
+        // 2. Translation
+        if (fullTransObj && fullTransObj.ayahs[idx]) {
+            combinedTranslation += fullTransObj.ayahs[idx].text + "\n";
+        }
+
+        // 3. Transliteration
+        if (fullTranslitObj && fullTranslitObj.ayahs[idx]) {
+            combinedTransliteration += fullTranslitObj.ayahs[idx].text + "\n";
+        }
+
+        // 4. Audio (Recitation) - Still needs individual fetches/cache checks per verse
+        // (Optimizing audio is harder as it's binary, but we use the disk cache)
+        if (!textOnly && reciterEdition) {
+            const verseAudio = await getOrFetchAudio(surahNumber, v, reciterEdition);
+            if (verseAudio && verseAudio.buffer) {
+                audioBuffers.push({ verse: v, audio: verseAudio.buffer });
+                durationPerAyah.push(verseAudio.duration);
+            } else {
+                durationPerAyah.push(0); // Fallback
+            }
         }
     }
-    return { audioBuffers, combinedText, combinedTranslation, combinedTransliteration, durationPerAyah };
+
+    return {
+        audioBuffers,
+        combinedText: combinedText.trim(),
+        combinedTranslation: combinedTranslation.trim(),
+        combinedTransliteration: combinedTransliteration.trim(),
+        durationPerAyah
+    };
 }
 
-async function getSurahData(
-  surahNumber,
-  verseNumber,
-  reciterEdition,
-  textEdition,
-  translationEdition,
-  transliterationEdition,
-  textOnly = false,
-  isBismillah = false
-) {
-  try {
-    let audioBuffer = null;
-    let duration = 0;
-    let translationText = null;
-    let transliterationText = null;
+// Helper to handle Audio Caching logic separately
+async function getOrFetchAudio(surah, verse, edition) {
+    try {
+        let buffer = await getCachedAudio(edition, surah, verse);
+        let duration = 0;
 
-    if (!textOnly && reciterEdition) {
-        audioBuffer = await getCachedAudio(reciterEdition, surahNumber, verseNumber);
-        
-        if (!audioBuffer) {
-            const response = await axios.get(`http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${reciterEdition}`);
-            const audioUrl = response.data?.data?.audio;
-            if (audioUrl && typeof audioUrl === 'string' && audioUrl.startsWith('http')) {
-                try {
-                    const audioContent = await axios.get(audioUrl, { responseType: "arraybuffer" });
-                    audioBuffer = Buffer.from(audioContent.data, "binary");
-                    await cacheAudio(reciterEdition, surahNumber, verseNumber, audioBuffer);
-                    duration = await getAudioDurationFromBuffer(audioBuffer);
-                } catch(e) {
-                    console.warn(`Failed to download audio from ${audioUrl}: ${e.message}`);
-                }
-            } else {
-                console.warn(`No valid audio URL found for edition ${reciterEdition} at ${surahNumber}:${verseNumber}`);
+        if (!buffer) {
+            // API Call for Audio
+            const url = `http://api.alquran.cloud/v1/ayah/${surah}:${verse}/${edition}`;
+            const res = await axios.get(url);
+            const audioUrl = res.data?.data?.audio;
+            
+            if (audioUrl) {
+                const audioRes = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+                buffer = Buffer.from(audioRes.data);
+                await cacheAudio(edition, surah, verse, buffer);
             }
-        } else {
-            duration = await getAudioDurationFromBuffer(audioBuffer);
         }
+
+        if (buffer) {
+            duration = await getAudioDurationFromBuffer(buffer);
+        }
+        return { buffer, duration };
+    } catch (e) {
+        console.warn(`Audio fetch failed for ${surah}:${verse}: ${e.message}`);
+        return null;
     }
-
-    const textResponse = await axios.get(`http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${textEdition}`);
-    const text = textResponse.data.data.text;
-
-    if (!isBismillah) {
-        if (translationEdition) {
-            const translationResponse = await axios.get(`http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${translationEdition}`);
-            translationText = translationResponse.data.data.text;
-        }
-        if (transliterationEdition) {
-            const transliterationResponse = await axios.get(`http://api.alquran.cloud/v1/ayah/${surahNumber}:${verseNumber}/${transliterationEdition}`);
-            transliterationText = transliterationResponse.data.data.text;
-        }
-    } else {
-        translationText = "In the name of Allah, the Entirely Merciful, the Especially Merciful.";
-    }
-
-    return { audio: audioBuffer, text, duration, translation: translationText, transliteration: transliterationText };
-
-  } catch (error) {
-    console.error(`Failed to fetch data for Surah ${surahNumber}, Verse ${verseNumber}:`, error.message);
-    return { audio: null, text: null, duration: 0, translation: "", transliteration: "" };
-  }
 }
 
 async function getAudioDurationFromBuffer(buffer) {
@@ -148,22 +183,16 @@ async function getAudioDurationFromBuffer(buffer) {
     const metadata = await mm.parseBuffer(buffer, 'audio/mpeg');
     return metadata.format.duration || 0;
   } catch (error) {
-    console.error("Error calculating audio duration:", error);
     return 0;
   }
 }
 
+// Existing helper, largely unchanged but uses new getSurahDataRange
 export async function partAudioAndText(
-  surahNumber,
-  startVerse,
-  endVerse,
-  reciterEdition = "ar.alafasy",
-  textEdition = "quran-simple",
-  translationEdition = null,
-  transliterationEdition = null
+  surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition
 ) {
-  console.log(`Fetching data for S${surahNumber}:${startVerse}-${endVerse}.`);
-  const { audioBuffers, combinedText, combinedTranslation, combinedTransliteration, durationPerAyah } = await getSurahDataRange(
+  console.log(`Processing Data: S${surahNumber}:${startVerse}-${endVerse}`);
+  const data = await getSurahDataRange(
     surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition
   );
 
@@ -174,46 +203,30 @@ export async function partAudioAndText(
 
   const audioOutputFile = path.join(audioOutputDir, `Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`);
 
-  if (audioBuffers && audioBuffers.length > 0) {
+  // Merge Audio if exists
+  if (data.audioBuffers.length > 0) {
     const ffmpegCommand = ffmpeg();
     const tempFiles = [];
 
-    audioBuffers.forEach(({ audio }, index) => {
-        if (audio) {
-            const tempPath = path.join(audioOutputDir, `temp_${surahNumber}_${startVerse}_${index}.mp3`);
-            fs.writeFileSync(tempPath, audio);
-            ffmpegCommand.input(tempPath);
-            tempFiles.push(tempPath);
-        }
+    data.audioBuffers.forEach(({ audio }, index) => {
+        const tempPath = path.join(audioOutputDir, `temp_${surahNumber}_${startVerse}_${index}.mp3`);
+        fs.writeFileSync(tempPath, audio);
+        ffmpegCommand.input(tempPath);
+        tempFiles.push(tempPath);
     });
 
-    if (tempFiles.length > 0) {
-        await new Promise((resolve, reject) => {
-            ffmpegCommand
-                .mergeToFile(audioOutputFile)
-                .on("end", () => {
-                    tempFiles.forEach(file => { if(fs.existsSync(file)) fs.unlinkSync(file) });
-                    resolve();
-                })
-                .on("error", (err) => {
-                    tempFiles.forEach(file => { if(fs.existsSync(file)) fs.unlinkSync(file) });
-                    reject(new Error("Error during audio concatenation: " + err.message));
-                });
-        });
-    }
+    await new Promise((resolve, reject) => {
+        ffmpegCommand.mergeToFile(audioOutputFile)
+            .on("end", () => {
+                tempFiles.forEach(f => { if(fs.existsSync(f)) fs.unlinkSync(f) });
+                resolve();
+            })
+            .on("error", (err) => {
+                tempFiles.forEach(f => { if(fs.existsSync(f)) fs.unlinkSync(f) });
+                reject(err);
+            });
+    });
   }
 
-  if (combinedText) {
-    fs.writeFileSync(path.join(textOutputDir, `Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`), combinedText.trim(), "utf-8");
-    if (combinedTranslation) {
-      fs.writeFileSync(path.join(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`), combinedTranslation.trim(), "utf-8");
-    }
-    if (combinedTransliteration) {
-        fs.writeFileSync(path.join(textOutputDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`), combinedTransliteration.trim(), "utf-8");
-    }
-    fs.writeFileSync(path.join(textOutputDir, `Surah_${surahNumber}_Durations_from_${startVerse}_to_${endVerse}.json`), JSON.stringify(durationPerAyah), "utf-8");
-    return 1;
-  } else {
-    return -1;
-  }
+  return data.combinedText ? 1 : -1;
 }

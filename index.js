@@ -10,7 +10,7 @@ import IORedis from 'ioredis';
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { S3_CONFIG } from "./utility/config.js";
 import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
-import {getSurahDataRange} from './utility/data.js'
+import { getSurahDataRange } from './utility/data.js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -99,11 +99,11 @@ app.get("/api/videos", async (req, res) => {
     const command = new ListObjectsV2Command({
       Bucket: S3_CONFIG.bucketName,
       Prefix: "videos/",
-      Suffix:"?download=true"
+      Suffix: "?download=true"
     });
-    
+
     const response = await s3.send(command);
-    const videos = response.Contents ? response.Contents.map(item => item.Key): [];
+    const videos = response.Contents ? response.Contents.map(item => item.Key) : [];
     res.json({ videos });
   } catch (error) {
     console.error("S3 List Error:", error);
@@ -139,7 +139,7 @@ app.post('/upload-image', (req, res) => {
 app.get("/Output_Video/:video", (req, res) => {
   const video = req.params.video;
   const filePath = path.resolve(__dirname, "Output_Video", video);
-  
+
   if (req.query.download) {
     res.download(filePath);
   } else {
@@ -235,12 +235,12 @@ app.post('/upload-audio', uploadAudio.single('audio'), async (req, res) => {
 });
 
 app.get('/api/metadata', (req, res) => {
-    const metadataPath = path.resolve(__dirname, 'Data/metadata.json');
-    if (fs.existsSync(metadataPath)) {
-        res.sendFile(metadataPath);
-    } else {
-        res.status(404).json({ error: "Metadata not found. Please run fetchMetaData.js" });
-    }
+  const metadataPath = path.resolve(__dirname, 'Data/metadata.json');
+  if (fs.existsSync(metadataPath)) {
+    res.sendFile(metadataPath);
+  } else {
+    res.status(404).json({ error: "Metadata not found. Please run fetchMetaData.js" });
+  }
 });
 
 app.listen(PORT, () => {

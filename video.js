@@ -456,17 +456,7 @@ async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEditi
     const textOutputDir = path.resolve("Data/text");
     if (!fs.existsSync(textOutputDir)) fs.mkdirSync(textOutputDir, { recursive: true });
 
-    const requestedCount = parseInt(endVerse) - parseInt(startVerse) + 1;
-    const sliceStart = parseInt(startVerse) - 1;
-    const sliceEnd = parseInt(endVerse);
     let finalText = combinedText, finalTrans = combinedTranslation, finalTranslit = combinedTransliteration, finalDurations = durationPerAyah;
-
-    if (combinedText.split('\n').filter(l=>l.trim()).length > requestedCount) {
-        finalText = combinedText.split('\n').filter(l=>l.trim()).slice(sliceStart, sliceEnd).join('\n');
-        if (combinedTranslation) finalTrans = combinedTranslation.split('\n').filter(l=>l.trim()).slice(sliceStart, sliceEnd).join('\n');
-        if (combinedTransliteration) finalTranslit = combinedTransliteration.split('\n').filter(l=>l.trim()).slice(sliceStart, sliceEnd).join('\n');
-        if (Array.isArray(durationPerAyah)) finalDurations = durationPerAyah.slice(sliceStart, sliceEnd);
-    }
     fs.writeFileSync(textPath, finalText, "utf-8");
     
     const translationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
