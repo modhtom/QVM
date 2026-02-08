@@ -35,12 +35,6 @@
 
 ---
 
-## Performance Optimization
-
-- **Stream, Don't Write**: The process of creating the final recitation audio involves saving multiple small `.mp3` files to disk and then merging them with FFmpeg.Do this entirely in memory by streaming the downloaded audio buffers directly to FFmpeg's `stdin`, avoiding slow disk I/O.
-
----
-
 ## Code Refactoring
 
 The code is functional but could be more maintainable.
