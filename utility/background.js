@@ -510,6 +510,14 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
                 if (!url) continue;
                 
                 if (collected.some(c => c.id === r.id)) continue;
+                
+                try {
+                    const urlObj = new URL(url);
+                    urlObj.searchParams.set('fm', 'webp');
+                    collected.push({ url: urlObj.toString(), id: r.id, meta });
+                } catch (e) {
+                    collected.push({ url: url, id: r.id, meta });
+                }
 
                 collected.push({ url, id: r.id, meta });
                 

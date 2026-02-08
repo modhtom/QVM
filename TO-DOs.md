@@ -38,7 +38,6 @@
 ## Performance Optimization
 
 - **Stream, Don't Write**: The process of creating the final recitation audio involves saving multiple small `.mp3` files to disk and then merging them with FFmpeg.Do this entirely in memory by streaming the downloaded audio buffers directly to FFmpeg's `stdin`, avoiding slow disk I/O.
-- **Use WebP for Images**: When generating AI backgrounds from Unsplash, download images as `.webp` instead of `.jpg`. They are smaller and will download faster, shortening the image fetching step.
 
 ---
 
