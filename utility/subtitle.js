@@ -21,8 +21,8 @@ function splitTextIntoChunks(text, maxLength) {
 function buildFullLine(mainText, transliterationText, translationText, color, fontName, size, alignment) {
     const safeFont = fontName || "Arial";
     let line = `{\\an${alignment}\\c${color}\\q1\\bord2\\fn${safeFont}}${mainText || ''}`;
-    if (transliterationText) line += `\\N{\\fs${Math.round(size * 0.6)}}${transliterationText}`;
-    if (translationText) line += `\\N{\\fs${Math.round(size * 0.6)}}${translationText}`;
+    if (transliterationText) line += `\\N{\\fs${Math.round(size * 5)}}${transliterationText}`;
+    if (translationText) line += `\\N{\\fs${Math.round(size * 5)}}${translationText}`;
     return line;
 }
 
@@ -56,11 +56,8 @@ export async function generateSubtitles(
         const transContent = fs.existsSync(transPath) ? fs.readFileSync(transPath, "utf-8").split("\n").filter(Boolean) : [];
         const translitContent = fs.existsSync(translitPath) ? fs.readFileSync(translitPath, "utf-8").split("\n").filter(Boolean) : [];
 
-        // Determine if we have a "Basmalah" header line (Verse 0)
-        // Rule: If startVerse is 1 AND it's not Surah 1 or 9, the first line is Basmalah.
         const hasBasmalahHeader = parseInt(startVerse) === 1 && surahNumber != 1 && surahNumber != 9;
 
-        // Metadata Header
         let pos = position.split(',');
         const alignment = subtitlePosition === 'middle' ? 5 : 2;
         const marginV = subtitlePosition === 'middle' ? 0 : 50;
@@ -75,23 +72,17 @@ export async function generateSubtitles(
             subtitles += `Dialogue: 1,0:00:00.00,${formatTime(Math.min(5, audioLen || 5))},Info,,0,0,0,,${infoText}\n`;
         }
 
-        // --- FIXED MAPPING LOGIC ---
         if (userVerseTimings && userVerseTimings.length > 0) {
             console.log(`[Subtitles] Mapping ${textContent.length} lines. HasBasmalah: ${hasBasmalahHeader}`);
             
             for (let i = 0; i < textContent.length; i++) {
-                // Determine the Verse Number for this text line
                 let currentVerseNum;
                 if (hasBasmalahHeader) {
-                    // Line 0 is Basmalah (Verse 0)
-                    // Line 1 is Verse 1
-                    currentVerseNum = i; 
+                    currentVerseNum = i;
                 } else {
-                    // Line 0 is startVerse
                     currentVerseNum = parseInt(startVerse) + i;
                 }
 
-                // Look for the specific timing object for this verse number
                 const timing = userVerseTimings.find(t => t.verse_num === currentVerseNum);
                 
                 if (timing) {
@@ -112,9 +103,8 @@ export async function generateSubtitles(
                     console.log(`[Subtitles] Skipping text line ${i} (Verse ${currentVerseNum}) - No timing found.`);
                 }
             }
-        } 
+        }
         else {
-            // Fallback if no AI timings
             const durPerVerse = (audioLen || 10) / textContent.length;
             for (let i = 0; i < textContent.length; i++) {
                 const start = i * durPerVerse;

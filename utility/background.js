@@ -9,27 +9,39 @@ import { getSurahDataRange } from "./data.js";
 dotenv.config();
 
 const visualThesaurus = {
-    'mercy': ['rain', 'soft rain', 'water drop', 'flowering', 'calm water'],
-    'wrath': ['storm', 'thunder', 'volcano', 'dark ocean', 'cracked earth'],
-    'punishment': ['ruins', 'desert storm', 'barren land', 'fire', 'smoke'],
-    'paradise': ['lush garden', 'river', 'waterfall', 'peacock', 'greenery', 'spring'],
-    'hell': ['fire', 'lava', 'dark cave', 'heat', 'burning'],
-    'creation': ['galaxy', 'nebula', 'stars', 'DNA', 'microscope nature'],
-    'sky': ['clouds', 'blue sky', 'sunset', 'sunrise', 'horizon'],
+    'mercy': ['gentle rain', 'morning dew', 'ray of light', 'blooming flower', 'calm water'],
+    'wrath': ['storm clouds', 'lightning', 'volcanic rock', 'rough ocean', 'cracked earth'],
+    'punishment': ['ancient ruins', 'sandstorm', 'barren wasteland', 'smoke', 'ash'],
+    'paradise': ['lush garden', 'waterfall', 'flowing river', 'peacock feather', 'green forest', 'orchard'],
+    'hell': ['burning coals', 'lava', 'dark cave', 'intense fire', 'smoke abstract'],
+    'sky': ['blue sky', 'golden sunset', 'starry night', 'horizon', 'nebula', 'clouds'],
+    'earth': ['mountain peak', 'desert dunes', 'green valley', 'pebbles', 'soil texture'],
+    'water': ['ocean waves', 'clear stream', 'water drop', 'river flow', 'rain'],
+    'fire': ['flame', 'campfire', 'spark', 'candle light', 'heat'],
     
-    'guidance': ['lighthouse', 'pathway', 'ray of light', 'lantern', 'moonlight'],
-    'darkness': ['deep ocean', 'night forest', 'cave', 'shadows'],
-    'knowledge': ['book pages', 'ink', 'pen', 'library', 'candle'],
-    'patience': ['mountain', 'stone', 'desert', 'roots', 'ancient tree'],
-    'peace': ['lake reflection', 'misty forest', 'dove', 'white clouds'],
-    'time': ['hourglass', 'sand', 'sunset', 'seasons'],
-    'life': ['sprout', 'sapling', 'bloom', 'baby hand', 'sunrise'],
-    'death': ['autumn leaves', 'sunset', 'withered flower', 'winter snow'],
+    'guidance': ['lighthouse', 'pathway in woods', 'lantern', 'moon in dark sky', 'compass'],
+    'darkness': ['deep ocean', 'night forest', 'shadows', 'black texture', 'cave'],
+    'light': ['sun rays', 'candle flame', 'lamp', 'bright window', 'glow'],
+    'knowledge': ['old book', 'ink pen', 'library', 'scroll', 'parchment'],
+    'patience': ['stone cairn', 'ancient tree', 'roots', 'still lake', 'mountain'],
+    'peace': ['mirror lake', 'white dove', 'misty morning', 'zen stones', 'soft clouds'],
+    'time': ['hourglass', 'sunset', 'changing seasons', 'stars time lapse'],
     
-    'prophet': ['desert caravan', 'cave light', 'staff', 'moon'],
-    'prayer': ['mosque arch', 'prayer rug', 'hands sky', 'silhouette'],
-    'quran': ['open book', 'arabic calligraphy', 'rehal'],
-    'charity': ['hands giving', 'grain', 'water pouring']
+    'prophet': ['desert caravan', 'shepherd staff', 'cave light', 'moon', 'palm trees'],
+    'prayer': ['mosque arch', 'prayer rug pattern', 'minaret silhouette', 'islamic geometry', 'beads'],
+    'quran': ['open book', 'arabic calligraphy', 'rehal', 'golden binding'],
+    'charity': ['grain wheat', 'flowing water', 'open hand silhouette', 'gold coins'],
+    'worship': ['mosque dome', 'silhouette kneeling', 'sunrise', 'stars'],
+    'angel': ['white feather', 'bright light', 'rays', 'soft glow'],
+    'jinn': ['smoke swirling', 'shadows', 'fire flame'],
+    'throne': ['gold texture', 'luxury fabric', 'crown', 'palace hall'],
+    
+    // Safe mappings for potentially sensitive terms
+    'wine': ['crystal goblet', 'red grape juice', 'vineyard', 'flowing stream'],
+    'drink': ['clear water', 'milk glass', 'honey jar', 'fountain'],
+    'spouse': ['two rings', 'flowers', 'peaceful home', 'sunset silhouette'],
+    'women': ['jewelry', 'pearls', 'silk fabric', 'flowers'],
+    'man': ['silhouette', 'mountain strength', 'armor']
 };
 export async function getBackgroundPath(newBackground, videoNumber, len, crop, verseInfo) {
     if (!len || isNaN(len)) len = Math.ceil(len) || 0;
@@ -89,7 +101,10 @@ async function createAiBackground(verseInfo, len, crop) {
     );
 
     const baseKeywords = extractKeywords(combinedTranslation);
-    if (verseInfo && verseInfo.surahName) baseKeywords.unshift(verseInfo.surahName);
+    if (verseInfo && verseInfo.surahName) {
+        const simpleName = verseInfo.surahName.replace('Al-', '').replace('Ar-', '').replace('As-', '');
+        baseKeywords.unshift(simpleName);
+    }
     console.log(`Extracted keywords for background: ${baseKeywords.join(', ')}`);
 
     const approxPerImageSec = 6;
@@ -99,7 +114,9 @@ async function createAiBackground(verseInfo, len, crop) {
 
     if (!imageUrls || imageUrls.length === 0) {
         console.log("No relevant images found, falling back to default video.");
-        return await createBackgroundVideo(path.resolve("Data/Background_Video/CarDrive.mp4"), len, crop);
+        const defaultVideo = path.resolve("Data/Background_Video/CarDrive.mp4");
+        if(fs.existsSync(defaultVideo)) return await createBackgroundVideo(defaultVideo, len, crop);
+        throw new Error("No background images found and default video is missing.");
     }
 
     return await processFoundImages(imageUrls, len, crop);
@@ -259,9 +276,12 @@ function extractKeywords(text, count = 5) {
     const stopWords = new Set([
         'a', 'an', 'the', 'in', 'on', 'of', 'and', 'or', 'is', 'are', 'to', 'for', 'from',
         'who', 'what', 'when', 'where', 'why', 'how', 'he', 'she', 'it', 'they', 'we', 'i',
-        'you', 'allah', 'god', 'indeed', 'verily', 'those', 'have', 'has', 'will', 'with',
+        'you', 'allah', 'god', 'lord', 'indeed', 'verily', 'those', 'have', 'has', 'will', 'with',
         'not', 'be', 'that', 'his', 'him', 'their', 'them', 'said', 'say', 'says', 'upon',
-        'unto', 'then', 'thus', 'does', 'did', 'can', 'could', 'shall', 'should', 'about'
+        'unto', 'then', 'thus', 'does', 'did', 'can', 'could', 'shall', 'should', 'about',
+        'surah', 'ayah', 'verse', 'chapter', 'part', 'juz', 'which', 'whom', 'there', 'here',
+        'been', 'but', 'by', 'as', 'at', 'into', 'like', 'through', 'after', 'over', 'between',
+        'out', 'against', 'during', 'without', 'before', 'under', 'around', 'among'
     ]);
 
     const wordCounts = {};
@@ -269,7 +289,7 @@ function extractKeywords(text, count = 5) {
     
     cleanText.split(/\s+/).forEach(word => {
         if (word && !stopWords.has(word) && word.length > 3) {
-            const score = visualThesaurus[word] ? 3 : 1;
+            const score = visualThesaurus[word] ? 10 : 1;
             wordCounts[word] = (wordCounts[word] || 0) + score;
         }
     });
@@ -299,11 +319,22 @@ function isForbiddenImage(unsplashResult, blacklist) {
 
 async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landscape', verseInfo = {}) {
     const blacklist = [
-        'woman', 'women', 'man', 'men', 'people', 'person', 'portrait', 'face',
-        'cross', 'church', 'temple', 'statue', 'idol', 'crucifix', 'christ',
-        'priest', 'nun', 'wedding', 'model', 'fashion', 'party', 'selfie',
-        'alcohol', 'beer', 'wine', 'nude', 'bikini', 'swimsuit', 'dance',
-        'club', 'nightclub', 'gambling', 'pork', 'dog', 'pig'
+        'woman', 'women', 'girl', 'lady', 'female', 'bikini', 'model', 'fashion', 'face', 'portrait',
+        'man', 'men', 'boy', 'male', 'people', 'person', 'human', 'body', 'skin', 'legs', 'hair',
+        'family', 'families', 'child', 'children', 'kid', 'kids', 'baby', 'toddler',
+        'parent', 'mother', 'father', 'sister', 'brother',
+        'couple', 'kiss', 'hug', 'romance', 'love', 'dating', 'wedding', 'bride', 'groom',
+        
+        'cross', 'crucifix', 'jesus', 'christ', 'church', 'cathedral', 'chapel', 'priest', 'nun',
+        'buddha', 'monk', 'temple', 'shrine', 'idol', 'statue', 'gods', 'goddess', 'hindu',
+        'christmas', 'easter', 'halloween', 'valentine',
+        
+        'alcohol', 'wine', 'beer', 'cocktail', 'bar', 'pub', 'club', 'nightclub', 'party', 'dance',
+        'drug', 'cannabis', 'marijuana', 'weed', 'smoke', 'cigarette', 'cigar', 'vape',
+        'gamble', 'gambling', 'casino', 'poker', 'card', 'dice', 'bet',
+        'pork', 'pig', 'ham', 'bacon', 'dog', 'puppy',
+        
+        'selfie', 'graffiti', 'tattoo', 'piercing', 'makeup', 'concert', 'festival', 'music', 'guitar'
     ].map(s => s.toLowerCase());
 
     if (!process.env.UNSPLASH_ACCESS_KEY) throw new Error("UNSPLASH_ACCESS_KEY is not set.");
@@ -322,13 +353,13 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
         '9': ['ancient wall', 'gate', 'shield', 'covenant', 'scroll'],
         '10': ['deep ocean', 'stormy sea', 'clouds moving', 'underwater'],
         '11': ['desert ruins', 'sandstorm', 'ancient city', 'waves'],
-        '12': ['full moon', 'stars night', 'deep well', 'wheat field', 'egypt desert', 'wolf silhouette'],
+        '12': ['full moon', 'stars night', 'deep well', 'wheat field', 'egypt desert'],
         '13': ['lightning strike', 'thunderstorm', 'rain on glass', 'river flow', 'roots'],
         '14': ['mountain rock', 'dead tree', 'green tree', 'sunlight'],
         '15': ['rock texture', 'starry sky', 'mountains', 'wind blowing'],
         '16': ['honeycomb', 'bee on flower', 'milk', 'lush valley', 'grapes'],
         '17': ['night city', 'moonlight', 'masjid arch', 'horizon'],
-        '18': ['cave entrance', 'ancient ship', 'garden wall', 'sunrise over ocean', 'gold'],
+        '18': ['cave entrance', 'ancient ship', 'garden wall', 'sunrise over ocean'],
         '19': ['date palm tree', 'desert oasis', 'flowing stream', 'baby crib'],
         '20': ['fire flame', 'wooden staff', 'river nile', 'snake skin texture', 'mountain morning'],
         '21': ['cosmos', 'planets', 'fire cooling', 'fish in water', 'bones'],
@@ -383,7 +414,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
         '70': ['stairway', 'sky molten copper', 'wool'],
         '71': ['noah ark', 'heavy rain', 'moon light', 'sun lamp'],
         '72': ['shooting star', 'mosque silhouette', 'water abundance'],
-        '73': ['night blanket', 'chanting abstract', 'shaking earth'],
+        '73': ['night sky', 'stars', 'mountains night', 'heavy fabric texture', 'lantern'],
         '74': ['wrapped cloak', 'trumpet', 'moon'],
         '75': ['solar eclipse', 'bones', 'finger tip', 'sun moon'],
         '76': ['silver cup', 'ginger', 'spring water', 'chains'],
@@ -424,7 +455,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
         '111': ['rope fiber', 'fire flame', 'wood'],
         '112': ['one finger', 'light abstract', 'solid rock'],
         '113': ['daybreak', 'knot', 'night dark'],
-        '114': ['king crown', 'heart silhouette', 'whisper abstract']
+        '114': ['fortress', 'shield', 'starry night']
     };
 
     const surahSpecific = verseInfo && verseInfo.surahNumber && surahThemes[verseInfo.surahNumber.toString()]
@@ -444,25 +475,28 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
         }
         else {
             priority2.push(k);
+            priority2.push(`${k} nature`);
+            priority2.push(`${k} landscape`);
             priority2.push(`${k} texture`);
-            priority2.push(`${k} detail`);
-            priority2.push(`${k} cinematic`);
+            priority2.push(`${k} abstract`);
         }
     });
 
     const priority3 = [
-        'islamic architecture detail',
-        'islamic geometry pattern',
-        'moroccan tile texture',
-        'arabesque art',
-        'abstract texture',
-        'cinematic lighting'
+        'islamic architecture',
+        'nature landscape',
+        'clouds sky',
+        'mountains',
+        'ocean waves',
+        'desert sand',
+        'stars galaxy'
     ];
 
     const orderedQueries = [...new Set([...priority1, ...priority2, ...priority3])];
 
     const collected = [];
     const debugCandidates = [];
+    const exclusionString = "-people -person -human -man -woman -family -face -model -crowd";
 
     try {
         for (const q of orderedQueries) {
@@ -475,7 +509,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
             try {
                 resp = await axios.get('https://api.unsplash.com/search/photos', {
                     params: {
-                        query: q,
+                        query: `${q} ${exclusionString}`,
                         per_page,
                         orientation,
                         content_filter: 'high',
@@ -491,6 +525,8 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
             
             const results = (resp.data && resp.data.results) || [];
             for (const r of results) {
+                if (isForbiddenImage(r, blacklist)) continue;
+                
                 const meta = {
                     id: r.id,
                     query: q,
@@ -546,7 +582,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
 }
 async function downloadImages(urls, dir) {
     const downloadPromises = urls.map(async (url, index) => {
-        const imagePath = path.join(dir, `image_${index}.jpg`);
+        const imagePath = path.join(dir, `image_${index}.webp`);
         const writer = fs.createWriteStream(imagePath);
         const response = await axios({ url, method: 'GET', responseType: 'stream' });
         response.data.pipe(writer);
