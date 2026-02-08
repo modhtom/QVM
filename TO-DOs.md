@@ -9,16 +9,11 @@
 1.  **Refactor Backend Code**: Consolidate redundant logic in `video.js`, break down monolithic functions, and centralize configuration.
 2.  **Refactor Frontend Code**: Reduce code duplication between `fullVideo.js` and `partialVideo.js`, and manage application state more effectively instead of using global variables.
 
-
 ### Medium Priority: New Features
 
 1.  **Add a Static Preview Feature**: Generate a single image preview of a verse with the selected styling _before_ starting the time-consuming video render.
 2.  **Enhance Text and Subtitle Customization**: Support more fonts and Allow users to upload their own font.
-3.  **Improve AI Background Generation**: Refine the keyword extraction and add more diverse and context-aware image sources.
 
-### Low Priority: Future Enhancements
-
-1. **Add Bismillah**: add Bismillah audio + subtitle at the beginning of every video. [Need to be fixed]
 ---
 
 ## Bugs and Errors
@@ -41,7 +36,6 @@ The code is functional but could be more maintainable.
 
 - **Consolidate Video Generation Logic**: `generateFullVideo` and `generatePartialVideo` in `video.js` share about 90% of their code. They can be merged into a single `generateVideo` function that accepts a `params` object, with a small pre-processing step to calculate the `endVerse` for the "full Surah" case.
 - **Abstract Frontend Handlers**: The `handleFullVideoSubmit` and `handlePartialVideoSubmit` functions are nearly identical. Create a single `handleVideoSubmit(formType)` function that reads values based on the `formType` (`'full'` or `'partial'`) to eliminate code duplication.
-- **Use a Central State Manager on Frontend**: Instead of using global variables like `window.tempVideoFormData`, consider a simple state management object to hold form data and application state. This makes data flow predictable and easier to debug.
 
 ---
 
