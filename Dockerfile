@@ -1,46 +1,71 @@
+FROM node:24-alpine AS deps
+
+WORKDIR /app
+
+COPY package*.json ./
+
+# Install production dependencies
+ENV YOUTUBE_DL_SKIP_PYTHON_CHECK=1
+RUN npm install --omit=dev && npm cache clean --force
+
 FROM node:24-alpine
 
-# Set environment variables
 ENV NODE_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-# Install necessary system dependencies including FFmpeg and fonts
+# Install system dependencies
 RUN apk update && apk add --no-cache \
     ffmpeg \
     fontconfig \
     ttf-freefont \
     yt-dlp \
-    python3
-
-
-# Create font directory for Arabic fonts
-RUN mkdir -p /usr/share/fonts/truetype/custom/
-
-# Copy custom fonts (if available)
-COPY Data/Font/*.ttf /usr/share/fonts/truetype/custom/
-
-# Update font cache
-RUN fc-cache -fv
-
-# Clean npm cache to reduce image size
-RUN npm cache clean --force
-
-# Set working directory
-WORKDIR /app
-
-# Copy package files and install dependencies
-# This leverages Docker layer caching
-COPY package*.json ./
-RUN npm install --omit=dev
+    python3 \
+    py3-pip \
+    wget \
+    && rm -rf /var/cache/apk/*
 
 # Install PM2 globally
 RUN npm install -g pm2
 
-# Copy the rest of the application code
+# Create python -> python3 symlink (youtube-dl-exec expects `python`)
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+# Create custom font directory
+RUN mkdir -p /usr/share/fonts/truetype/custom/
+
+# Copy custom fonts (Arabic fonts for Quran rendering)
+COPY Data/Font/*.ttf /usr/share/fonts/truetype/custom/
+
+# Rebuild font cache so FFmpeg/fontconfig can find custom fonts
+RUN fc-cache -fv
+
+WORKDIR /app
+
+# Copy node_modules and PM2 from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy application code
 COPY . .
 
-# Expose the port
+# Create Required Directories
+RUN mkdir -p \
+    Data/temp \
+    Data/temp_images \
+    Data/audio/cache \
+    Data/audio/custom \
+    Data/subtitles \
+    Data/text \
+    Data/Background_Video/uploads \
+    Data/Font \
+    Output_Video
+
+RUN chown -R node:node /app
+
+USER node
+
 EXPOSE 3001
 
-# Start via PM2
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3001/ || exit 1
+
 CMD ["pm2-runtime", "start", "ecosystem.config.cjs"]

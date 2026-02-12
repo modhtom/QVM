@@ -1,22 +1,84 @@
-### Building and running your application
+# QVM — Docker Setup
 
-When you're ready, start your application by running:
-`docker compose up --build`.
+## Prerequisites
 
-Your application will be available at http://localhost:3001.
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed
+- A `.env` file in the project root (copy from `.env.example` and fill in your API keys)
 
-### Deploying your application to the cloud
+## Quick Start
 
-First, build your image, e.g.: `docker build -t myapp .`.
-If your cloud uses a different CPU architecture than your development
-machine (e.g., you are on a Mac M1 and your cloud provider is amd64),
-you'll want to build the image for that platform, e.g.:
-`docker build --platform=linux/amd64 -t myapp .`.
+```bash
+# 1. Copy and configure environment variables
+cp .env.example .env
+# Edit .env with your API keys
 
-Then, push it to your registry, e.g. `docker push myregistry.com/myapp`.
+# 2. Build and start
+docker compose up --build -d
 
-Consult Docker's [getting started](https://docs.docker.com/go/get-started-sharing/)
-docs for more detail on building and pushing.
+# 3. Open the app
+# http://localhost:3001
+```
+
+## Architecture
+
+The Docker setup runs three containers:
+
+| Container   | Description                          |
+|-------------|--------------------------------------|
+| `qvm-app`   | Node.js server + worker (via PM2)    |
+| `qvm-redis` | Redis for job queue and caching      |
+
+The `qvm-app` container includes:
+- **FFmpeg** — video rendering
+- **yt-dlp** — audio downloading
+- **Custom Arabic fonts** — installed system-wide for subtitle rendering
+- **Python 3** — for utility scripts
+
+## Data & Volumes
+
+| Volume         | Container Path       | Purpose                     |
+|----------------|----------------------|-----------------------------|
+| `output_video` | `/app/Output_Video`  | Generated video output      |
+| `redis_data`   | `/data`              | Redis persistence           |
+
+Host-mounted (read-only):
+- `Data/Font/` → Custom `.ttf` fonts
+- `Data/metadata.json` → Quran metadata
+
+## Common Commands
+
+```bash
+# View logs
+docker compose logs -f qvm
+
+# Check container health
+docker compose ps
+
+# Rebuild after code changes
+docker compose up --build -d
+
+# Stop everything
+docker compose down
+
+# Stop and remove volumes (⚠️ deletes output videos & Redis data)
+docker compose down -v
+
+# Verify fonts are installed
+docker compose exec qvm fc-list | grep -i tasees
+
+# Check Redis connection
+docker compose exec redis redis-cli ping
+```
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Container keeps restarting | Check logs: `docker compose logs qvm` |
+| Redis connection refused | Ensure `REDIS_HOST=redis` is in environment (set automatically by compose) |
+| Fonts not rendering | Verify fonts exist: `docker compose exec qvm ls /usr/share/fonts/truetype/custom/` |
+| Out of memory during render | Increase memory limit in `compose.yaml` under `deploy.resources.limits.memory` |
 
 ### References
 * [Docker's Node.js guide](https://docs.docker.com/language/nodejs/)
+* [Docker Compose docs](https://docs.docker.com/compose/)

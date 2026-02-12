@@ -1,9 +1,44 @@
+# Dependencies — installed fresh in the container
 node_modules
+npm-debug.log*
+
+# Git
 .git
 .gitignore
-.DS_Store
+.github
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment (injected via compose env_file)
 .env
-npm-debug.log
-docker-compose.override.yml
+.env.*
+!.env.example
+
+# Documentation (not needed at runtime)
+*.md
+LICENSE
+TO-DOs.md
+
+# Docker files (not needed inside the container)
+Dockerfile
+compose.yaml
+docker-compose*.yml
+README.Docker.md
+
+# Runtime data directories (created at runtime, mounted as volumes)
 Output_Video
+Data/temp
+Data/temp_images
+Data/audio/cache
 Data/audio/custom
+Data/subtitles
+Data/text
+Data/Background_Video
+
+# OS files
+.DS_Store
+Thumbs.db

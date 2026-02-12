@@ -1,19 +1,42 @@
 services:
   qvm:
     build: .
+    container_name: qvm-app
     ports:
       - "3001:3001"
     volumes:
-      - ./Data:/app/Data
-      - ./Output_Video:/app/Output_Video
+      - output_video:/app/Output_Video
+      - ./Data/Font:/app/Data/Font:ro
+      - ./Data/metadata.json:/app/Data/metadata.json:ro
     env_file:
       - .env
     environment:
       - NODE_ENV=production
       - REDIS_HOST=redis
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
   redis:
-    image: "redis:alpine"
+    image: redis:7-alpine
+    container_name: qvm-redis
     restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  output_video:
+    driver: local
+  redis_data:
+    driver: local

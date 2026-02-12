@@ -7,7 +7,7 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '../../');
+const rootDir = path.resolve(__dirname, '../');
 
 export const PATHS = {
     ROOT: rootDir,
@@ -18,7 +18,9 @@ export const PATHS = {
     SUBTITLES: path.join(rootDir, 'Data', 'subtitles').replace(/\\/g, '/'),
     BACKGROUNDS: path.join(rootDir, 'Data', 'Background_Video', 'uploads').replace(/\\/g, '/'),
     OUTPUT: path.join(rootDir, 'Output_Video').replace(/\\/g, '/'),
-    TEMP: path.join(rootDir, 'Data', 'temp').replace(/\\/g, '/')
+    TEMP: path.join(rootDir, 'Data', 'temp').replace(/\\/g, '/'),
+    TEMP_IMAGES: path.join(rootDir, 'Data', 'temp_images').replace(/\\/g, '/'),
+    FONT: path.join(rootDir, 'Data', 'Font').replace(/\\/g, '/')
 };
 
 Object.values(PATHS).forEach(dir => {
