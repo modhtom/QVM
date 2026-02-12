@@ -1,41 +1,14 @@
 ## To-Do List
 
-### Urgent: Bugs & Critical Fixes
+### Urgent:
 
 1.  **Implement User Accounts**: Create a system for users to register, log in, and manage their own private video galleries.
-
-### High Priority: Performance & Refactoring
-
-1.  **Refactor Backend Code**: Consolidate redundant logic in `video.js`, break down monolithic functions, and centralize configuration.
-2.  **Refactor Frontend Code**: Reduce code duplication between `fullVideo.js` and `partialVideo.js`, and manage application state more effectively instead of using global variables.
 
 ### Medium Priority: New Features
 
 1.  **Add a Static Preview Feature**: Generate a single image preview of a verse with the selected styling _before_ starting the time-consuming video render.
 2.  **Enhance Text and Subtitle Customization**: Support more fonts and Allow users to upload their own font.
-
----
-
-## Bugs and Errors
-
-### 1. Frontend Logic
-
-- **Incorrect Custom Audio Handling**: In `fullVideo.js` and `partialVideo.js`, the logic incorrectly tries to find and submit form elements (like unsplash URL) even when a custom audio file is provided and a separate flow is intended. This leads to incorrect data being sent to the backend.
-
-### 2. Backend Logic
-
-- **Unsafe File Paths**: In `video.js`, the `subPath` variable is used directly in an FFmpeg `videoFilter` command. While special characters are escaped, this is risky. A malformed `fontName` could potentially break the command.
-- **Race Condition on File Deletion**: In `video.js`, `deleteVidData` is called immediately after the FFmpeg process resolves its promise. However, the file stream might not be fully closed by the OS, which could cause the deletion to fail intermittently.
-- **Failing Unsplash Search**: In `background.js`, the Unsplash search queries are commented out, meaning the AI background feature will always fall back to the generic `islamic spiritual landscape` query instead of using verse-specific keywords.
-
----
-
-## Code Refactoring
-
-The code is functional but could be more maintainable.
-
-- **Consolidate Video Generation Logic**: `generateFullVideo` and `generatePartialVideo` in `video.js` share about 90% of their code. They can be merged into a single `generateVideo` function that accepts a `params` object, with a small pre-processing step to calculate the `endVerse` for the "full Surah" case.
-- **Abstract Frontend Handlers**: The `handleFullVideoSubmit` and `handlePartialVideoSubmit` functions are nearly identical. Create a single `handleVideoSubmit(formType)` function that reads values based on the `formType` (`'full'` or `'partial'`) to eliminate code duplication.
+3.  **Voiceover Mode**: Add an option to generate a video with only translation text displayed.
 
 ---
 
@@ -67,13 +40,6 @@ Implementing user accounts will make the gallery feature much more useful.
 
 The biggest challenge for hosting is the reliance on a local filesystem for temporary files and video output.
 
-### Step 1: Switch to Cloud Storage  --DONE--
-
-**must** replace local file storage with a cloud provider. **Cloudflare R2** is an excellent choice because it's S3-compatible and has **zero egress fees**, making it the cheapest option for serving video files.
-
-- **Refactor Code**: Use the `aws-sdk` (for S3-compatible services) to upload generated videos to your R2 bucket instead of writing to `./Output_Video`.
-- **Serve Videos**: Change the `/videos/:video` endpoint to redirect to the public URL of the video file in your R2 bucket.
-
-### Step 2: Choose a Hosting Platform
+### Choose a Hosting Platform
 
 > still searching

@@ -6,17 +6,18 @@ import { deleteVidData, deleteOldVideosAndTempFiles } from "./utility/delete.js"
 import { generateSubtitles } from "./utility/subtitle.js";
 import { uploadToStorage, downloadFromStorage } from "./utility/storage.js";
 import { runAutoSync } from "./utility/autoSync.js";
+import { VIDEO_DEFAULTS, ALLOWED_FONT_CHARS } from "./utility/config.js";
 import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
 import os from 'os';
 
-const fontPosition = "1920,1080";
 const api = axios.create({
-  timeout: 10000 // 10 seconds timeout
+  timeout: VIDEO_DEFAULTS.API_TIMEOUT,
 });
 
 let cachedEncoder = null;
+
 async function detectBestEncoder() {
   if (cachedEncoder) return cachedEncoder;
 
@@ -82,55 +83,162 @@ async function getMetadataInfo(surahNumber, editionIdentifier) {
 
     if (editionIdentifier) {
       if (editionIdentifier.startsWith('http')) {
-          try {
-              const metadataPath = path.resolve("Data/metadata.json");
-              if (fs.existsSync(metadataPath)) {
-                  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-                  const targetUrl = editionIdentifier.replace(/\/$/, "");
+        try {
+          const metadataPath = path.resolve("Data/metadata.json");
+          if (fs.existsSync(metadataPath)) {
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+            const targetUrl = editionIdentifier.replace(/\/$/, "");
 
-                  let found = false;
-                  for (const reciter of metadata.reciters) {
-                      for (const moshaf of reciter.moshafs) {
-                          const moshafUrl = moshaf.server.replace(/\/$/, "");
-                          
-                          if (moshafUrl === targetUrl) {
-                              reciterName = reciter.name;
-                              rewayat = moshaf.name;
-                              found = true;
-                              break;
-                          }
-                      }
-                      if (found) break;
-                  }
+            for (const reciter of metadata.reciters) {
+              for (const moshaf of reciter.moshafs) {
+                const moshafUrl = moshaf.server.replace(/\/$/, "");
+                if (moshafUrl === targetUrl) {
+                  reciterName = reciter.name;
+                  rewayat = moshaf.name;
+                  break;
+                }
               }
-
-              if (!reciterName) {
-                  const parsedUrl = new URL(editionIdentifier);
-                  const parts = parsedUrl.pathname.split("/").filter(Boolean);
-                  reciterName = parts[0] || "";
-                  rewayat = parts[1] || "";
-              }
-
-          } catch (err) {
-              console.error("Error looking up Arabic names:", err);
+              if (reciterName) break;
+            }
           }
+
+          if (!reciterName) {
+            const parsedUrl = new URL(editionIdentifier);
+            const parts = parsedUrl.pathname.split("/").filter(Boolean);
+            reciterName = parts[0] || "";
+            rewayat = parts[1] || "";
+          }
+        } catch (err) {
+          console.error("Error looking up Arabic names:", err);
+        }
       } else {
         try {
-            const editionRes = await axios.get(`http://api.alquran.cloud/v1/edition`);
-            const edition = editionRes.data.data.find(e => e.identifier === editionIdentifier);
-            if (edition) {
-                reciterName = edition.name;
-                rewayat = edition.englishName;
-            }
-        } catch(e) {}
+          const editionRes = await axios.get(`http://api.alquran.cloud/v1/edition`);
+          const edition = editionRes.data.data.find(e => e.identifier === editionIdentifier);
+          if (edition) {
+            reciterName = edition.name;
+            rewayat = edition.englishName;
+          }
+        } catch (e) { }
       }
     }
 
     return { surahName, reciterName, rewayat };
 
   } catch (error) {
-      console.error("Error fetching metadata info:", error.message);
-      return { surahName: `Surah ${surahNumber}`, reciterName: "", rewayat: "" };
+    console.error("Error fetching metadata info:", error.message);
+    return { surahName: `Surah ${surahNumber}`, reciterName: "", rewayat: "" };
+  }
+}
+
+function sanitizeFontName(fontName) {
+  const name = fontName || VIDEO_DEFAULTS.DEFAULT_FONT;
+  if (!ALLOWED_FONT_CHARS.test(name)) {
+    console.warn(`Unsafe font name rejected: "${name}", using default.`);
+    return VIDEO_DEFAULTS.DEFAULT_FONT;
+  }
+  return name;
+}
+
+async function runFFmpegRender({
+  backgroundPath,
+  audioPath,
+  outputPath,
+  subtitleFilter,
+  audioLen,
+  startTimeOffset,
+  progressCallback,
+}) {
+  const encoder = await detectBestEncoder();
+  const encoderOptions = getEncoderSettings(encoder);
+
+  const buildCommand = (enc, encOpts) => {
+    const command = ffmpeg()
+      .input(backgroundPath)
+      .inputOptions(['-stream_loop -1']);
+
+    const audioInput = command.input(audioPath);
+    if (startTimeOffset > 0) {
+      audioInput.seekInput(startTimeOffset);
+    }
+
+    command
+      .audioCodec("aac")
+      .videoCodec(enc)
+      .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
+      .outputOptions(encOpts)
+      .outputOptions(['-ar 44100', '-ac 2', '-b:a 128k'])
+      .videoFilter(subtitleFilter)
+      .output(outputPath);
+
+    if (audioLen) command.duration(audioLen);
+
+    return command;
+  };
+
+  return new Promise((resolve, reject) => {
+    const command = buildCommand(encoder, encoderOptions);
+
+    command
+      .on('progress', (progress) => {
+        const mappedProgress = 60 + (progress.percent * 0.3);
+        progressCallback({
+          step: `Rendering: ${Math.round(progress.percent || 0)}%`,
+          percent: Math.min(90, mappedProgress),
+        });
+      })
+      .on("end", () => resolve())
+      .on("error", (err, stdout, stderr) => {
+        console.error("FFmpeg error:", stderr);
+
+        if (encoder !== 'libx264') {
+          console.warn("Hardware encoding failed, retrying with CPU...");
+          cachedEncoder = 'libx264';
+          const cpuOptions = getEncoderSettings('libx264');
+          const cpuCommand = buildCommand('libx264', cpuOptions);
+
+          cpuCommand
+            .on('progress', (progress) => {
+              const mappedProgress = 60 + (progress.percent * 0.3);
+              progressCallback({
+                step: `Rendering: ${Math.round(progress.percent || 0)}%`,
+                percent: Math.min(90, mappedProgress),
+              });
+            })
+            .on('end', resolve)
+            .on('error', (e) => reject(new Error(e)));
+          cpuCommand.run();
+        } else {
+          reject(new Error(stderr));
+        }
+      })
+      .run();
+  });
+}
+
+async function waitForAudioFile(audioPath) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    const check = setInterval(() => {
+      if (++attempts > VIDEO_DEFAULTS.AUDIO_CHECK_MAX_ATTEMPTS) {
+        clearInterval(check);
+        return reject(new Error(`Audio file access timed out: ${audioPath}`));
+      }
+      if (fs.existsSync(audioPath) && fs.statSync(audioPath).size > 0) {
+        clearInterval(check);
+        resolve();
+      }
+    }, VIDEO_DEFAULTS.AUDIO_CHECK_INTERVAL_MS);
+  });
+}
+
+async function getAudioDuration(audioPath) {
+  try {
+    const metadata = await mm.parseFile(audioPath);
+    return metadata.format.duration;
+  } catch (error) {
+    console.error("Error reading audio file:", error);
+    return 0;
   }
 }
 
@@ -151,6 +259,7 @@ export async function generateFullVideo(
     surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource, autoSync
   );
 }
+
 export async function generatePartialVideo(
   surahNumber, startVerse, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition,
   progressCallback = () => { },
@@ -170,21 +279,22 @@ export async function generatePartialVideo(
   
   if (!surahNumber || !startVerse || !endVerse) throw new Error("Missing required parameters.");
   if (endVerse > limit) endVerse = limit;
-  color = color || "#ffffff";
-  crop = crop || "vertical";
+  color = color || VIDEO_DEFAULTS.DEFAULT_COLOR;
+  crop = crop || VIDEO_DEFAULTS.DEFAULT_CROP;
+  fontName = sanitizeFontName(fontName);
   
   let audioPath, textPath, durationsFile;
 
   if (audioSource === 'custom') {
     if (customAudioPath.startsWith('uploads/')) {
-        progressCallback({ step: 'Downloading Audio from Cloud', percent: 5 });
-        const localTempAudio = path.resolve(`Data/temp/${path.basename(customAudioPath)}`);
-        await downloadFromStorage(customAudioPath, localTempAudio);
-        audioPath = localTempAudio;
-        customAudioPath = localTempAudio;
+      progressCallback({ step: 'Downloading Audio from Cloud', percent: 5 });
+      const localTempAudio = path.resolve(`Data/temp/${path.basename(customAudioPath)}`);
+      await downloadFromStorage(customAudioPath, localTempAudio);
+      audioPath = localTempAudio;
+      customAudioPath = localTempAudio;
     } else {
-        if (!fs.existsSync(customAudioPath)) throw new Error(`Audio missing: ${customAudioPath}`);
-        audioPath = customAudioPath;
+      if (!fs.existsSync(customAudioPath)) throw new Error(`Audio missing: ${customAudioPath}`);
+      audioPath = customAudioPath;
     }
 
     progressCallback({ step: 'Fetching text data', percent: 10 });
@@ -193,25 +303,19 @@ export async function generatePartialVideo(
     durationsFile = result.durationsFile;
 
     if (autoSync) {
-        progressCallback({ step: 'Auto-Syncing (Groq)...', percent: 15 });
-        try {
-            console.log("Running Auto-Syncing on:", audioPath);
-            const aiTimings = await runAutoSync(
-                audioPath,
-                surahNumber,
-                startVerse,
-                endVerse,
-                limit
-            );
-            userVerseTimings = aiTimings;
-            console.log("AI Timings Applied:", userVerseTimings.length, "segments");
-            if (!userVerseTimings || userVerseTimings.length === 0) {
-                throw new Error("AI returned 0 segments. Check audio clarity.");
-            }
-        } catch (err) {
-            console.error("AI Sync Failed:", err);
-            throw new Error(`AI Synchronization failed: ${err.message}`);
+      progressCallback({ step: 'Auto-Syncing (Groq)...', percent: 15 });
+      try {
+        console.log("Running Auto-Syncing on:", audioPath);
+        const aiTimings = await runAutoSync(audioPath, surahNumber, startVerse, endVerse, limit);
+        userVerseTimings = aiTimings;
+        console.log("AI Timings Applied:", userVerseTimings.length, "segments");
+        if (!userVerseTimings || userVerseTimings.length === 0) {
+          throw new Error("AI returned 0 segments. Check audio clarity.");
         }
+      } catch (err) {
+        console.error("AI Sync Failed:", err);
+        throw new Error(`AI Synchronization failed: ${err.message}`);
+      }
     }
   } else {
     progressCallback({ step: 'Fetching audio and text', percent: 10 });
@@ -220,52 +324,39 @@ export async function generatePartialVideo(
     textPath = result.textPath;
     durationsFile = result.durationsFile;
     if (result.aiTimings) {
-        userVerseTimings = result.aiTimings;
+      userVerseTimings = result.aiTimings;
     }
   }
 
-  if ( (!userVerseTimings || userVerseTimings.length === 0) && audioSource !== 'custom') {
+  if ((!userVerseTimings || userVerseTimings.length === 0) && audioSource !== 'custom') {
     throw new Error("Auto-Sync failed to find matching verses. Aborting to prevent full-length video rendering.");
   }
 
-  await new Promise((resolve, reject) => {
-    let attempts = 0;
-    const checkAudioFile = setInterval(() => {
-      if (++attempts > 60) {
-        clearInterval(checkAudioFile);
-        return reject(new Error(`Audio file access timed out: ${audioPath}`));
-      }
-      if (fs.existsSync(audioPath) && fs.statSync(audioPath).size > 0) {
-        clearInterval(checkAudioFile);
-        resolve();
-      }
-    }, 500);
-  });
+  await waitForAudioFile(audioPath);
 
   progressCallback({ step: 'Processing audio', percent: 30 });
   let audioLen = await getAudioDuration(audioPath);
-  
+
   let startTimeOffset = 0;
   let shiftedTimings = null;
 
   if (userVerseTimings && userVerseTimings.length > 0) {
-      const firstVerse = userVerseTimings[0];
-      const lastVerse = userVerseTimings[userVerseTimings.length - 1];
-      
-      startTimeOffset = firstVerse.start - 0.2; // Small lead-in
-      const endTimeOffset = lastVerse.end;
-      
-      audioLen = (endTimeOffset - startTimeOffset) + 0.5; // Small lead-out
-      console.log(`[Trim] Seeking to ${startTimeOffset.toFixed(2)}s, New Duration: ${audioLen.toFixed(2)}s`);
+    const firstVerse = userVerseTimings[0];
+    const lastVerse = userVerseTimings[userVerseTimings.length - 1];
 
-      shiftedTimings = userVerseTimings.map(v => ({
-          verse_num: v.verse_num,
-          start: v.start - startTimeOffset,
-          end: v.end - startTimeOffset
-      }));
+    startTimeOffset = firstVerse.start - 0.2;
+    const endTimeOffset = lastVerse.end;
 
+    audioLen = (endTimeOffset - startTimeOffset) + 0.5;
+    console.log(`[Trim] Seeking to ${startTimeOffset.toFixed(2)}s, New Duration: ${audioLen.toFixed(2)}s`);
+
+    shiftedTimings = userVerseTimings.map(v => ({
+      verse_num: v.verse_num,
+      start: v.start - startTimeOffset,
+      end: v.end - startTimeOffset
+    }));
   } else {
-      audioLen = Math.ceil(audioLen || 0) + 1;
+    audioLen = Math.ceil(audioLen || 0) + 1;
   }
 
   progressCallback({ step: 'Preparing background video', percent: 40 });
@@ -277,13 +368,13 @@ export async function generatePartialVideo(
   const aColor = cssColorToASS(color);
   let metadata = null;
   if (showMetadata) {
-      metadata = await getMetadataInfo(surahNumber, edition);
+    metadata = await getMetadataInfo(surahNumber, edition);
   }
 
   await generateSubtitles(
-      surahNumber, startVerse, endVerse, aColor, fontPosition, fontName, size,
-      audioLen, customAudioPath || audioPath, shiftedTimings || userVerseTimings,
-      subtitlePosition, metadata
+    surahNumber, startVerse, endVerse, aColor, VIDEO_DEFAULTS.FONT_POSITION, fontName, size,
+    audioLen, customAudioPath || audioPath, shiftedTimings || userVerseTimings,
+    subtitlePosition, metadata
   );
 
   const outputDir = path.resolve("Output_Video");
@@ -291,98 +382,44 @@ export async function generatePartialVideo(
   const outputFileName = `Surah_${surahNumber}_Video_from_${startVerse}_to_${endVerse}_${Date.now()}.mp4`;
   const outputPath = path.join(outputDir, outputFileName);
 
-  const encoder = await detectBestEncoder();
-  const encoderOptions = getEncoderSettings(encoder);
+  const escapedSubPath = subPath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "'\\''");
+  const subtitleFilter = `subtitles='${escapedSubPath}':force_style='Fontname=${fontName},Encoding=1'`;
 
   progressCallback({ step: 'Rendering final video', percent: 60 });
-  await new Promise((resolve, reject) => {
-    const escapedSubPath = subPath.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "'\\''");
-    const subtitleFilter = `subtitles='${escapedSubPath}':force_style='Fontname=${fontName},Encoding=1'`;
-    
-    const command = ffmpeg()
-      .input(backgroundPath)
-      .inputOptions(['-stream_loop -1']);
-    const audioInput = command.input(audioPath);
-    if (startTimeOffset > 0) {
-        audioInput.seekInput(startTimeOffset);
-    }
-
-    command
-      .audioCodec("aac")
-      .videoCodec(encoder)
-      .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
-      .outputOptions(encoderOptions)
-      .outputOptions(['-ar 44100', '-ac 2', '-b:a 128k'])
-      .videoFilter(subtitleFilter)
-      .output(outputPath);
-    
-    if (audioLen) command.duration(audioLen);
-
-    if (encoder === 'libx264') command.outputOptions("-preset", "veryfast");
-      
-    command.on('progress', (progress) => {
-        const mappedProgress = 60 + (progress.percent * 0.3);
-        progressCallback({ step: `Rendering: ${Math.round(progress.percent || 0)}%`, percent: Math.min(90, mappedProgress) });
-      })
-      .on("end", () => resolve())
-      .on("error", (err, stdout, stderr) => {
-        console.error("FFmpeg error:", stderr);
-        if (encoder !== 'libx264') {
-          console.warn("Hardware encoding failed, retrying with CPU...");
-          cachedEncoder = 'libx264';
-          const cpuCommand = ffmpeg()
-            .input(backgroundPath)
-            .inputOptions(['-stream_loop -1']);
-          
-          const cpuAudio = cpuCommand.input(audioPath);
-          if (startTimeOffset > 0) {
-            cpuAudio.seekInput(startTimeOffset);
-          }
-          
-            cpuCommand.audioCodec("aac")
-            .videoCodec("libx264")
-            .outputOptions(['-preset veryfast', '-crf 23', '-pix_fmt yuv420p', '-map 0:v:0', '-map 1:a:0'])
-            .outputOptions(['-ar 44100', '-ac 2', '-b:a 128k'])
-            .videoFilter(subtitleFilter)
-            .output(outputPath);
-            
-            if (audioLen) cpuCommand.duration(audioLen);
-            cpuCommand.on('progress', (progress) => {
-                const mappedProgress = 60 + (progress.percent * 0.3);
-                progressCallback({ step: `Rendering: ${Math.round(progress.percent || 0)}%`, percent: Math.min(90, mappedProgress) });
-              })
-            .on('end', resolve)
-            .on('error', (e) => reject(new Error(e)));
-          cpuCommand.run();
-        } else {
-          reject(new Error(stderr));
-        }
-      })
-      .run();
+  await runFFmpegRender({
+    backgroundPath,
+    audioPath,
+    outputPath,
+    subtitleFilter,
+    audioLen,
+    startTimeOffset,
+    progressCallback,
   });
-  
+
   progressCallback({ step: 'Uploading to Cloud', percent: 95 });
   try {
-      const s3Key = `videos/${outputFileName}`;
-      await uploadToStorage(outputPath, s3Key, 'video/mp4');
+    const s3Key = `videos/${outputFileName}`;
+    await uploadToStorage(outputPath, s3Key, 'video/mp4');
 
-      if (fs.existsSync(outputPath)) {
-          fs.unlinkSync(outputPath);
-      }
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
+    }
 
-      try {
-        deleteVidData(removeFiles, audioPath, textPath, null, durationsFile, null, customAudioPath);
-      } catch(e) { console.warn('Cleanup warning:', e.message); }
-      
-      deleteOldVideosAndTempFiles();
+    await new Promise(r => setTimeout(r, VIDEO_DEFAULTS.CLEANUP_DELAY_MS));
 
-      progressCallback({ step: 'Complete', percent: 100 });
-      
-      return { vidPath: s3Key, isRemote: true };
+    try {
+      await deleteVidData(removeFiles, audioPath, textPath, null, durationsFile, subPath, customAudioPath);
+    } catch (e) { console.warn('Cleanup warning:', e.message); }
+
+    deleteOldVideosAndTempFiles();
+
+    progressCallback({ step: 'Complete', percent: 100 });
+
+    return { vidPath: s3Key, isRemote: true };
 
   } catch (error) {
-      console.error("Cloud upload failed:", error);
-      throw new Error("Video generated but failed to upload to cloud.");
+    console.error("Cloud upload failed:", error);
+    throw new Error("Video generated but failed to upload to cloud.");
   }
 }
 
@@ -395,55 +432,45 @@ async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, tra
   const textResult = await fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition);
 
   if (isMp3Quran) {
-      console.log(`[Audio] Detected MP3Quran URL: ${edition}`);
-      const fileName = `${pad3(surahNumber)}.mp3`;
-      const baseUrl = edition.endsWith('/') ? edition : `${edition}/`;
-      const fullUrl = `${baseUrl}${fileName}`;
-      const tempFullAudio = path.resolve(`Data/temp/${Date.now()}_${fileName}`);
-      console.log(`[Audio] Downloading from: ${fullUrl}`);
+    console.log(`[Audio] Detected MP3Quran URL: ${edition}`);
+    const fileName = `${pad3(surahNumber)}.mp3`;
+    const baseUrl = edition.endsWith('/') ? edition : `${edition}/`;
+    const fullUrl = `${baseUrl}${fileName}`;
+    const tempFullAudio = path.resolve(`Data/temp/${Date.now()}_${fileName}`);
+    console.log(`[Audio] Downloading from: ${fullUrl}`);
 
-      try {
-          await downloadFile(fullUrl, tempFullAudio);
-          console.log(`[Audio] Downloaded to: ${tempFullAudio}`);
-          audioPath = tempFullAudio;
-          console.log("[Audio] Starting Auto-Sync...");
-          const totalVerses = await getEndVerse(surahNumber);
-          aiTimings = await runAutoSync(tempFullAudio, surahNumber, startVerse, endVerse, totalVerses);
-          console.log("[Audio] Auto-Sync successful");
-      } catch (e) {
-          console.error("[Audio] Error during MP3Quran processing:", e);
-          if (fs.existsSync(tempFullAudio)) {
-              audioPath = tempFullAudio;
-          } else {
-              throw new Error(`Failed to download audio from ${fullUrl}: ${e.message}`);
-          }
+    try {
+      await downloadFile(fullUrl, tempFullAudio);
+      console.log(`[Audio] Downloaded to: ${tempFullAudio}`);
+      audioPath = tempFullAudio;
+      console.log("[Audio] Starting Auto-Sync...");
+      const totalVerses = await getEndVerse(surahNumber);
+      aiTimings = await runAutoSync(tempFullAudio, surahNumber, startVerse, endVerse, totalVerses);
+      console.log("[Audio] Auto-Sync successful");
+    } catch (e) {
+      console.error("[Audio] Error during MP3Quran processing:", e);
+      if (fs.existsSync(tempFullAudio)) {
+        audioPath = tempFullAudio;
+      } else {
+        throw new Error(`Failed to download audio from ${fullUrl}: ${e.message}`);
       }
+    }
 
   } else {
-      const res = await partAudioAndText(surahNumber, startVerse, endVerse, edition, "quran-simple", translationEdition, transliterationEdition);
-      if (res === -1) throw new Error("API Fetch failed for Al-Quran Cloud");
-      audioPath = `Data/audio/Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`;
+    const res = await partAudioAndText(surahNumber, startVerse, endVerse, edition, "quran-simple", translationEdition, transliterationEdition);
+    if (res === -1) throw new Error("API Fetch failed for Al-Quran Cloud");
+    audioPath = `Data/audio/Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`;
   }
 
   if (!audioPath) {
-      throw new Error("fetchAudioAndText failed to determine an audio path.");
+    throw new Error("fetchAudioAndText failed to determine an audio path.");
   }
   return {
-      audioPath,
-      textPath: textResult.textPath,
-      durationsFile: textResult.durationsFile,
-      aiTimings
+    audioPath,
+    textPath: textResult.textPath,
+    durationsFile: textResult.durationsFile,
+    aiTimings
   };
-}
-
-async function getAudioDuration(audioPath) {
-  try {
-    const metadata = await mm.parseFile(audioPath);
-    return metadata.format.duration;
-  } catch (error) {
-    console.error("Error reading audio file:", error);
-    return 0;
-  }
 }
 
 async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition) {
@@ -456,24 +483,23 @@ async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEditi
     const textOutputDir = path.resolve("Data/text");
     if (!fs.existsSync(textOutputDir)) fs.mkdirSync(textOutputDir, { recursive: true });
 
-    let finalText = combinedText, finalTrans = combinedTranslation, finalTranslit = combinedTransliteration, finalDurations = durationPerAyah;
-    fs.writeFileSync(textPath, finalText, "utf-8");
-    
+    fs.writeFileSync(textPath, combinedText, "utf-8");
+
     const translationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
-    if (finalTrans) {
-        fs.writeFileSync(translationOutputFile, finalTrans, "utf-8");
+    if (combinedTranslation) {
+      fs.writeFileSync(translationOutputFile, combinedTranslation, "utf-8");
     } else if (fs.existsSync(translationOutputFile)) {
-        fs.unlinkSync(translationOutputFile);
+      fs.unlinkSync(translationOutputFile);
     }
 
     const transliterationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`);
-    if (finalTranslit) {
-        fs.writeFileSync(transliterationOutputFile, finalTranslit, "utf-8");
+    if (combinedTransliteration) {
+      fs.writeFileSync(transliterationOutputFile, combinedTransliteration, "utf-8");
     } else if (fs.existsSync(transliterationOutputFile)) {
-        fs.unlinkSync(transliterationOutputFile);
+      fs.unlinkSync(transliterationOutputFile);
     }
 
-    fs.writeFileSync(durationsFile, JSON.stringify(finalDurations), "utf-8");
+    fs.writeFileSync(durationsFile, JSON.stringify(durationPerAyah), "utf-8");
   }
   return { textPath, durationsFile };
 }
@@ -495,13 +521,13 @@ async function getEndVerse(surahNumber, retries = 3) {
 }
 
 async function downloadFile(url, dest) {
-    const writer = fs.createWriteStream(dest);
-    const response = await axios({ url, method: 'GET', responseType: 'stream' });
-    response.data.pipe(writer);
-    return new Promise((resolve, reject) => {
-        writer.on('finish', resolve);
-        writer.on('error', reject);
-    });
+  const writer = fs.createWriteStream(dest);
+  const response = await axios({ url, method: 'GET', responseType: 'stream' });
+  response.data.pipe(writer);
+  return new Promise((resolve, reject) => {
+    writer.on('finish', resolve);
+    writer.on('error', reject);
+  });
 }
 
 const cssColorToASS = (cssColor) => {

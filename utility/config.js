@@ -35,3 +35,16 @@ export const S3_CONFIG = {
     bucketName: process.env.R2_BUCKET_NAME,
     publicUrl: process.env.R2_PUBLIC_URL
 };
+
+export const VIDEO_DEFAULTS = {
+    FONT_POSITION: '1920,1080',
+    API_TIMEOUT: 10000,
+    DEFAULT_COLOR: '#ffffff',
+    DEFAULT_CROP: 'vertical',
+    DEFAULT_FONT: 'TaseesRegular',
+    AUDIO_CHECK_INTERVAL_MS: 500,
+    AUDIO_CHECK_MAX_ATTEMPTS: 60,
+    CLEANUP_DELAY_MS: 500,
+};
+
+export const ALLOWED_FONT_CHARS = /^[a-zA-Z0-9\s\-_]+$/;
