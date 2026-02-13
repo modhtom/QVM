@@ -5,6 +5,8 @@ import { runAutoSync } from './utility/autoSync.js';
 
 const connection = new IORedis({
   host: process.env.REDIS_HOST || '127.0.0.1',
+  port: parseInt(process.env.REDIS_PORT) || 6379,
+  password: process.env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null
 });
 console.log('Worker connecting to Redis...');
@@ -23,18 +25,18 @@ const worker = new Worker('video-queue', async (job) => {
 
     let finalTimings = videoData.userVerseTimings;
     if (videoData.audioSource === 'custom' && videoData.autoSync === true) {
-        progressCallback({ step: 'Running AI Auto-Sync...', percent: 15 });
-        try {
-            const aiTimings = await runAutoSync(
-                videoData.customAudioPath,
-                videoData.surahNumber,
-                videoData.startVerse,
-                videoData.endVerse
-            );
-            finalTimings = aiTimings;
-        } catch (e) {
-            console.error("Auto-sync preparation failed:", e);
-        }
+      progressCallback({ step: 'Running AI Auto-Sync...', percent: 15 });
+      try {
+        const aiTimings = await runAutoSync(
+          videoData.customAudioPath,
+          videoData.surahNumber,
+          videoData.startVerse,
+          videoData.endVerse
+        );
+        finalTimings = aiTimings;
+      } catch (e) {
+        console.error("Auto-sync preparation failed:", e);
+      }
     }
 
     let result;

@@ -184,7 +184,7 @@ async function createAiBackground(verseInfo, len, crop) {
     if (!imageUrls || imageUrls.length === 0) {
         console.log("No relevant images found, falling back to default video.");
         const defaultVideo = path.resolve("Data/Background_Video/CarDrive.mp4");
-        if(fs.existsSync(defaultVideo)) return await createBackgroundVideo(defaultVideo, len, crop);
+        if (fs.existsSync(defaultVideo)) return await createBackgroundVideo(defaultVideo, len, crop);
         throw new Error("No background images found and default video is missing.");
     }
 
@@ -207,8 +207,7 @@ async function processFoundImages(imageUrls, len, crop) {
         });
         
         const slideshowPath = await createImageSlideshow([singlePath], len, crop);
-        
-        try { if (fs.existsSync(singlePath)) fs.unlinkSync(singlePath); } catch(e){}
+        try { if (fs.existsSync(singlePath)) fs.unlinkSync(singlePath); } catch (e) { }
         return slideshowPath;
     }
 
@@ -216,7 +215,7 @@ async function processFoundImages(imageUrls, len, crop) {
     const slideshowPath = await createImageSlideshow(downloadedImagePaths, len, crop);
 
     downloadedImagePaths.forEach(imgPath => {
-        try { if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath); } catch(e){}
+        try { if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath); } catch (e) { }
     });
     
     return slideshowPath;
@@ -227,26 +226,42 @@ async function createBackgroundFromImage(imagePath, len, crop) {
     const resolution = crop === 'vertical' ? '1080:1920' : '1920:1080';
     return new Promise((resolve, reject) => {
         ffmpeg()
-        .input(imagePath)
-        .inputOptions(['-loop 1'])
-        .videoFilters([`scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution}`])
-        .noAudio()
-        .videoCodec("libx264")
-        .outputOptions(['-pix_fmt yuv420p', `-t ${Math.max(1, Math.ceil(len || 1))}`])
-        .on("end", () => resolve(outputPath))
-        .on("error", (err) => reject(new Error("Failed to create background video from image: " + err.message)))
-        .save(outputPath);
+            .input(imagePath)
+            .inputOptions(['-loop 1'])
+            .videoFilters([`scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution}`])
+            .noAudio()
+            .videoCodec("libx264")
+            .outputOptions(['-pix_fmt yuv420p', `-t ${Math.max(1, Math.ceil(len || 1))}`])
+            .on("end", () => resolve(outputPath))
+            .on("error", (err) => reject(new Error("Failed to create background video from image: " + err.message)))
+            .save(outputPath);
     });
 }
 
 async function createBackgroundFromYoutube(url, length, crop) {
+    const ALLOWED_YOUTUBE_HOSTS = ['www.youtube.com', 'youtube.com', 'youtu.be', 'www.youtu.be', 'm.youtube.com'];
+    try {
+        const parsed = new URL(url);
+        if (!ALLOWED_YOUTUBE_HOSTS.includes(parsed.hostname)) {
+            throw new Error(`Invalid URL host: ${parsed.hostname}. Only YouTube URLs are allowed.`);
+        }
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            throw new Error('Only HTTP/HTTPS URLs are allowed.');
+        }
+    } catch (e) {
+        if (e.message.includes('Invalid URL')) {
+            throw new Error('Invalid YouTube URL provided.');
+        }
+        throw e;
+    }
+
     const tempPath = `Data/Background_Video/youtube_temp_${Date.now()}.mp4`;
     await youtubedl(url, {
         output: tempPath,
         format: 'best[ext=mp4]/mp4'
     });
     const finalPath = await createBackgroundVideo(tempPath, length, crop);
-    try { fs.unlinkSync(tempPath); } catch(e){}
+    try { fs.unlinkSync(tempPath); } catch (e) { }
     return finalPath;
 }
 
@@ -255,14 +270,14 @@ function createBackgroundVideo(videoPath, len, crop) {
     const resolution = crop === 'vertical' ? '1080:1920' : '1920:1080';
     return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
-        .duration(Math.max(1, Math.ceil(len || 1)))
-        .videoFilters([`scale=${resolution}:force_original_aspect_ratio=increase`, `crop=${resolution}`])
-        .noAudio()
-        .videoCodec("libx264")
-        .outputOptions(['-pix_fmt yuv420p'])
-        .on("end", () => resolve(outputPath))
-        .on("error", (err) => reject(new Error(`FFmpeg failed to process background video: ${err.message}`)))
-        .save(outputPath);
+            .duration(Math.max(1, Math.ceil(len || 1)))
+            .videoFilters([`scale=${resolution}:force_original_aspect_ratio=increase`, `crop=${resolution}`])
+            .noAudio()
+            .videoCodec("libx264")
+            .outputOptions(['-pix_fmt yuv420p'])
+            .on("end", () => resolve(outputPath))
+            .on("error", (err) => reject(new Error(`FFmpeg failed to process background video: ${err.message}`)))
+            .save(outputPath);
     });
 }
 
@@ -275,7 +290,7 @@ async function createImageSlideshow(imagePaths, len, crop) {
     if (!imagePaths || imagePaths.length === 0) {
         throw new Error("Cannot create slideshow with zero images.");
     }
-    
+
     if (imagePaths.length === 1) {
         return new Promise((resolve, reject) => {
             const frames = Math.max(1, Math.round(targetDurationSeconds * fps));
@@ -300,10 +315,9 @@ async function createImageSlideshow(imagePaths, len, crop) {
     imagePaths.forEach(p => {
         command.input(p).inputOptions(['-loop 1', `-t ${durationPerImage}`]);
     });
-    
+
     const filterComplex = [];
     const scaledStreams = [];
-    
     imagePaths.forEach((_, i) => {
         const streamId = `[${i}:v]`;
         const outputId = `[v${i}]`;
@@ -341,7 +355,7 @@ async function createImageSlideshow(imagePaths, len, crop) {
 
 function extractKeywords(text, count = 10) {
     if (!text) return ['nature', 'spiritual'];
-    
+
     const stopWords = new Set([
         'a', 'an', 'the', 'in', 'on', 'of', 'and', 'or', 'is', 'are', 'to', 'for', 'from',
         'who', 'what', 'when', 'where', 'why', 'how', 'he', 'she', 'it', 'they', 'we', 'i',
@@ -360,17 +374,17 @@ function extractKeywords(text, count = 10) {
     const thesaurusMatches = [];
     const otherWords = {};
     const cleanText = text.toLowerCase().replace(/[^\w\s]/g, '');
-    
+
     const words = cleanText.split(/\s+/);
-    
+
     words.forEach(word => {
         if (!word || stopWords.has(word) || word.length < 4) return;
-        
+
         if (visualThesaurus[word]) {
             thesaurusMatches.push(word);
             return;
         }
-        
+
         let found = false;
         for (const key of Object.keys(visualThesaurus)) {
             if (word.includes(key) || key.includes(word)) {
@@ -381,31 +395,31 @@ function extractKeywords(text, count = 10) {
                 }
             }
         }
-        
+
         if (!found) {
             otherWords[word] = (otherWords[word] || 0) + 1;
         }
     });
-    
+
     const thesaurusFreq = {};
     thesaurusMatches.forEach(word => {
         thesaurusFreq[word] = (thesaurusFreq[word] || 0) + 1;
     });
-    
+
     const sortedThesaurus = Object.keys(thesaurusFreq)
         .sort((a, b) => thesaurusFreq[b] - thesaurusFreq[a]);
-    
+
     const sortedOther = Object.keys(otherWords)
         .sort((a, b) => otherWords[b] - otherWords[a])
         .slice(0, 5);
 
     const combined = [...sortedThesaurus, ...sortedOther];
-    
+
     console.log(`Thesaurus matches found: ${sortedThesaurus.join(', ')}`);
     if (sortedOther.length > 0) {
         console.log(`Other keywords found: ${sortedOther.join(', ')}`);
     }
-    
+
     return combined.slice(0, count);
 }
 
@@ -432,12 +446,12 @@ const MIN_REQUEST_INTERVAL = 1000; // 1 second between requests
 async function rateLimitedRequest(requestFn) {
     const now = Date.now();
     const timeSinceLastRequest = now - lastRequestTime;
-    
+
     if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
         const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
         await new Promise(resolve => setTimeout(resolve, waitTime));
     }
-    
+
     lastRequestTime = Date.now();
     return await requestFn();
 }
@@ -453,25 +467,25 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
         'couple', 'couples', 'kiss', 'kissing', 'hug', 'hugging', 'romance', 'romantic', 'love', 'dating',
         'wedding', 'weddings', 'bride', 'groom', 'marriage',
         'crowd', 'crowds', 'audience', 'group', 'gathering', 'party',
-        
+
         'cross', 'crosses', 'crucifix', 'crucifixes', 'jesus', 'christ', 'christian', 'christianity',
         'church', 'churches', 'cathedral', 'cathedrals', 'chapel', 'chapels', 'priest', 'priests', 'nun', 'nuns',
         'buddha', 'buddhist', 'buddhism', 'monk', 'monks', 'temple', 'temples', 'shrine', 'shrines',
         'idol', 'idols', 'statue', 'statues', 'gods', 'goddess', 'hindu', 'hinduism',
         'christmas', 'easter', 'halloween', 'valentine',
-        
+
         'alcohol', 'alcoholic', 'wine', 'wines', 'beer', 'beers', 'cocktail', 'cocktails', 'bar', 'bars',
         'pub', 'pubs', 'club', 'clubs', 'nightclub', 'nightclubs', 'party', 'parties', 'dance', 'dancing',
         'drug', 'drugs', 'cannabis', 'marijuana', 'weed', 'smoke', 'smoking', 'cigarette', 'cigarettes',
         'cigar', 'cigars', 'vape', 'vaping',
         'gamble', 'gambling', 'casino', 'casinos', 'poker', 'card', 'cards', 'dice', 'bet', 'betting',
         'pork', 'pig', 'pigs', 'ham', 'bacon', 'dog', 'dogs', 'puppy', 'puppies',
-        
+
         'graffiti', 'tattoo', 'tattoos', 'piercing', 'piercings', 'makeup', 'concert', 'concerts',
         'festival', 'festivals', 'music', 'musician', 'musicians', 'guitar', 'guitars',
         'sexy', 'sensual', 'erotic', 'nude', 'naked', 'underwear', 'lingerie',
         'beach', 'beaches', 'pool', 'pools', 'swim', 'swimming', 'swimsuit', 'swimwear',
-        
+
         'athlete', 'athletes', 'sport', 'sports', 'player', 'players', 'team', 'teams',
         'yoga', 'fitness', 'gym', 'exercise', 'workout', 'dancer', 'dancers',
         'hijab', 'headscarf', 'veil', 'covered'
@@ -480,7 +494,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
     if (!process.env.UNSPLASH_ACCESS_KEY) throw new Error("UNSPLASH_ACCESS_KEY is not set.");
 
     const orientation = crop === 'vertical' ? 'portrait' : 'landscape';
-    
+
     const surahThemes = {
         '1': ['golden pathway', 'morning sunrise', 'light beam nature', 'sky clouds golden'],
         '2': ['night sky stars', 'crescent moon', 'desert landscape', 'water stream nature'],
@@ -631,7 +645,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
 
     const collected = [];
     const debugCandidates = [];
-    
+
     const exclusionTerms = [
         'people', 'person', 'human', 'man', 'woman', 'face', 'model',
         'portrait', 'selfie', 'family', 'crowd', 'group'
@@ -643,10 +657,10 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
 
     try {
         const maxQueriesToAttempt = Math.min(orderedQueries.length, desiredCount * 3);
-        
+
         for (let i = 0; i < maxQueriesToAttempt && collected.length < desiredCount; i++) {
             const q = orderedQueries[i];
-            
+
             const isSpecific = priority1.includes(q);
             const per_page = 30;
 
@@ -674,13 +688,13 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
                 console.error(`Unsplash request failed for query "${q}":`, err.message);
                 continue;
             }
-            
+
             const results = (resp.data && resp.data.results) || [];
             console.log(`Query "${q}" returned ${results.length} results`);
-            
+
             for (const r of results) {
                 const rejected = isForbiddenImage(r, blacklist);
-                
+
                 const meta = {
                     id: r.id,
                     query: q,
@@ -689,19 +703,19 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
                     tags: Array.isArray(r.tags) ? r.tags.map(t => (t && t.title) ? t.title : t) : [],
                     user: r.user ? r.user.name : null
                 };
-                
+
                 debugCandidates.push({ meta, rejected });
-                
+
                 if (rejected) {
                     console.log(`Rejected: ${r.alt_description || r.description || 'no description'}`);
                     continue;
                 }
-                
+
                 const url = r.urls?.regular || r.urls?.full || r.urls?.small;
                 if (!url) continue;
-                
+
                 if (collected.some(c => c.id === r.id)) continue;
-                
+
                 try {
                     const urlObj = new URL(url);
                     urlObj.searchParams.set('fm', 'webp');
@@ -710,12 +724,12 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
                 } catch (e) {
                     collected.push({ url: url, id: r.id, meta });
                 }
-                
+
                 console.log(`Accepted image ${collected.length}/${desiredCount} from "${q}": ${r.alt_description || 'no description'}`);
-                
+
                 if (collected.length >= desiredCount) break;
             }
-            
+
             if (results.length > 0 && collected.length > 0) {
                 console.log(`Progress: ${collected.length}/${desiredCount} images collected`);
             }
@@ -725,7 +739,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
             const dbgPath = path.resolve('Data/temp_images/unsplash_debug.json');
             const tempImageDir = path.resolve("Data/temp_images");
             if (!fs.existsSync(tempImageDir)) fs.mkdirSync(tempImageDir, { recursive: true });
-            
+
             writeDebugJson(dbgPath, {
                 timestamp: new Date().toISOString(),
                 surahNumber: verseInfo?.surahNumber,
