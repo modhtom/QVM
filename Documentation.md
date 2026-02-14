@@ -6,6 +6,10 @@
 - [Installation & Setup](#installation--setup)
 - [Configuration](#configuration)
 - [Core Components](#core-components)
+- [Authentication & User Accounts](#authentication--user-accounts)
+- [Database Layer](#database-layer)
+- [Caching Layer](#caching-layer)
+- [Security](#security)
 - [API Reference](#api-reference)
 - [Frontend Structure](#frontend-structure)
 - [Video Generation Pipeline](#video-generation-pipeline)
@@ -29,39 +33,50 @@ Quran Video Maker (QVM) is a full-stack web application designed to create profe
 - **Typography Control**: Customizable fonts, colors, sizes, and positioning
 - **Cloud-Native**: Stateless architecture with Cloudflare R2 storage
 - **Queue-Based Processing**: Robust job queuing for resource-intensive video rendering
+- **User Accounts**: JWT-based authentication with per-user video galleries
+- **Security Hardened**: Rate limiting, CORS whitelisting, input validation, path traversal prevention
+- **SQLite Database**: Persistent user and video metadata storage with WAL mode
+- **Redis Caching**: Optional caching layer for API responses with graceful degradation
 
 ## System Architecture
 
 ### High-Level Overview
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client        │    │   Express       │    │   Redis Queue   │
-│   (Browser)     │◄──►│   Server        │◄──►│   (BullMQ)      │
-│                 │    │   (index.js)    │    │                 │
+│   Client        │    │   Express       │    │   Redis         │
+│   (Browser)     │◄──►│   Server        │◄──►│   Queue/Cache   │
+│   + Auth UI     │    │   (index.js)    │    │   (BullMQ)      │
 └─────────────────┘    └────────┬────────┘    └─────────────────┘
-                                 │
-                          ┌──────▼──────┐    ┌─────────────────┐
-                          │   Cloud     │    │   Worker        │
-                          │   Storage   │◄──►│   Process       │
-                          │   (R2/S3)   │    │   (worker.js)   │
-                          └─────────────┘    └─────────────────┘
-                                 │                   │
-                          ┌──────▼──────┐    ┌──────▼──────┐
-                          │   External  │    │   FFmpeg    │
-                          │   APIs      │    │   Engine    │
-                          │   (Quran,   │    │             │
-                          │   Unsplash) │    └─────────────┘
-                          └─────────────┘
+                                │
+                    ┌───────────┼───────────┐
+                    │           │           │
+             ┌──────▼──────┐ ┌─▼────────┐ ┌▼────────────────┐
+             │   Cloud     │ │ SQLite   │ │   Worker        │
+             │   Storage   │ │ Database │ │   Process       │
+             │   (R2/S3)   │ │ (Users/  │ │   (worker.js)   │
+             └─────────────┘ │  Videos) │ └─────────────────┘
+                             └──────────┘         │
+                                           ┌──────▼──────┐
+                         ┌─────────────┐   │   FFmpeg    │
+                         │   External  │   │   Engine    │
+                         │   APIs      │   │             │
+                         │   (Quran,   │   └─────────────┘
+                         │   Unsplash) │
+                         └─────────────┘
 ```
 
 ### Technology Stack
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript (ES6 Modules)
 - **Backend**: Node.js, Express.js
+- **Authentication**: JWT (jsonwebtoken) + bcrypt password hashing
+- **Database**: SQLite (better-sqlite3) with WAL mode
 - **Queue System**: BullMQ with Redis
+- **Caching**: Redis (ioredis) with graceful degradation
 - **Cloud Storage**: Cloudflare R2 (S3-compatible)
 - **Video Processing**: FFmpeg (with hardware acceleration support)
 - **AI Synchronization**: Groq API (Whisper Large v3)
 - **External APIs**: Al-Quran Cloud, MP3Quran, Unsplash
+- **Process Management**: PM2 (production)
 - **Package Management**: npm
 
 ## Installation & Setup
@@ -153,7 +168,11 @@ fc-cache -fv
 | `R2_BUCKET_NAME` | R2 bucket name for video storage | Yes | - |
 | `R2_PUBLIC_URL` | Public URL for accessing stored videos | Yes | - |
 | `GROQ_API_KEY` | Groq AI API key for auto-sync | Yes | - |
+| `JWT_SECRET` | Secret key for JWT token signing | Yes | - |
 | `REDIS_HOST` | Redis server hostname | No | 127.0.0.1 |
+| `REDIS_PORT` | Redis server port | No | 6379 |
+| `REDIS_PASSWORD` | Redis server password | No | - |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins | No | http://localhost:3001 |
 | `PORT` | Express server port | No | 3001 |
 
 ### Directory Structure
@@ -163,28 +182,45 @@ QVM/
 │   ├── audio/                     # Audio files
 │   │   ├── cache/                 # Cached recitation audio
 │   │   └── custom/                # User-uploaded audio
+│   ├── db/                        # SQLite database files
+│   │   └── qvm.db                 # Main database (users, videos)
 │   ├── text/                      # Quran text and translations
 │   ├── subtitles/                 # Generated subtitle files
+│   ├── Font/                      # Custom Arabic fonts (.ttf)
 │   ├── Background_Video/          # Background media
 │   │   └── uploads/               # User-uploaded backgrounds
-│   └── temp/                      # Temporary processing files
+│   ├── temp/                      # Temporary processing files
+│   └── temp_images/               # Temporary image files
 ├── Output_Video/                  # Final video output (local)
 ├── public/                        # Frontend static files
 │   ├── js/                        # JavaScript modules
-│   ├── css/                       # Stylesheets
+│   │   ├── auth.js                # Frontend authentication module
+│   │   ├── main.js                # App state & navigation
+│   │   ├── fullVideo.js           # Full surah form handler
+│   │   ├── partialVideo.js        # Partial video form handler
+│   │   ├── videoFormHelpers.js    # Shared form utilities
+│   │   └── videos.js              # Gallery management
+│   ├── styles/                    # Stylesheets
 │   └── index.html                 # Main HTML file
 ├── utility/                       # Core utilities
+│   ├── auth.js                    # JWT authentication middleware
+│   ├── authRoutes.js              # Auth API routes (register/login)
+│   ├── db.js                      # SQLite database layer
+│   ├── cache.js                   # Redis caching layer
 │   ├── config.js                  # Configuration management
 │   ├── data.js                    # Quran data fetching
 │   ├── background.js              # Background generation
 │   ├── subtitle.js                # Subtitle generation
 │   ├── autoSync.js                # AI synchronization
 │   ├── storage.js                 # Cloud storage operations
-│   └── delete.js                  # Cleanup utilities
-├── fonts/                         # Custom Arabic fonts
+│   ├── delete.js                  # Cleanup utilities
+│   └── fetchMetaData.js           # Metadata fetching script
 ├── index.js                       # Express server
 ├── worker.js                      # BullMQ worker
 ├── video.js                       # Video generation logic
+├── ecosystem.config.cjs           # PM2 process configuration
+├── Dockerfile                     # Multi-stage Docker build
+├── compose.yaml                   # Docker Compose services
 └── package.json                   # Dependencies
 ```
 
@@ -325,6 +361,165 @@ sequenceDiagram
 - Automatic public URL generation
 - Stream-based upload/download
 
+## Authentication & User Accounts
+
+### Overview
+QVM uses JWT-based authentication to provide multi-user support. Each user has a personal video gallery, and all video generation and upload operations are tied to the authenticated user.
+
+### Architecture
+```
+┌─────────────┐   POST /api/auth/register   ┌──────────────┐
+│   Browser   │ ──────────────────────────►  │  authRoutes  │
+│   auth.js   │   POST /api/auth/login       │  (Express)   │
+│   (client)  │ ◄──────────────────────────  │              │
+└─────────────┘   { token, user }            └──────┬───────┘
+       │                                            │
+       │  Authorization: Bearer <token>             │ bcrypt hash
+       │                                            │ JWT sign
+       ▼                                            ▼
+┌─────────────┐                              ┌──────────────┐
+│  Protected  │   authenticateToken()        │   SQLite DB  │
+│  Endpoints  │ ◄────────────────────────    │   (users)    │
+└─────────────┘   req.user = { id, name }    └──────────────┘
+```
+
+### Backend Components
+
+#### JWT Middleware (`utility/auth.js`)
+- **`generateToken(user)`**: Creates a JWT with `{ id, username }` payload, expires in 7 days
+- **`authenticateToken(req, res, next)`**: Express middleware that validates the `Authorization: Bearer <token>` header and sets `req.user`
+- Requires `JWT_SECRET` environment variable (process exits if not set)
+
+#### Auth Routes (`utility/authRoutes.js`)
+Mounted at `/api/auth`:
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/auth/register` | POST | No | Create new account |
+| `/api/auth/login` | POST | No | Login, receive JWT |
+| `/api/auth/me` | GET | Yes | Get current user info |
+
+**Registration Validation**:
+- Username: 3-30 chars, alphanumeric + underscores only
+- Email: Valid format, unique
+- Password: 6-128 chars, hashed with bcrypt (12 salt rounds)
+
+#### Protected Routes
+The following endpoints require `authenticateToken` middleware:
+- `POST /generate-partial-video` - Video generation (adds `userId` to job)
+- `POST /generate-full-video` - Video generation (adds `userId` to job)
+- `POST /upload-audio` - Audio upload
+- `POST /upload-background` - Background upload
+- `GET /api/videos` - List user's videos only
+- `DELETE /api/videos/*` - Delete video (ownership verified)
+
+### Frontend Auth Module (`public/js/auth.js`)
+- Token stored in `localStorage` as `qvm_auth_token`
+- `getAuthHeaders()` returns `{ Authorization: 'Bearer <token>' }` for API calls
+- `initAuthUI()` wires up login/register forms with Arabic UI labels
+- `updateAuthState()` toggles between auth page and main menu based on login status
+- `logout()` clears localStorage and reloads page
+
+## Database Layer
+
+### SQLite Configuration (`utility/db.js`)
+- **Engine**: better-sqlite3 (synchronous, non-blocking for concurrent reads)
+- **Location**: `Data/db/qvm.db`
+- **Pragmas**: `journal_mode = WAL` (concurrent reads), `foreign_keys = ON`
+
+### Schema
+```sql
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    passwordHash TEXT NOT NULL,
+    createdAt TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE videos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId INTEGER NOT NULL,
+    s3Key TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    createdAt TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_videos_userId ON videos(userId);
+CREATE INDEX idx_videos_s3Key ON videos(s3Key);
+```
+
+### Key Functions
+| Function | Description |
+|----------|-------------|
+| `createUser(username, email, hash)` | Insert new user, returns `{ id, username, email }` |
+| `findUserByUsername(username)` | Lookup user by username |
+| `findUserByEmail(email)` | Lookup user by email |
+| `findUserById(id)` | Lookup user (excludes passwordHash) |
+| `addVideo(userId, s3Key, filename)` | Record a generated video |
+| `getUserVideos(userId)` | Get all videos for a user (newest first) |
+| `findVideoByKey(s3Key)` | Lookup video by S3 key |
+| `deleteUserVideo(userId, s3Key)` | Delete a video record (with ownership check) |
+
+### Worker Integration
+After a video job completes, `worker.js` automatically calls `addVideo()` to record the video in the database, linking it to the user who queued the job.
+
+## Caching Layer
+
+### Redis Cache (`utility/cache.js`)
+A graceful-degradation caching layer using Redis. If Redis is unavailable, operations silently return `null` and processing continues without cache.
+
+**API**:
+```javascript
+import { cache } from './utility/cache.js';
+
+await cache.get('key');                    // Returns parsed JSON or null
+await cache.set('key', value, 86400);      // Default TTL: 24 hours
+await cache.del('key');                    // Delete cached entry
+```
+
+**Features**:
+- Lazy connection (connects on first use)
+- JSON serialization/deserialization
+- Configurable TTL per entry
+- Non-blocking error handling (never throws)
+
+## Security
+
+### Rate Limiting
+Three tiers of rate limiting using `express-rate-limit`:
+
+| Limiter | Window | Max Requests | Applied To |
+|---------|--------|-------------|------------|
+| General | 15 min | 100 | All routes |
+| Video Generation | 1 hour | 10 | `/generate-*-video` |
+| Upload | 15 min | 20 | Upload endpoints |
+
+### CORS Configuration
+- Origin whitelist via `ALLOWED_ORIGINS` environment variable
+- Defaults to `http://localhost:3001` in development
+- Rejects requests from non-whitelisted origins with 403
+
+### Input Validation & Sanitization
+- **`sanitizeFilename(name)`**: Strips non-alphanumeric characters from uploaded filenames
+- **`safePath(baseDir, userInput)`**: Prevents path traversal by resolving and verifying paths stay within allowed directories
+- **MIME type validation**: Whitelists for video (`mp4, webm, mov, avi, mkv`), image (`jpeg, png, webp, gif`), and audio (`mpeg, mp3, wav, ogg, aac, m4a`) file types
+- **File size limits**: Background uploads 50MB, audio uploads 100MB, JSON body 1MB
+- **Surah/verse parameter validation**: Range checks on all numeric inputs
+
+### Error Handling
+Global error middleware catches and sanitizes errors:
+- Multer upload errors → 400 with message
+- Invalid file type errors → 400 with message
+- CORS violations → 403
+- Unhandled errors → 500 with generic message (no stack traces exposed)
+
+### Video Ownership Enforcement
+- `DELETE /api/videos/*` verifies `video.userId === req.user.id` before deletion
+- `GET /api/videos` returns only the authenticated user's videos
+- Video generation jobs include `userId` for automatic ownership recording
+
 ## API Reference
 
 ### Video Generation Endpoints
@@ -452,16 +647,17 @@ Get verse text for synchronization.
 
 ### Page Hierarchy
 ```
-mainMenu
-├── fullOptions
-│   ├── fullForm (built-in audio)
-│   └── fullFormCustom (custom audio)
-├── partOptions
-│   ├── partForm (built-in audio)
-│   └── partFormCustom (custom audio)
-├── tapToSyncPage (manual synchronization)
-├── videoPreview (video playback)
-└── gallery (video management)
+authPage (login/register)
+└── mainMenu (after authentication)
+    ├── fullOptions
+    │   ├── fullForm (built-in audio)
+    │   └── fullFormCustom (custom audio)
+    ├── partOptions
+    │   ├── partForm (built-in audio)
+    │   └── partFormCustom (custom audio)
+    ├── tapToSyncPage (manual synchronization)
+    ├── videoPreview (video playback)
+    └── gallery (per-user video management)
 ```
 
 ### Key JavaScript Modules
@@ -903,18 +1099,18 @@ describe('Video Generation', () => {
 ## Future Roadmap
 
 ### High Priority
-1. **User Account System**
-   - Registration/login with JWT
-   - Personal video galleries
+1. ~~**User Account System**~~ ✅ **Completed**
+   - ~~Registration/login with JWT~~
+   - ~~Personal video galleries~~
    - User preferences storage
 
 2. **Code Refactoring**
    - Consolidate `generateFullVideo` and `generatePartialVideo`
-   - Centralize configuration management
-   - Improve error handling consistency
+   - ~~Centralize configuration management~~ ✅
+   - ~~Improve error handling consistency~~ ✅
 
 3. **Performance Optimization**
-   - Implement API response caching
+   - ~~Implement API response caching~~ ✅ (Redis cache layer)
    - Optimize FFmpeg parameters for faster rendering
    - Add video compression options
 
@@ -950,9 +1146,9 @@ describe('Video Generation', () => {
    - API rate limiting and quotas
 
 ### Technical Debt
-1. **Security Enhancements**
-   - Input validation and sanitization
-   - Rate limiting on upload endpoints
+1. ~~**Security Enhancements**~~ ✅ **Completed**
+   - ~~Input validation and sanitization~~
+   - ~~Rate limiting on upload endpoints~~
    - HTTPS enforcement in production
    - Security headers implementation
 
@@ -960,7 +1156,7 @@ describe('Video Generation', () => {
    - Structured logging with Winston
    - Performance metrics collection
    - Error tracking with Sentry
-   - Health check endpoints
+   - ~~Health check endpoints~~ ✅ (Docker healthcheck)
 
 ---
 
@@ -998,7 +1194,7 @@ describe('Video Generation', () => {
 
 ---
 
-*Last Updated: 23 January 2026*
-*Version: 1.0*
+*Last Updated: 14 February 2026*
+*Version: 2.0*
 *Documentation Maintainer: [MODHTOM](https://github.com/modhtom)*
 *For issues or contributions, see [GitHub Repository](https://github.com/modhtom/QVM/blob/main/TO-DOs.md)*
