@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './auth.js';
+
 const getVal = (id) => document.getElementById(id)?.value;
 const getChk = (id) => document.getElementById(id)?.checked;
 
@@ -5,7 +7,7 @@ export async function uploadAudioFile(audioFile) {
     const formData = new FormData();
     formData.append('audio', audioFile);
 
-    const response = await fetch('/upload-audio', { method: 'POST', body: formData });
+    const response = await fetch('/upload-audio', { method: 'POST', body: formData, headers: getAuthHeaders() });
     if (!response.ok) {
         const errText = await response.text();
         throw new Error(`Server Error (${response.status}): ${errText}`);
@@ -24,7 +26,7 @@ export async function uploadBackgroundFile(inputElement) {
     const formData = new FormData();
     formData.append('backgroundFile', inputElement.files[0]);
 
-    const response = await fetch('/upload-background', { method: 'POST', body: formData });
+    const response = await fetch('/upload-background', { method: 'POST', body: formData, headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Background upload failed');
 
     const data = await response.json();
@@ -64,7 +66,7 @@ export async function submitVideoJob(endpoint, requestBody) {
     console.log('Submitting job with data:', requestBody);
     const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(requestBody),
     });
 

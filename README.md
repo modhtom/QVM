@@ -73,6 +73,16 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ---
 
+### 9\. User Accounts & Authentication
+- **JWT Authentication:** Secure, stateless authentication using JSON Web Tokens with 7-day expiry.
+- **User Registration & Login:** Create an account with username, email, and password. Passwords are hashed with **bcrypt**.
+- **Per-User Video Galleries:** Each user's videos are stored under a unique S3 prefix (`videos/{userId}/...`) and only visible to them.
+- **Protected Routes:** All video generation, upload, and gallery endpoints require authentication.
+- **SQLite Database:** Lightweight **SQLite** database (via `better-sqlite3`) stores user credentials and video metadata with WAL mode for concurrent read performance.
+- **Multi-User Concurrency:** Multiple users can submit video generation jobs simultaneously — requests are queued and processed without blocking.
+
+---
+
 ## System Requirements
 
 - Node.js v16+
@@ -81,6 +91,7 @@ Quran Video Maker is a full-stack web application that enables users to create p
 - Redis v6+
 - Docker
 - Cloudflare R2 Bucket
+- SQLite (bundled via `better-sqlite3`, no separate installation needed)
 
 ## Installation
 
@@ -101,6 +112,7 @@ The easiest and most reliable way to run this project is with Docker Compose. It
    R2_BUCKET_NAME=qvm-videos
    R2_PUBLIC_URL=https://pub-<id>.r2.dev
    GROQ_API_KEY=your_key_here
+   JWT_SECRET=your_strong_secret_key_here
    ```
 
 3. **Run the application:** Open a terminal in the project's root directory and run a single command:
@@ -341,6 +353,9 @@ cors
 multer
 bullmq
 ioredis
+better-sqlite3
+bcrypt
+jsonwebtoken
 ```
 
 ### Front-End Libraries

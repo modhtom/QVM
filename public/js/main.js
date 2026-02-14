@@ -2,7 +2,7 @@ import { handlePartialVideoSubmit } from "./partialVideo.js";
 import { handleFullVideoSubmit } from "./fullVideo.js";
 import { loadVideos } from "./videos.js";
 import { surahs } from "./data/surahs.js";
-import { editions } from "./data/editions.js";
+import { initAuthUI, updateAuthState, isLoggedIn } from "./auth.js";
 
 let waveSurfer;
 window.tempVideoFormData = {};
@@ -25,14 +25,14 @@ const VideoState = {
   }
 };
 const selects = {
-    fullMushaf: null,
-    fullReciter: null,
-    fullSurah: null,
-    partMushaf: null,
-    partReciter: null,
-    partSurah: null,
-    customFullSurah: null,
-    customPartSurah: null
+  fullMushaf: null,
+  fullReciter: null,
+  fullSurah: null,
+  partMushaf: null,
+  partReciter: null,
+  partSurah: null,
+  customFullSurah: null,
+  customPartSurah: null
 };
 
 async function pollJobStatus(jobId) {
@@ -46,7 +46,6 @@ async function pollJobStatus(jobId) {
         throw new Error('Could not get job status');
       }
       const job = await response.json();
-      
       updateProgressBar({
         step: job.progress?.step || job.state,
         percent: job.progress?.percent || (job.state === 'completed' ? 100 : 0)
@@ -81,6 +80,10 @@ window.pollJobStatus = pollJobStatus;
 
 async function getVerseText(surahNumber, startVerse, endVerse) {
   try {
+    if(startVerse < 1 || endVerse < startVerse) {
+      alert('Please enter a valid verse range. Start verse must be at least 1 and end verse must be greater than or equal to start verse.');
+      throw new Error('Invalid verse range');
+    }
     const response = await fetch(`/api/surah-verses-text?surahNumber=${surahNumber}&startVerse=${startVerse}&endVerse=${endVerse}`);
     if (!response.ok) {
       throw new Error('Failed to fetch verse text');
@@ -96,143 +99,143 @@ async function getVerseText(surahNumber, startVerse, endVerse) {
 let allReciters = [];
 let groupedData = {};
 async function populateSelects() {
-    try {
-        const response = await fetch('/api/metadata');
-        if (!response.ok) throw new Error("Metadata not found");
-        const data = await response.json();
-        
-        allReciters = data.reciters;
-        groupedData = {};
-        allReciters.forEach(reciter => {
-            reciter.moshafs.forEach(moshaf => {
-                if (!groupedData[moshaf.name]) {
-                    groupedData[moshaf.name] = [];
-                }
-                groupedData[moshaf.name].push({
-                    reciterId: reciter.id,
-                    reciterName: reciter.name,
-                    server: moshaf.server,
-                    surahList: moshaf.surah_list
-                });
-            });
+  try {
+    const response = await fetch('/api/metadata');
+    if (!response.ok) throw new Error("Metadata not found");
+    const data = await response.json();
+
+    allReciters = data.reciters;
+    groupedData = {};
+    allReciters.forEach(reciter => {
+      reciter.moshafs.forEach(moshaf => {
+        if (!groupedData[moshaf.name]) {
+          groupedData[moshaf.name] = [];
+        }
+        groupedData[moshaf.name].push({
+          reciterId: reciter.id,
+          reciterName: reciter.name,
+          server: moshaf.server,
+          surahList: moshaf.surah_list
         });
+      });
+    });
 
-        const mushafNames = Object.keys(groupedData).sort();
-        const mushafOptions = mushafNames.map(name => ({ value: name, text: name }));
-        const transOptions = data.translations.map(t => ({
-            value: t.identifier,
-            text: `${t.language.toUpperCase()} - ${t.name} (${t.englishName})`
-        }));
-        transOptions.unshift({ value: "", text: "بدون ترجمة" });
+    const mushafNames = Object.keys(groupedData).sort();
+    const mushafOptions = mushafNames.map(name => ({ value: name, text: name }));
+    const transOptions = data.translations.map(t => ({
+      value: t.identifier,
+      text: `${t.language.toUpperCase()} - ${t.name} (${t.englishName})`
+    }));
+    transOptions.unshift({ value: "", text: "بدون ترجمة" });
 
-        ['translationEditionFull', 'translationEditionPart', 'translationEditionFullCustom', 'translationEditionPartCustom'].forEach(id => {
-            if(document.getElementById(id)) {
-                new TomSelect(`#${id}`, {
-                    options: transOptions,
-                    valueField: 'value',
-                    labelField: 'text',
-                    searchField: ['text'],
-                    placeholder: 'اختر الترجمة...',
-                });
-            }
+    ['translationEditionFull', 'translationEditionPart', 'translationEditionFullCustom', 'translationEditionPartCustom'].forEach(id => {
+      if (document.getElementById(id)) {
+        new TomSelect(`#${id}`, {
+          options: transOptions,
+          valueField: 'value',
+          labelField: 'text',
+          searchField: ['text'],
+          placeholder: 'اختر الترجمة...',
         });
+      }
+    });
 
-        const surahOptions = surahs.map(s => ({ value: s.number, text: `${s.number}. ${s.name}` }));
-        const createSelect = (id, options, placeholder) => {
-            if(!document.getElementById(id)) return null;
-            return new TomSelect(`#${id}`, {
-                options: options,
-                valueField: 'value',
-                labelField: 'text',
-                searchField: ['text'],
-                placeholder: placeholder,
-                maxOptions: 250
-            });
-        };
+    const surahOptions = surahs.map(s => ({ value: s.number, text: `${s.number}. ${s.name}` }));
+    const createSelect = (id, options, placeholder) => {
+      if (!document.getElementById(id)) return null;
+      return new TomSelect(`#${id}`, {
+        options: options,
+        valueField: 'value',
+        labelField: 'text',
+        searchField: ['text'],
+        placeholder: placeholder,
+        maxOptions: 250
+      });
+    };
 
-        selects.customFullSurah = createSelect('fullSurahNumberCustom', surahOptions, 'اختر السورة...');
-        selects.customPartSurah = createSelect('surahNumberCustom', surahOptions, 'اختر السورة...');
+    selects.customFullSurah = createSelect('fullSurahNumberCustom', surahOptions, 'اختر السورة...');
+    selects.customPartSurah = createSelect('surahNumberCustom', surahOptions, 'اختر السورة...');
 
-        selects.fullMushaf = createSelect('fullMushaf', mushafOptions, 'اختر الرواية...');
-        selects.partMushaf = createSelect('partMushaf', mushafOptions, 'اختر الرواية...');
+    selects.fullMushaf = createSelect('fullMushaf', mushafOptions, 'اختر الرواية...');
+    selects.partMushaf = createSelect('partMushaf', mushafOptions, 'اختر الرواية...');
 
-        selects.fullReciter = createSelect('fullEdition', [], 'اختر القارئ...');
-        selects.partReciter = createSelect('edition', [], 'اختر القارئ...');
+    selects.fullReciter = createSelect('fullEdition', [], 'اختر القارئ...');
+    selects.partReciter = createSelect('edition', [], 'اختر القارئ...');
 
-        selects.fullSurah = createSelect('fullSurahNumber', [], 'اختر السورة...');
-        selects.partSurah = createSelect('surahNumber', [], 'اختر السورة...');
+    selects.fullSurah = createSelect('fullSurahNumber', [], 'اختر السورة...');
+    selects.partSurah = createSelect('surahNumber', [], 'اختر السورة...');
 
-        const handleMushafChange = (mushafName, reciterSelect, surahSelect) => {
-            if (!mushafName) return;
-            const reciters = groupedData[mushafName];
-            
-            reciterSelect.clear();
-            reciterSelect.clearOptions();
-            surahSelect.clear();
-            surahSelect.clearOptions();
+    const handleMushafChange = (mushafName, reciterSelect, surahSelect) => {
+      if (!mushafName) return;
+      const reciters = groupedData[mushafName];
 
-            const options = reciters.map(r => ({
-                value: r.server,
-                text: r.reciterName,
-                surahList: r.surahList
-            }));
-            
-            reciterSelect.addOption(options);
-        };
+      reciterSelect.clear();
+      reciterSelect.clearOptions();
+      surahSelect.clear();
+      surahSelect.clearOptions();
 
-        const handleReciterChange = (serverUrl, reciterSelect, surahSelect) => {
-            if (!serverUrl) return;
-            
-            const selectedOption = reciterSelect.options[serverUrl];
-            if (!selectedOption) return;
+      const options = reciters.map(r => ({
+        value: r.server,
+        text: r.reciterName,
+        surahList: r.surahList
+      }));
 
-            const availableSurahs = selectedOption.surahList.split(',');
-            
-            surahSelect.clear();
-            surahSelect.clearOptions();
+      reciterSelect.addOption(options);
+    };
 
-            const filteredSurahs = surahs
-                .filter(s => availableSurahs.includes(String(s.number)))
-                .map(s => ({ value: s.number, text: `${s.number}. ${s.name}` }));
+    const handleReciterChange = (serverUrl, reciterSelect, surahSelect) => {
+      if (!serverUrl) return;
 
-            surahSelect.addOption(filteredSurahs);
-        };
+      const selectedOption = reciterSelect.options[serverUrl];
+      if (!selectedOption) return;
 
-        selects.fullMushaf.on('change', (val) => handleMushafChange(val, selects.fullReciter, selects.fullSurah));
-        selects.fullReciter.on('change', (val) => handleReciterChange(val, selects.fullReciter, selects.fullSurah));
+      const availableSurahs = selectedOption.surahList.split(',');
 
-        selects.partMushaf.on('change', (val) => handleMushafChange(val, selects.partReciter, selects.partSurah));
-        selects.partReciter.on('change', (val) => handleReciterChange(val, selects.partReciter, selects.partSurah));
+      surahSelect.clear();
+      surahSelect.clearOptions();
 
-    } catch (error) {
-        console.error("Failed to load metadata:", error);
-    }
+      const filteredSurahs = surahs
+        .filter(s => availableSurahs.includes(String(s.number)))
+        .map(s => ({ value: s.number, text: `${s.number}. ${s.name}` }));
+
+      surahSelect.addOption(filteredSurahs);
+    };
+
+    selects.fullMushaf.on('change', (val) => handleMushafChange(val, selects.fullReciter, selects.fullSurah));
+    selects.fullReciter.on('change', (val) => handleReciterChange(val, selects.fullReciter, selects.fullSurah));
+
+    selects.partMushaf.on('change', (val) => handleMushafChange(val, selects.partReciter, selects.partSurah));
+    selects.partReciter.on('change', (val) => handleReciterChange(val, selects.partReciter, selects.partSurah));
+
+  } catch (error) {
+    console.error("Failed to load metadata:", error);
+  }
 }
 
 function setupVerticalVideoToggles() {
-    const handleToggle = (checkboxId, fontSizeId, labelId) => {
-        const checkbox = document.getElementById(checkboxId);
-        const fontSizeInput = document.getElementById(fontSizeId);
-        const fontLabel = document.getElementById(labelId);
-        
-        if (checkbox && fontSizeInput) {
-            checkbox.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    fontSizeInput.value = 5;
-                    if (fontLabel) fontLabel.textContent = '5px';
-                } else {
-                    fontSizeInput.value = 10;
-                    if (fontLabel) fontLabel.textContent = '10px';
-                }
-                if (document.getElementById('fontColorPart')) updateStaticPreview();
-            });
-        }
-    };
+  const handleToggle = (checkboxId, fontSizeId, labelId) => {
+    const checkbox = document.getElementById(checkboxId);
+    const fontSizeInput = document.getElementById(fontSizeId);
+    const fontLabel = document.getElementById(labelId);
 
-    handleToggle('verticalVideoFull', 'fontSize', 'fontSizeValue');
-    handleToggle('verticalVideoPart', 'fontSizePart', 'fontSizeValuePart');
-    handleToggle('verticalVideoFullCustom', 'fontSizeFullCustom', 'fontSizeValueFullCustom');
-    handleToggle('verticalVideoPartCustom', 'fontSizePartCustom', 'fontSizeValuePartCustom');
+    if (checkbox && fontSizeInput) {
+      checkbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          fontSizeInput.value = 5;
+          if (fontLabel) fontLabel.textContent = '5px';
+        } else {
+          fontSizeInput.value = 10;
+          if (fontLabel) fontLabel.textContent = '10px';
+        }
+        if (document.getElementById('fontColorPart')) updateStaticPreview();
+      });
+    }
+  };
+
+  handleToggle('verticalVideoFull', 'fontSize', 'fontSizeValue');
+  handleToggle('verticalVideoPart', 'fontSizePart', 'fontSizeValuePart');
+  handleToggle('verticalVideoFullCustom', 'fontSizeFullCustom', 'fontSizeValueFullCustom');
+  handleToggle('verticalVideoPartCustom', 'fontSizePartCustom', 'fontSizeValuePartCustom');
 }
 
 function addProgressBar() {
@@ -369,7 +372,7 @@ async function initTapToSync(audioFile, surahNum, startV, endV, edition) {
     showPage(window.previousPage);
     return;
   }
-  
+
   currentVersesText = fetchedVerses;
   currentVerseIndex = 0;
   verseTimings = [];
@@ -377,42 +380,42 @@ async function initTapToSync(audioFile, surahNum, startV, endV, edition) {
   document.getElementById('syncProgressBar').style.width = '0%';
   document.getElementById('markVerseBtn').disabled = false;
   document.getElementById('finishSyncBtn').style.display = 'none';
-  
+
   displayCurrentVerse();
   window.showPage('tapToSyncPage');
 }
 
 async function updateStaticPreview() {
-    const previewContainer = document.getElementById('static-preview-container');
-    const previewImage = document.getElementById('static-preview-image');
-    previewImage.style.opacity = '0.5'; // Indicate loading
+  const previewContainer = document.getElementById('static-preview-container');
+  const previewImage = document.getElementById('static-preview-image');
+  previewImage.style.opacity = '0.5'; // Indicate loading
 
-    const payload = {
-        surahNumber: document.getElementById("surahNumber").value,
-        startVerse: document.getElementById("startVerse").value || 1,
-        color: document.getElementById("fontColorPart").value,
-        fontName: document.getElementById("fontName").value,
-        size: document.getElementById("fontSizePart").value,
-        background: document.getElementById("pexelsVideoPart")?.value || document.getElementById("imageLinkPart")?.value,
-        translationEdition: document.getElementById("translationEdition").value
-    };
+  const payload = {
+    surahNumber: document.getElementById("surahNumber").value,
+    startVerse: document.getElementById("startVerse").value || 1,
+    color: document.getElementById("fontColorPart").value,
+    fontName: document.getElementById("fontName").value,
+    size: document.getElementById("fontSizePart").value,
+    background: document.getElementById("pexelsVideoPart")?.value || document.getElementById("imageLinkPart")?.value,
+    translationEdition: document.getElementById("translationEdition").value
+  };
 
-    try {
-        const response = await fetch('/generate-preview', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+  try {
+    const response = await fetch('/generate-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-        if (!response.ok) throw new Error('Failed to generate preview');
-        
-        const data = await response.json();
-        previewImage.src = data.previewPath + `?t=${new Date().getTime()}`;
-        previewImage.style.opacity = '1';
-    } catch (error) {
-        console.error("Preview Error:", error);
-        previewImage.style.opacity = '1';
-    }
+    if (!response.ok) throw new Error('Failed to generate preview');
+
+    const data = await response.json();
+    previewImage.src = data.previewPath + `?t=${new Date().getTime()}`;
+    previewImage.style.opacity = '1';
+  } catch (error) {
+    console.error("Preview Error:", error);
+    previewImage.style.opacity = '1';
+  }
 }
 
 function displayCurrentVerse() {
@@ -449,10 +452,10 @@ function markVerse() {
 
   if (currentVerseIndex === currentVersesText.length) {
     verseTimings[verseTimings.length - 1].end = audioPlayer.duration;
-    
+
     document.getElementById('markVerseBtn').disabled = true;
     document.getElementById('finishSyncBtn').style.display = 'block';
-    
+
     document.getElementById('syncProgressBar').style.width = '100%';
     document.getElementById('syncStatus').textContent = 'اكتملت المزامنة!';
   }
@@ -472,44 +475,44 @@ function resetSync() {
 
 async function finishSyncAndGenerateVideo() {
   if (verseTimings.length > 0 && verseTimings[verseTimings.length - 1].end === null) {
-      verseTimings[verseTimings.length - 1].end = audioPlayer.duration;
+    verseTimings[verseTimings.length - 1].end = audioPlayer.duration;
   }
 
   const { isFullSurah, surahNumber, startVerse, endVerse, edition, color, size, useCustomBackground, videoNumber, crop } = window.tempVideoFormData;
-  
+
   if (isFullSurah) {
     handleFullVideoSubmit({
-        preventDefault: () => {},
-        detail: {
-            customAudioFile: customAudioFile,
-            userVerseTimings: verseTimings,
-            surahNumber: surahNumber,
-            edition: edition,
-            color: color,
-            size: size,
-            useCustomBackground: useCustomBackground,
-            videoNumber: videoNumber,
-            crop: crop,
-            userVerseTimings: verseTimings
-        }
+      preventDefault: () => { },
+      detail: {
+        customAudioFile: customAudioFile,
+        userVerseTimings: verseTimings,
+        surahNumber: surahNumber,
+        edition: edition,
+        color: color,
+        size: size,
+        useCustomBackground: useCustomBackground,
+        videoNumber: videoNumber,
+        crop: crop,
+        userVerseTimings: verseTimings
+      }
     });
   } else {
     handlePartialVideoSubmit({
-        preventDefault: () => {},
-        detail: {
-            customAudioFile: customAudioFile,
-            userVerseTimings: verseTimings,
-            surahNumber: surahNumber,
-            startVerse: startVerse,
-            endVerse: endVerse,
-            edition: edition,
-            color: color,
-            size: size,
-            useCustomBackground: useCustomBackground,
-            videoNumber: videoNumber,
-            crop: crop,
-            userVerseTimings: verseTimings
-        }
+      preventDefault: () => { },
+      detail: {
+        customAudioFile: customAudioFile,
+        userVerseTimings: verseTimings,
+        surahNumber: surahNumber,
+        startVerse: startVerse,
+        endVerse: endVerse,
+        edition: edition,
+        color: color,
+        size: size,
+        useCustomBackground: useCustomBackground,
+        videoNumber: videoNumber,
+        crop: crop,
+        userVerseTimings: verseTimings
+      }
     });
   }
 }
@@ -530,78 +533,78 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoSyncFullBtn = document.getElementById('autoSyncBtnFull');
 
   if (autoSyncPartBtn) {
-      autoSyncPartBtn.addEventListener('click', async (e) => {
-          e.preventDefault();
-          const customAudio = document.getElementById("customAudioPart").files[0];
-          if (!customAudio) return alert("يرجى رفع ملف صوتي أولاً");
+    autoSyncPartBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const customAudio = document.getElementById("customAudioPart").files[0];
+      if (!customAudio) return alert("يرجى رفع ملف صوتي أولاً");
 
-          VideoState.set({
-              customAudioFile: customAudio,
-              isFullSurah: false,
-              autoSync: true,
-              surahNumber: document.getElementById("surahNumberCustom").value,
-              startVerse: parseInt(document.getElementById("startVerseCustom").value),
-              endVerse: parseInt(document.getElementById("endVerseCustom").value),
-              edition: "quran-simple",
-              color: document.getElementById("fontColorPartCustom").value,
-              size: document.getElementById("fontSizePartCustom").value,
-              fontName: document.getElementById("fontNamePartCustom").value,
-              subtitlePosition: document.getElementById("subtitlePositionPartCustom")?.value,
-              showMetadata: document.getElementById("showMetadataPartCustom")?.checked,
-              crop: document.getElementById("verticalVideoPartCustom")?.checked ? "vertical" : "horizontal",
-              useCustomBackground: false,
-              videoNumber: 1
-          });
-
-          const formData = VideoState.get();
-          const event = {
-              preventDefault: () => {},
-              detail: formData
-          };
-          handlePartialVideoSubmit(event);
+      VideoState.set({
+        customAudioFile: customAudio,
+        isFullSurah: false,
+        autoSync: true,
+        surahNumber: document.getElementById("surahNumberCustom").value,
+        startVerse: parseInt(document.getElementById("startVerseCustom").value),
+        endVerse: parseInt(document.getElementById("endVerseCustom").value),
+        edition: "quran-simple",
+        color: document.getElementById("fontColorPartCustom").value,
+        size: document.getElementById("fontSizePartCustom").value,
+        fontName: document.getElementById("fontNamePartCustom").value,
+        subtitlePosition: document.getElementById("subtitlePositionPartCustom")?.value,
+        showMetadata: document.getElementById("showMetadataPartCustom")?.checked,
+        crop: document.getElementById("verticalVideoPartCustom")?.checked ? "vertical" : "horizontal",
+        useCustomBackground: false,
+        videoNumber: 1
       });
+
+      const formData = VideoState.get();
+      const event = {
+        preventDefault: () => { },
+        detail: formData
+      };
+      handlePartialVideoSubmit(event);
+    });
   }
 
   if (autoSyncFullBtn) {
     autoSyncFullBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const customAudio = document.getElementById("customAudioFull").files[0];
-        if (!customAudio) return alert("يرجى رفع ملف صوتي أولاً");
+      e.preventDefault();
+      const customAudio = document.getElementById("customAudioFull").files[0];
+      if (!customAudio) return alert("يرجى رفع ملف صوتي أولاً");
 
-        const surahNum = document.getElementById("fullSurahNumberCustom").value;
-        let endVerse;
-        try {
-            const res = await fetch(`http://api.alquran.cloud/v1/surah/${surahNum}`);
-            const data = await res.json();
-            endVerse = data.data.numberOfAyahs;
-        } catch(err) {
-            console.warn("Could not fetch surah length, defaulting to 1");
-            endVerse = 1;
-        }
+      const surahNum = document.getElementById("fullSurahNumberCustom").value;
+      let endVerse;
+      try {
+        const res = await fetch(`http://api.alquran.cloud/v1/surah/${surahNum}`);
+        const data = await res.json();
+        endVerse = data.data.numberOfAyahs;
+      } catch (err) {
+        console.warn("Could not fetch surah length, defaulting to 1");
+        endVerse = 1;
+      }
 
-        VideoState.set({
-            customAudioFile: customAudio,
-            isFullSurah: true,
-            autoSync: true,
-            surahNumber: surahNum,
-            startVerse: 1,
-            endVerse: endVerse,
-            edition: "quran-simple",
-            color: document.getElementById("fontColorFullCustom").value,
-            size: document.getElementById("fontSizeFullCustom").value,
-            fontName: document.getElementById("fontNameFullCustom").value,
-            subtitlePosition: document.getElementById("subtitlePositionFullCustom")?.value || 'bottom',
-            showMetadata: document.getElementById("showMetadataFullCustom")?.checked,
-            crop: document.getElementById("verticalVideoFullCustom")?.checked ? "vertical" : "horizontal",
-            useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
-            videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `unsplash:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
-        });
+      VideoState.set({
+        customAudioFile: customAudio,
+        isFullSurah: true,
+        autoSync: true,
+        surahNumber: surahNum,
+        startVerse: 1,
+        endVerse: endVerse,
+        edition: "quran-simple",
+        color: document.getElementById("fontColorFullCustom").value,
+        size: document.getElementById("fontSizeFullCustom").value,
+        fontName: document.getElementById("fontNameFullCustom").value,
+        subtitlePosition: document.getElementById("subtitlePositionFullCustom")?.value || 'bottom',
+        showMetadata: document.getElementById("showMetadataFullCustom")?.checked,
+        crop: document.getElementById("verticalVideoFullCustom")?.checked ? "vertical" : "horizontal",
+        useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
+        videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `unsplash:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
+      });
 
-        const formData = VideoState.get();
-        handleFullVideoSubmit({
-            preventDefault: () => {},
-            detail: formData
-        });
+      const formData = VideoState.get();
+      handleFullVideoSubmit({
+        preventDefault: () => { },
+        detail: formData
+      });
     });
   }
 
@@ -615,32 +618,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       window.tempVideoFormData = {
-          isFullSurah: true,
-          surahNumber: document.getElementById("fullSurahNumberCustom").value,
-          edition: "quran-simple",
-          color: document.getElementById("fontColorFullCustom").value,
-          size: document.getElementById("fontSizeFullCustom").value,
-          useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
-          videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `pexels:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
-          crop: document.getElementById("verticalVideoFullCustom")?.checked ? "horizontal" : "vertical",
-          subtitlePosition: document.getElementById("subtitlePositionFullCustom")?.value || 'bottom',
-          showMetadata: document.getElementById("showMetadataFullCustom")?.checked || false
-        };
+        isFullSurah: true,
+        surahNumber: document.getElementById("fullSurahNumberCustom").value,
+        edition: "quran-simple",
+        color: document.getElementById("fontColorFullCustom").value,
+        size: document.getElementById("fontSizeFullCustom").value,
+        useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
+        videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `pexels:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
+        crop: document.getElementById("verticalVideoFullCustom")?.checked ? "horizontal" : "vertical",
+        subtitlePosition: document.getElementById("subtitlePositionFullCustom")?.value || 'bottom',
+        showMetadata: document.getElementById("showMetadataFullCustom")?.checked || false
+      };
 
       const surahNum = window.tempVideoFormData.surahNumber;
       let endVerse;
       try {
-          const response = await fetch(`http://api.alquran.cloud/v1/surah/${surahNum}`);
-          const data = await response.json();
-          endVerse = data.data.numberOfAyahs;
+        const response = await fetch(`http://api.alquran.cloud/v1/surah/${surahNum}`);
+        const data = await response.json();
+        endVerse = data.data.numberOfAyahs;
       } catch (error) {
-          console.error("Error fetching surah end verse:", error);
-          alert("Failed to get surah information. Please try again.");
-          return;
+        console.error("Error fetching surah end verse:", error);
+        alert("Failed to get surah information. Please try again.");
+        return;
       }
       window.tempVideoFormData.startVerse = 1;
       window.tempVideoFormData.endVerse = endVerse;
-      
+
       initTapToSync(customAudio, window.tempVideoFormData.surahNumber, 1, endVerse, window.tempVideoFormData.edition);
     });
   }
@@ -655,18 +658,18 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       window.tempVideoFormData = {
-          isFullSurah: false,
-          surahNumber: document.getElementById("surahNumberCustom").value,
-          startVerse: parseInt(document.getElementById("startVerseCustom").value),
-          endVerse: parseInt(document.getElementById("endVerseCustom").value),
-          edition: "quran-simple",
-          color: document.getElementById("fontColorPartCustom").value,
-          size: document.getElementById("fontSizePartCustom").value,
-          useCustomBackground: (document.getElementById("pexelsVideoPartCustom")?.value || document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value) !== '',
-          videoNumber: (document.getElementById("pexelsVideoPartCustom")?.value ? `pexels:${document.getElementById("pexelsVideoPartCustom").value}` : (document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value)),
-          crop: document.getElementById("verticalVideoPartCustom")?.checked ? "horizontal" : "vertical",
-          subtitlePosition: document.getElementById("subtitlePositionPartCustom")?.value || 'bottom',
-          showMetadata: document.getElementById("showMetadataPartCustom")?.checked || false
+        isFullSurah: false,
+        surahNumber: document.getElementById("surahNumberCustom").value,
+        startVerse: parseInt(document.getElementById("startVerseCustom").value),
+        endVerse: parseInt(document.getElementById("endVerseCustom").value),
+        edition: "quran-simple",
+        color: document.getElementById("fontColorPartCustom").value,
+        size: document.getElementById("fontSizePartCustom").value,
+        useCustomBackground: (document.getElementById("pexelsVideoPartCustom")?.value || document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value) !== '',
+        videoNumber: (document.getElementById("pexelsVideoPartCustom")?.value ? `pexels:${document.getElementById("pexelsVideoPartCustom").value}` : (document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value)),
+        crop: document.getElementById("verticalVideoPartCustom")?.checked ? "horizontal" : "vertical",
+        subtitlePosition: document.getElementById("subtitlePositionPartCustom")?.value || 'bottom',
+        showMetadata: document.getElementById("showMetadataPartCustom")?.checked || false
       };
 
       initTapToSync(customAudio, window.tempVideoFormData.surahNumber, window.tempVideoFormData.startVerse, window.tempVideoFormData.endVerse, window.tempVideoFormData.edition);
@@ -691,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fontSizeFullCustom')?.addEventListener('input', e => {
     document.getElementById('fontSizeValueFullCustom').textContent = e.target.value + 'px';
   });
-  
+
   document.getElementById('fontSizePartCustom')?.addEventListener('input', e => {
     document.getElementById('fontSizeValuePartCustom').textContent = e.target.value + 'px';
   });
@@ -704,7 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fontColorPart')?.addEventListener('input', updateStaticPreview);
   document.getElementById('fontSizePart')?.addEventListener('input', updateStaticPreview);
   document.getElementById('pexelsVideoPart')?.addEventListener('blur', updateStaticPreview); // blur = when user clicks away
-  
+
   document.getElementById('playPauseBtn')?.addEventListener('click', () => {
     if (waveSurfer) {
       waveSurfer.playPause();
@@ -717,9 +720,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  initAuthUI();
+  updateAuthState();
   addProgressBar();
   connectToProgressUpdates();
   populateSelects();
   setupVerticalVideoToggles();
-  loadVideos();
+  if (isLoggedIn()) {
+    loadVideos();
+  }
 });

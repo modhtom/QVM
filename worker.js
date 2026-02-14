@@ -2,6 +2,7 @@ import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { generatePartialVideo, generateFullVideo } from './video.js';
 import { runAutoSync } from './utility/autoSync.js';
+import { addVideo } from './utility/db.js';
 
 const connection = new IORedis({
   host: process.env.REDIS_HOST || '127.0.0.1',
@@ -13,7 +14,7 @@ console.log('Worker connecting to Redis...');
 
 const worker = new Worker('video-queue', async (job) => {
   console.log(`Processing job ${job.id}:`, job.data.type);
-  const { type, videoData } = job.data;
+  const { type, videoData, userId } = job.data;
 
   try {
     const progressCallback = (progress) => {
@@ -61,7 +62,8 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.subtitlePosition,
         videoData.showMetadata,
         videoData.audioSource,
-        videoData.autoSync
+        videoData.autoSync,
+        userId
       );
     } else if (type === 'full') {
       result = await generateFullVideo(
@@ -82,11 +84,23 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.subtitlePosition,
         videoData.showMetadata,
         videoData.audioSource,
-        videoData.autoSync
+        videoData.autoSync,
+        userId
       );
     } else {
       throw new Error(`Unknown job type: ${type}`);
     }
+
+    if (userId && result.vidPath) {
+      try {
+        const filename = result.vidPath.split('/').pop();
+        addVideo(userId, result.vidPath, filename);
+        console.log(`[Worker] Video record saved for user ${userId}: ${result.vidPath}`);
+      } catch (dbErr) {
+        console.error(`[Worker] Failed to save video record:`, dbErr);
+      }
+    }
+
     console.log(`Job ${job.id} completed. Output: ${result.vidPath}`);
     return result;
   } catch (error) {

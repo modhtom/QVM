@@ -56,17 +56,17 @@ function getEncoderSettings(encoder) {
     case 'h264_nvenc':
       // p4 = medium preset, rc=vbr_hq for better quality control
       return [...common, '-preset p4', '-rc vbr_hq', '-cq 23', '-b:v 0'];
-    
+
     case 'h264_videotoolbox':
       // q:v is quality (0-100 on modern ffmpeg, roughly)
       return [...common, '-q:v 60', '-allow_sw 1'];
-    
+
     case 'h264_amf':
       return [...common, '-usage transcoding', '-rc cqp', '-qp_i 23', '-qp_p 23'];
-    
+
     case 'h264_qsv':
       return [...common, '-global_quality 23', '-look_ahead 1'];
-    
+
     case 'libx264':
     default:
       return [...common, '-preset veryfast', '-crf 23', '-tune film'];
@@ -77,7 +77,7 @@ async function getMetadataInfo(surahNumber, editionIdentifier) {
   try {
     const surahRes = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
     const surahName = surahRes.data.data.name;
-    
+
     let reciterName = "";
     let rewayat = "";
 
@@ -248,7 +248,9 @@ export async function generateFullVideo(
   userVerseTimings = null,
   subtitlePosition = 'bottom',
   showMetadata = false,
-  audioSource = 'api',autoSync = false
+  audioSource = 'api',
+  autoSync = false,
+  userId = null
 ) {
   const endVerse = await getEndVerse(surahNumber);
   if (endVerse === -1) {
@@ -256,7 +258,7 @@ export async function generateFullVideo(
   }
   progressCallback({ step: 'Starting full video generation', percent: 0 });
   return generatePartialVideo(
-    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource, autoSync
+    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource, autoSync, userId
   );
 }
 
@@ -266,7 +268,9 @@ export async function generatePartialVideo(
   userVerseTimings = null,
   subtitlePosition = 'bottom',
   showMetadata = false,
-  audioSource = 'api',autoSync = false
+  audioSource = 'api',
+  autoSync = false,
+  userId = null
 ) {
   console.log("MAKING A VIDEO");
   console.log("DEBUG ARGS:", { surahNumber, startVerse, edition, customAudioPath });
@@ -276,7 +280,7 @@ export async function generatePartialVideo(
   if (limit === -1) {
     throw new Error(`Could not get Surah data for S${surahNumber}.`);
   }
-  
+
   if (!surahNumber || !startVerse || !endVerse) throw new Error("Missing required parameters.");
   if (endVerse > limit) endVerse = limit;
   color = color || VIDEO_DEFAULTS.DEFAULT_COLOR;
@@ -398,7 +402,7 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Uploading to Cloud', percent: 95 });
   try {
-    const s3Key = `videos/${outputFileName}`;
+    const s3Key = userId ? `videos/${userId}/${outputFileName}` : `videos/${outputFileName}`;
     await uploadToStorage(outputPath, s3Key, 'video/mp4');
 
     if (fs.existsSync(outputPath)) {

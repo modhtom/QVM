@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './auth.js';
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
@@ -58,12 +60,12 @@ function createVideoCard(video, galleryGrid) {
   deleteBtn.addEventListener('click', async () => {
     if (confirm('هل أنت متأكد من حذف هذا الفيديو؟ لا يمكن التراجع عن هذا الإجراء.')) {
       try {
-        const res = await fetch(`/api/videos/${encodeURIComponent(video)}`, { method: 'DELETE' });
+        const res = await fetch(`/api/videos/${encodeURIComponent(video)}`, { method: 'DELETE', headers: getAuthHeaders() });
         if (res.ok) {
           card.style.opacity = '0';
           setTimeout(() => card.remove(), 300);
           if (document.querySelectorAll('.gallery-item').length <= 1) {
-            galleryGrid.innerHTML = '<div class="empty-state"><i class="fas fa-film"></i><p>لا توجد مقاطع فيديو حتى الآن</p></div>';
+            galleryGrid.innerHTML = '<div class="empty-state"><i class="fas fa-film"></i><p>لا توجد مقاطع فيديو حتى الآن قم باعادة تحميل الصفحة ان كنت تعتقد ان هنالك فديوهات</p></div>';
           }
         } else {
           alert('حدث خطأ أثناء الحذف');
@@ -88,12 +90,12 @@ function createVideoCard(video, galleryGrid) {
 
 export async function loadVideos() {
   const galleryGrid = document.getElementById('gallery-grid');
-  
+
   try {
-    const response = await fetch('/api/videos');
+    const response = await fetch('/api/videos', { headers: getAuthHeaders() });
     const data = await response.json();
     if (!data.videos || data.videos.length === 0) {
-      galleryGrid.innerHTML = '<div class="empty-state"><i class="fas fa-film"></i><p>لا توجد مقاطع فيديو حتى الآن</p></div>';
+      galleryGrid.innerHTML = '<div class="empty-state"><i class="fas fa-film"></i><p>لا توجد مقاطع فيديو حتى الآن قم باعادة تحميل الصفحة ان كنت تعتقد ان هنالك فديوهات</p></div>';
       return;
     }
 

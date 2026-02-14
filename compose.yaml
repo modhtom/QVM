@@ -6,6 +6,7 @@ services:
       - "3001:3001"
     volumes:
       - output_video:/app/Output_Video
+      - sqlite_data:/app/Data/db
       - ./Data/Font:/app/Data/Font:ro
       - ./Data/metadata.json:/app/Data/metadata.json:ro
     env_file:
@@ -38,6 +39,8 @@ services:
 
 volumes:
   output_video:
+    driver: local
+  sqlite_data:
     driver: local
   redis_data:
     driver: local

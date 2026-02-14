@@ -8,10 +8,11 @@ import multer from "multer";
 import rateLimit from 'express-rate-limit';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
-import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { S3_CONFIG } from "./utility/config.js";
 import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
-import { getSurahDataRange } from './utility/data.js'
+import { getSurahDataRange } from './utility/data.js';
+import authRoutes from './utility/authRoutes.js';
+import { authenticateToken } from './utility/auth.js';
+import { getUserVideos, deleteUserVideo, findVideoByKey } from './utility/db.js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -130,6 +131,8 @@ app.use(generalLimiter);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.resolve(__dirname, "public")));
 
+app.use('/api/auth', authRoutes);
+
 app.get("/", (req, res) => {
   res.sendFile(path.resolve(__dirname, "public/index.html"));
 });
@@ -160,20 +163,13 @@ app.get('/progress', (req, res) => {
   req.on('close', () => progressEmitter.removeListener('progress', sendProgress));
 });
 
-app.get("/api/videos", async (req, res) => {
+app.get("/api/videos", authenticateToken, async (req, res) => {
   try {
-    const s3 = new S3Client(S3_CONFIG);
-    const command = new ListObjectsV2Command({
-      Bucket: S3_CONFIG.bucketName,
-      Prefix: "videos/",
-      Suffix: "?download=true"
-    });
-
-    const response = await s3.send(command);
-    const videos = response.Contents ? response.Contents.map(item => item.Key) : [];
+    const userVideos = getUserVideos(req.user.id);
+    const videos = userVideos.map(v => v.s3Key);
     res.json({ videos });
   } catch (error) {
-    console.error("S3 List Error:", error);
+    console.error("Video list error:", error);
     res.status(500).json({ error: "Could not list videos" });
   }
 });
@@ -238,9 +234,9 @@ app.get("/Output_Video/:video", (req, res) => {
   }
 });
 
-app.post("/generate-partial-video", videoGenLimiter, async (req, res) => {
+app.post("/generate-partial-video", authenticateToken, videoGenLimiter, async (req, res) => {
   try {
-    const job = await videoQueue.add('process-video', { type: 'partial', videoData: req.body });
+    const job = await videoQueue.add('process-video', { type: 'partial', videoData: req.body, userId: req.user.id });
     res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
     console.error('Queue error:', error);
@@ -248,9 +244,9 @@ app.post("/generate-partial-video", videoGenLimiter, async (req, res) => {
   }
 });
 
-app.post("/generate-full-video", videoGenLimiter, async (req, res) => {
+app.post("/generate-full-video", authenticateToken, videoGenLimiter, async (req, res) => {
   try {
-    const job = await videoQueue.add('process-video', { type: 'full', videoData: req.body });
+    const job = await videoQueue.add('process-video', { type: 'full', videoData: req.body, userId: req.user.id });
     res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
     console.error('Queue error:', error);
@@ -298,13 +294,21 @@ app.get("/videos/*", (req, res) => {
   res.redirect(publicUrl);
 });
 
-app.delete('/api/videos/*', async (req, res) => {
+app.delete('/api/videos/*', authenticateToken, async (req, res) => {
   const fileKey = req.params[0];
   if (!fileKey || fileKey.includes('..') || !fileKey.startsWith('videos/')) {
+    console.warn(`Invalid delete attempt:${fileKey}, from user ${req.user.id}`);
     return res.status(403).json({ error: 'Forbidden: invalid file key' });
   }
+
+  const video = findVideoByKey(fileKey);
+  if (!video || video.userId !== req.user.id) {
+    return res.status(403).json({ error: 'Forbidden: you do not own this video' });
+  }
+
   try {
     await deleteFromStorage(fileKey);
+    deleteUserVideo(req.user.id, fileKey);
     res.json({ success: true });
   } catch (err) {
     console.error('Delete error:', err);
@@ -312,7 +316,7 @@ app.delete('/api/videos/*', async (req, res) => {
   }
 });
 
-app.post('/upload-background', uploadLimiter, uploadBackground.single('backgroundFile'), async (req, res) => {
+app.post('/upload-background', authenticateToken, uploadLimiter, uploadBackground.single('backgroundFile'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
 
   const localPath = req.file.path.split(path.sep).join('/');
@@ -329,7 +333,7 @@ app.post('/upload-background', uploadLimiter, uploadBackground.single('backgroun
   }
 });
 
-app.post('/upload-audio', uploadLimiter, uploadAudio.single('audio'), async (req, res) => {
+app.post('/upload-audio', authenticateToken, uploadLimiter, uploadAudio.single('audio'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No audio uploaded.' });
 
   const localPath = req.file.path.split(path.sep).join('/');
