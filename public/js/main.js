@@ -76,6 +76,7 @@ async function pollJobStatus(jobId) {
   }, 2000);
 }
 window.pollJobStatus = pollJobStatus;
+window.loadVideos = loadVideos;
 
 
 async function getVerseText(surahNumber, startVerse, endVerse) {

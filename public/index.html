@@ -320,6 +320,9 @@
       if (current) previousPage = from || current.id;
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       setTimeout(() => document.getElementById(pageId).classList.add('active'), 150);
+      if (pageId === 'gallery' && typeof window.loadVideos === 'function') {
+        window.loadVideos();
+      }
     };
     window.goBack = () => showPage(previousPage || 'mainMenu');
 
