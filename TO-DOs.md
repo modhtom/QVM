@@ -2,9 +2,7 @@
 
 ### High Priority:
 
-1. Fix the need for manual refreshing Galary page to see new videos.
-2. Improve the website Design.
-3. Fix unsplash image picker to make all background videos/images HALAL 100%.
+1. Fix unsplash image picker to make all background videos/images HALAL 100%.
 
 ### Medium Priority: New Features
 
