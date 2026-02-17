@@ -612,11 +612,12 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
         '114': ['fortress stone', 'shield metal', 'starry night']
     };
 
-    const surahSpecific = verseInfo && verseInfo.surahNumber && surahThemes[verseInfo.surahNumber.toString()]
-        ? surahThemes[verseInfo.surahNumber.toString()]
-        : [];
+    // const surahSpecific = verseInfo && verseInfo.surahNumber && surahThemes[verseInfo.surahNumber.toString()]
+    //     ? surahThemes[verseInfo.surahNumber.toString()]
+    //     : [];
 
-    const priority1 = surahSpecific ? [...surahSpecific] : [];
+    //const priority1 = surahSpecific ? [...surahSpecific] : [];
+    const priority1 = [];
 
     const priority2 = [];
     const baseKeywords = Array.isArray(keywords) && keywords.length
@@ -624,6 +625,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
         : [];
 
     baseKeywords.forEach(k => {
+        priority2.push(k);
         if (visualThesaurus[k]) {
             visualThesaurus[k].forEach(synonym => priority2.push(synonym));
         }
