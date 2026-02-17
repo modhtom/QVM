@@ -325,41 +325,27 @@
       }
     };
     window.goBack = () => showPage(previousPage || 'mainMenu');
-
     document.getElementById('fontSize').addEventListener('input', e => { document.getElementById('fontSizeValue').textContent = e.target.value + 'px'; });
     document.getElementById('fontSizePart').addEventListener('input', e => { document.getElementById('fontSizeValuePart').textContent = e.target.value + 'px'; });
-
     function downloadCurrentVideo() {
       const videoElement = document.getElementById('previewVideo');
-      const videoSrc = videoElement.src;
-      
-      const urlParts = videoSrc.split('/');
-      const fileNameWithQuery = urlParts[urlParts.length - 1];
-      const fileName = fileNameWithQuery.split('?')[0];
-      
-      if (!fileName) return alert('لا يمكن العثور على اسم الملف');
-
+      const vidPath = videoElement.getAttribute('data-filename');
+      if (!vidPath) return alert('لا يمكن العثور على اسم الملف');
+      const fileName = vidPath.split('/').pop();
       const a = document.createElement('a');
-      a.href = `/videos/${fileName}?download=true`;
+      a.href = `/videos/${vidPath}?download=true`;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     }
-
     function shareCurrentVideo() {
         const videoElement = document.getElementById('previewVideo');
-        const videoSrc = videoElement.src;
-        if (!videoSrc || videoSrc.includes('undefined')) {
+        const vidPath = videoElement.getAttribute('data-filename');
+        if (!vidPath) {
           return alert('لا يوجد فيديو متاح للمشاركة');
         }
-        
-        const urlParts = videoSrc.split('/');
-        const fileNameWithQuery = urlParts[urlParts.length - 1];
-        const fileName = fileNameWithQuery.split('?')[0];
-        
-        const videoUrl = window.location.origin + `/Output_Video/${fileName}`;
-
+        const videoUrl = `${window.location.origin}/videos/${vidPath}`;
         if (navigator.share) {
             navigator.share({ title: 'Quran Video', text: 'شاهد هذا الفيديو للقرآن الكريم', url: videoUrl }).catch(console.error);
         } else {
