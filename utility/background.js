@@ -411,7 +411,6 @@ function createBackgroundVideo(videoPath, len, crop) {
 async function createImageSlideshow(imagePaths, len, crop) {
     const outputPath = path.join("Data/Background_Video", `ai_slideshow_${Date.now()}.mp4`);
     const resolution = crop === 'vertical' ? '1080:1920' : '1920:1080';
-    const zoompanRes = crop === 'vertical' ? '1080x1920' : '1920x1080';
     const fps = 25;
     const targetDurationSeconds = Math.max(1, Math.ceil(len || 1));
 
@@ -424,7 +423,6 @@ async function createImageSlideshow(imagePaths, len, crop) {
                 .inputOptions(['-loop 1'])
                 .videoFilters([
                     `scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution}`,
-                    `zoompan=z='min(zoom+0.0005,1.15)':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${zoompanRes}`,
                     `setsar=1`
                 ])
                 .outputOptions([`-t ${targetDurationSeconds}`, `-r ${fps}`, `-pix_fmt yuv420p`, '-preset veryfast'])
@@ -450,7 +448,7 @@ async function createImageSlideshow(imagePaths, len, crop) {
         const outputId = `[v${i}]`;
         const frames = Math.ceil(D * fps);
         filterComplex.push(
-            `${streamId}scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution},setsar=1,zoompan=z='min(zoom+0.0005,1.15)':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${zoompanRes},format=yuv420p,fps=${fps}${outputId}`
+            `${streamId}scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution},setsar=1,format=yuv420p,fps=${fps}${outputId}`
         );
     });
 
