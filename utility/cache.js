@@ -4,8 +4,10 @@ dotenv.config();
 
 const redis = new IORedis({
     host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD || undefined,
     maxRetriesPerRequest: 3,
-    lazyConnect: true
+    lazyConnect: true,
 });
 
 redis.on('error', (err) => {
@@ -26,11 +28,11 @@ export const cache = {
         try {
             if (redis.status !== 'ready' && redis.status !== 'connect') await redis.connect();
             await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
-        } catch (e) {}
+        } catch (e) { }
     },
     async del(key) {
         try {
             await redis.del(key);
-        } catch(e) {}
+        } catch (e) { }
     }
 };

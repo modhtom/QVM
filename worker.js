@@ -2,13 +2,30 @@ import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { generatePartialVideo, generateFullVideo } from './video.js';
 import { runAutoSync } from './utility/autoSync.js';
-import { addVideo } from './utility/db.js';
+import { initDB, addVideo } from './utility/db.js';
 
-const connection = new IORedis({
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: parseInt(process.env.REDIS_PORT) || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null
+const redisOptions = {
+  maxRetriesPerRequest: null,
+  retryStrategy(times) {
+    if (times % 10 === 0) {
+      console.warn('[Redis Worker] Warning: Unable to connect to Redis. BullMQ requires Redis to function. Please ensure local Redis is running on port 6379.');
+    }
+    return Math.min(times * 1000, 10000); // Backoff up to 10 seconds between retries
+  }
+};
+
+const connection = process.env.REDIS_URL
+  ? new IORedis(process.env.REDIS_URL, { ...redisOptions, tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined })
+  : new IORedis({
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT) || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
+    ...redisOptions
+  });
+
+connection.on('error', (err) => {
+  if (err.code === 'ECONNREFUSED') return; // Suppress infinite console spam
+  console.error('[Redis Worker Error]', err);
 });
 console.log('Worker connecting to Redis...');
 
@@ -94,7 +111,7 @@ const worker = new Worker('video-queue', async (job) => {
     if (userId && result.vidPath) {
       try {
         const filename = result.vidPath.split('/').pop();
-        addVideo(userId, result.vidPath, filename);
+        await addVideo(userId, result.vidPath, filename);
         console.log(`[Worker] Video record saved for user ${userId}: ${result.vidPath}`);
       } catch (dbErr) {
         console.error(`[Worker] Failed to save video record:`, dbErr);
@@ -121,4 +138,9 @@ worker.on('failed', (job, err) => {
   console.log(`[Worker] Job ${job.id} marked as failed: ${err.message}`);
 });
 
-console.log('Video processing worker started.');
+initDB().then(() => {
+  console.log('Video processing worker started.');
+}).catch(err => {
+  console.error('[DB] Worker failed to initialize database:', err);
+  process.exit(1);
+});

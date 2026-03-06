@@ -28,6 +28,7 @@
           <button type="submit" class="action-btn create-btn" style="width: 100%;">تسجيل الدخول</button>
         </form>
         <p style="text-align: center; margin-top: 15px; font-size: 14px;">ليس لديك حساب؟ <a href="#" id="showRegister" style="color: var(--accent-color);">إنشاء حساب جديد</a></p>
+        <p style="text-align: center; margin-top: 10px; font-size: 14px;"><a href="#" id="showForgotPassword" style="color: #8b949e; text-decoration: none;">نسيت كلمة المرور؟</a></p>
       </div>
 
       <div id="registerSection" class="form-container" style="max-width: 400px; margin: 0 auto; display: none;">
@@ -42,6 +43,28 @@
         </form>
         <p style="text-align: center; margin-top: 15px; font-size: 14px;">لديك حساب بالفعل؟ <a href="#" id="showLogin" style="color: var(--accent-color);">تسجيل الدخول</a></p>
       </div>
+
+      <div id="forgotPasswordSection" class="form-container" style="max-width: 400px; margin: 0 auto; display: none;">
+        <h3 style="text-align: center; margin-bottom: 20px;">استعادة كلمة المرور</h3>
+        <p style="text-align: center; font-size: 13px; color: #8b949e; margin-bottom: 20px;">أدخل بريدك الإلكتروني ليصلك رابط إعادة التعيين</p>
+        <form id="forgotPasswordForm">
+          <div class="form-group"><label for="forgotEmail">البريد الإلكتروني</label><input type="email" id="forgotEmail" class="form-control" required></div>
+          <div id="forgotMessage" style="text-align: center; margin: 10px 0; font-size: 14px;"></div>
+          <button type="submit" class="action-btn create-btn" style="width: 100%;">إرسال الرابط</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px; font-size: 14px;"><a href="#" id="backToLoginFromForgot" style="color: var(--accent-color);">العودة إلى تسجيل الدخول</a></p>
+      </div>
+
+      <div id="resetPasswordSection" class="form-container" style="max-width: 400px; margin: 0 auto; display: none;">
+        <h3 style="text-align: center; margin-bottom: 20px;">كلمة مرور جديدة</h3>
+        <form id="resetPasswordForm">
+          <div class="form-group"><label for="newPassword">كلمة المرور الجديدة</label><input type="password" id="newPassword" class="form-control" required minlength="6"></div>
+          <div class="form-group"><label for="confirmNewPassword">تأكيد كلمة المرور</label><input type="password" id="confirmNewPassword" class="form-control" required minlength="6"></div>
+          <div id="resetMessage" style="text-align: center; margin: 10px 0; font-size: 14px;"></div>
+          <button type="submit" class="action-btn create-btn" style="width: 100%;">حفظ كلمة المرور</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px; font-size: 14px;"><a href="#" id="backToLoginFromReset" style="color: var(--accent-color);">العودة إلى تسجيل الدخول</a></p>
+      </div>
     </div>
   </div>
 
@@ -51,6 +74,7 @@
         <div id="userInfo" style="display: none; justify-content: center; align-items: center; gap: 15px; margin-bottom: 10px; font-size: 14px;">
           <span style="color: #a5d6a7;"><i class="fas fa-user" style="margin-left: 5px;"></i><span id="currentUsername"></span></span>
           <a href="#" id="logoutBtn" style="color: #ff8a80; text-decoration: none; font-size: 13px;"><i class="fas fa-sign-out-alt" style="margin-left: 3px;"></i>خروج</a>
+          <a href="#" id="deleteAccountBtn" style="color: #ff5252; text-decoration: none; font-size: 13px;"><i class="fas fa-trash-alt" style="margin-left: 3px;"></i>حذف الحساب</a>
         </div>
         <h1 class="logo">QVM</h1>
         <p class="arabic-subtitle">صانع فيديو القرآن الكريم</p>
@@ -125,9 +149,9 @@
             <div class="form-group"><label for="subtitlePositionFull">موقع النص</label><select id="subtitlePositionFull" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
             <div class="checkbox-group"><input type="checkbox" id="showMetadataFull"><label for="showMetadataFull">عرض معلومات السورة والقارئ</label></div>
             <div class="form-group"><label for="translationEditionFull">الترجمة</label><select id="translationEditionFull" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
-            <div class="form-group"><label for="pexelsVideo">خلفية من موقع unsplash</label><input type="text" id="pexelsVideo" placeholder="أدخل كلمة مفتاحية"></div>
-            <div class="form-group"><label for="imageLink">خلفية صورة</label><input type="text" id="imageLink" placeholder="أدخل رابط الصورة"></div>
-            <div class="form-group"><label for="youtubeLink">خلفية YouTube</label><input type="text" id="youtubeLink" placeholder="أدخل رابط YouTube"></div>
+            <div class="form-group"><label for="pexelsVideoFull">خلفية من موقع unsplash</label><input type="text" id="pexelsVideoFull" placeholder="أدخل كلمة مفتاحية"></div>
+            <div class="form-group"><label for="imageLinkFull">خلفية صورة</label><input type="text" id="imageLinkFull" placeholder="أدخل رابط الصورة"></div>
+            <div class="form-group"><label for="youtubeLinkFull">خلفية YouTube</label><input type="text" id="youtubeLinkFull" placeholder="أدخل رابط YouTube"></div>
             <div class="form-group"><label for="backgroundUploadFull">رفع خلفية</label><input type="file" id="backgroundUploadFull" class="form-control" accept="video/*,image/*"></div>
           </div>
           <div class="form-section">

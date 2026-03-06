@@ -31,6 +31,21 @@ export function authenticateToken(req, res, next) {
         req.user = { id: decoded.id, username: decoded.username };
         next();
     } catch (err) {
+        if (err.name === 'TokenExpiredError') {
+            const decoded = jwt.decode(token);
+            if (decoded && decoded.id && decoded.username) {
+                const newToken = jwt.sign(
+                    { id: decoded.id, username: decoded.username },
+                    JWT_SECRET,
+                    { expiresIn: '7d' }
+                );
+                res.setHeader('Access-Control-Expose-Headers', 'X-New-Token');
+                res.setHeader('X-New-Token', newToken);
+
+                req.user = { id: decoded.id, username: decoded.username };
+                return next();
+            }
+        }
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
 }

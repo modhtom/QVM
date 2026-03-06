@@ -12,6 +12,7 @@ FROM node:24-alpine
 
 ENV NODE_ENV=production
 ENV PYTHONUNBUFFERED=1
+ENV PORT=7860
 
 # Install system dependencies
 RUN apk update && apk add --no-cache \
@@ -22,6 +23,7 @@ RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
     wget \
+    redis \
     && rm -rf /var/cache/apk/*
 
 # Install PM2 globally

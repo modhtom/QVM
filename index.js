@@ -12,13 +12,14 @@ import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
 import { getSurahDataRange } from './utility/data.js';
 import authRoutes from './utility/authRoutes.js';
 import { authenticateToken } from './utility/auth.js';
-import { getUserVideos, deleteUserVideo, findVideoByKey } from './utility/db.js'
+import { initDB, getUserVideos, deleteUserVideo, findVideoByKey } from './utility/db.js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3001;
+app.set('trust proxy', 1);
+const PORT = process.env.PORT || 3001;
 const progressEmitter = new EventEmitter();
 
 const sanitizeFilename = (name) => {
@@ -85,18 +86,36 @@ const uploadAudio = multer({
   }
 });
 
-const connection = new IORedis({
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: parseInt(process.env.REDIS_PORT) || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
+const redisOptions = {
   maxRetriesPerRequest: null,
+  retryStrategy(times) {
+    if (times % 10 === 0) {
+      console.warn('[Redis] Warning: Unable to connect to Redis. BullMQ requires Redis to function. Please ensure local Redis is running on port 6379.');
+    }
+    return Math.min(times * 1000, 10000); // Backoff up to 10 seconds between retries
+  }
+};
+
+const connection = process.env.REDIS_URL
+  ? new IORedis(process.env.REDIS_URL, { ...redisOptions, tls: process.env.REDIS_URL.startsWith('rediss://') ? {} : undefined })
+  : new IORedis({
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT) || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
+    ...redisOptions
+  });
+
+connection.on('error', (err) => {
+  if (err.code === 'ECONNREFUSED') return;
+  console.error('[Redis Error]', err);
 });
+
 const videoQueue = new Queue('video-queue', { connection });
 console.log('Server connected to video-queue.');
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:3001'];
+  : ['http://localhost:3001', 'https://modhtom2-qvm.hf.space'];
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -109,7 +128,7 @@ app.use(cors({
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' }
@@ -117,13 +136,13 @@ const generalLimiter = rateLimit({
 
 const videoGenLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10,
+  max: 30,
   message: { error: 'Too many video generation requests. Please try again later.' }
 });
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
+  max: 50,
   message: { error: 'Too many upload requests. Please try again later.' }
 });
 
@@ -165,7 +184,7 @@ app.get('/progress', (req, res) => {
 
 app.get("/api/videos", authenticateToken, async (req, res) => {
   try {
-    const userVideos = getUserVideos(req.user.id);
+    const userVideos = await getUserVideos(req.user.id);
     const videos = userVideos.map(v => v.s3Key);
     res.json({ videos });
   } catch (error) {
@@ -301,14 +320,14 @@ app.delete('/api/videos/*', authenticateToken, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden: invalid file key' });
   }
 
-  const video = findVideoByKey(fileKey);
+  const video = await findVideoByKey(fileKey);
   if (!video || video.userId !== req.user.id) {
     return res.status(403).json({ error: 'Forbidden: you do not own this video' });
   }
 
   try {
     await deleteFromStorage(fileKey);
-    deleteUserVideo(req.user.id, fileKey);
+    await deleteUserVideo(req.user.id, fileKey);
     res.json({ success: true });
   } catch (err) {
     console.error('Delete error:', err);
@@ -374,6 +393,11 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+initDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error('[DB] Failed to initialize database:', err);
+  process.exit(1);
 });
