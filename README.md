@@ -76,10 +76,21 @@ Quran Video Maker is a full-stack web application that enables users to create p
 ### 9\. User Accounts & Authentication
 - **JWT Authentication:** Secure, stateless authentication using JSON Web Tokens with 7-day expiry.
 - **User Registration & Login:** Create an account with username, email, and password. Passwords are hashed with **bcrypt**.
+- **Email Verification:** Upon registration, a verification email is sent via **Resend**. Users can verify their email address to unlock full platform access.
+- **Password Reset:** Forgot your password? Request a secure, time-limited (1 hour) password reset link sent to your email.
+- **Account Deletion:** Users can permanently delete their account and all associated data from the settings.
 - **Per-User Video Galleries:** Each user's videos are stored under a unique S3 prefix (`videos/{userId}/...`) and only visible to them.
 - **Protected Routes:** All video generation, upload, and gallery endpoints require authentication.
-- **SQLite Database:** Lightweight **SQLite** database (via `better-sqlite3`) stores user credentials and video metadata with WAL mode for concurrent read performance.
+- **Turso Database:** Cloud-capable **Turso** database (via `@libsql/client`) stores user credentials, auth tokens, and video metadata. Falls back to local SQLite file if no cloud URL is configured.
 - **Multi-User Concurrency:** Multiple users can submit video generation jobs simultaneously — requests are queued and processed without blocking.
+
+---
+
+### 10\. Email Notifications
+- **Resend Integration:** Transactional emails powered by the **Resend API** (free tier: 100 emails/day).
+- **Verification Emails:** Beautifully styled HTML emails with Arabic RTL support, sent automatically on registration.
+- **Password Reset Emails:** Secure, one-time-use reset links with 1-hour expiry.
+- **Graceful Degradation:** If `RESEND_API_KEY` is not configured, the application continues to function — email features are simply disabled.
 
 ---
 
@@ -91,7 +102,8 @@ Quran Video Maker is a full-stack web application that enables users to create p
 - Redis v6+
 - Docker
 - Cloudflare R2 Bucket
-- SQLite (bundled via `better-sqlite3`, no separate installation needed)
+- Turso Database (cloud) or local SQLite file (bundled via `@libsql/client`, no separate installation needed)
+- Resend Account (optional, for email verification & password reset)
 
 ## Installation
 
@@ -101,7 +113,7 @@ The easiest and most reliable way to run this project is with Docker Compose. It
 
 1. **Install Docker and Docker Compose:** Ensure you have both installed on your system.
 
-2. **Configure Environment:** Create a `.env` file in the root directory. You **must** provide your Unsplash Key, GROQ, and R2 Storage credentials:
+2. **Configure Environment:** Create a `.env` file in the root directory (see `.env.example` for all options). You **must** provide at minimum:
 
    ```env
    UNSPLASH_ACCESS_KEY=your_key_here
@@ -113,6 +125,13 @@ The easiest and most reliable way to run this project is with Docker Compose. It
    R2_PUBLIC_URL=https://pub-<id>.r2.dev
    GROQ_API_KEY=your_key_here
    JWT_SECRET=your_strong_secret_key_here
+   # Optional: Email verification & password reset
+   RESEND_API_KEY=re_xxxxxxxxxxxx
+   EMAIL_FROM=QVM <onboarding@resend.dev>
+   APP_URL=https://your-app-url.com
+   # Optional: Cloud database (falls back to local SQLite)
+   # TURSO_DATABASE_URL=libsql://your-db.turso.io
+   # TURSO_AUTH_TOKEN=your_token
    ```
 
 3. **Run the application:** Open a terminal in the project's root directory and run a single command:
@@ -155,10 +174,11 @@ Your application will be available at `http://localhost:3001`. To stop the servi
     npm install
     ```
 
-4.  **Configure Environment:** Create a `.env` file in the root directory and add your UNSPLASH ACCESS KEY.
+4.  **Configure Environment:** Copy the example file and fill in your API keys:
 
     ```bash
-    UNSPLASH_ACCESS_KEY=your_unsplash_access_key_here
+    cp .env.example .env
+    # Edit .env with your API keys (Unsplash, R2, GROQ, JWT_SECRET, etc.)
     ```
 
 5.  **Install Fonts:**
@@ -353,9 +373,13 @@ cors
 multer
 bullmq
 ioredis
-better-sqlite3
+@libsql/client
 bcrypt
 jsonwebtoken
+express-rate-limit
+groq-sdk
+@aws-sdk/client-s3
+@aws-sdk/lib-storage
 ```
 
 ### Front-End Libraries

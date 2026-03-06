@@ -7,6 +7,7 @@
 - [Configuration](#configuration)
 - [Core Components](#core-components)
 - [Authentication & User Accounts](#authentication--user-accounts)
+- [Email System](#email-system)
 - [Database Layer](#database-layer)
 - [Caching Layer](#caching-layer)
 - [Security](#security)
@@ -34,8 +35,10 @@ Quran Video Maker (QVM) is a full-stack web application designed to create profe
 - **Cloud-Native**: Stateless architecture with Cloudflare R2 storage
 - **Queue-Based Processing**: Robust job queuing for resource-intensive video rendering
 - **User Accounts**: JWT-based authentication with per-user video galleries
+- **Email Verification**: Resend-powered email verification and password reset flows
+- **Account Management**: Password reset, email verification, and account deletion
 - **Security Hardened**: Rate limiting, CORS whitelisting, input validation, path traversal prevention
-- **SQLite Database**: Persistent user and video metadata storage with WAL mode
+- **Turso Database**: Cloud-capable Turso/libsql database with local SQLite fallback
 - **Redis Caching**: Optional caching layer for API responses with graceful degradation
 
 ## System Architecture
@@ -69,7 +72,8 @@ Quran Video Maker (QVM) is a full-stack web application designed to create profe
 - **Frontend**: HTML5, CSS3, Vanilla JavaScript (ES6 Modules)
 - **Backend**: Node.js, Express.js
 - **Authentication**: JWT (jsonwebtoken) + bcrypt password hashing
-- **Database**: SQLite (better-sqlite3) with WAL mode
+- **Email**: Resend API (transactional emails for verification & password reset)
+- **Database**: Turso/libsql (`@libsql/client`) with local SQLite fallback
 - **Queue System**: BullMQ with Redis
 - **Caching**: Redis (ioredis) with graceful degradation
 - **Cloud Storage**: Cloudflare R2 (S3-compatible)
@@ -169,9 +173,15 @@ fc-cache -fv
 | `R2_PUBLIC_URL` | Public URL for accessing stored videos | Yes | - |
 | `GROQ_API_KEY` | Groq AI API key for auto-sync | Yes | - |
 | `JWT_SECRET` | Secret key for JWT token signing | Yes | - |
+| `RESEND_API_KEY` | Resend API key for transactional emails | No | - (emails disabled if not set) |
+| `EMAIL_FROM` | Sender address for outgoing emails | No | `QVM <onboarding@resend.dev>` |
+| `APP_URL` | Public URL of the app (used in email links) | No | `http://localhost:7860` |
+| `TURSO_DATABASE_URL` | Turso cloud database URL | No | `file:Data/db/qvm.db` (local SQLite) |
+| `TURSO_AUTH_TOKEN` | Turso authentication token | No | - |
 | `REDIS_HOST` | Redis server hostname | No | 127.0.0.1 |
 | `REDIS_PORT` | Redis server port | No | 6379 |
 | `REDIS_PASSWORD` | Redis server password | No | - |
+| `REDIS_URL` | Full Redis connection URL (overrides host/port) | No | - |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins | No | http://localhost:3001 |
 | `PORT` | Express server port | No | 3001 |
 
@@ -213,6 +223,7 @@ QVM/
 │   ├── subtitle.js                # Subtitle generation
 │   ├── autoSync.js                # AI synchronization
 │   ├── storage.js                 # Cloud storage operations
+│   ├── email.js                   # Resend email integration
 │   ├── delete.js                  # Cleanup utilities
 │   └── fetchMetaData.js           # Metadata fetching script
 ├── index.js                       # Express server
@@ -395,14 +406,34 @@ Mounted at `/api/auth`:
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/auth/register` | POST | No | Create new account |
-| `/api/auth/login` | POST | No | Login, receive JWT |
+| `/api/auth/register` | POST | No | Create new account, sends verification email |
+| `/api/auth/login` | POST | No | Login, receive JWT (includes `isVerified` status) |
 | `/api/auth/me` | GET | Yes | Get current user info |
+| `/api/auth/verify-email` | GET | No | Verify email via token (from email link) |
+| `/api/auth/forgot-password` | POST | No | Request password reset email |
+| `/api/auth/reset-password` | POST | No | Reset password with valid token |
+| `/api/auth/account` | DELETE | Yes | Delete account (requires password confirmation) |
 
 **Registration Validation**:
 - Username: 3-30 chars, alphanumeric + underscores only
 - Email: Valid format, unique
 - Password: 6-128 chars, hashed with bcrypt (12 salt rounds)
+
+**Registration Flow**:
+1. User submits username, email, password
+2. Server validates input and checks for duplicates
+3. Password is hashed with bcrypt (12 rounds)
+4. User record is created in the database
+5. A verification token is generated and stored in `auth_tokens` table (24h expiry)
+6. Verification email is sent via Resend API
+7. JWT token is returned immediately (user can start using the app)
+
+**Password Reset Flow**:
+1. User submits email via `/forgot-password`
+2. Server generates a reset token (1 hour expiry) and sends email
+3. User clicks link in email, enters new password
+4. Frontend calls `/reset-password` with token + new password
+5. Password is updated and all reset tokens for user are invalidated
 
 #### Protected Routes
 The following endpoints require `authenticateToken` middleware:
@@ -412,6 +443,7 @@ The following endpoints require `authenticateToken` middleware:
 - `POST /upload-background` - Background upload
 - `GET /api/videos` - List user's videos only
 - `DELETE /api/videos/*` - Delete video (ownership verified)
+- `DELETE /api/auth/account` - Delete user account
 
 ### Frontend Auth Module (`public/js/auth.js`)
 - Token stored in `localStorage` as `qvm_auth_token`
@@ -419,13 +451,43 @@ The following endpoints require `authenticateToken` middleware:
 - `initAuthUI()` wires up login/register forms with Arabic UI labels
 - `updateAuthState()` toggles between auth page and main menu based on login status
 - `logout()` clears localStorage and reloads page
+- Password reset form with token-based flow
+- Account deletion with password confirmation
+
+## Email System
+
+### Overview
+QVM uses the **Resend API** for transactional emails. The email system is optional — if `RESEND_API_KEY` is not configured, all email functionality is gracefully disabled and the application continues to work normally.
+
+### Configuration (`utility/email.js`)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RESEND_API_KEY` | Resend API key (get one at [resend.com](https://resend.com)) | - (disabled) |
+| `EMAIL_FROM` | Sender email and display name | `QVM <onboarding@resend.dev>` |
+| `APP_URL` | Base URL for links in emails | `http://localhost:7860` |
+
+### Email Functions
+| Function | Description |
+|----------|-------------|
+| `sendVerificationEmail(toEmail, token)` | Sends an email verification link (24h expiry) |
+| `sendPasswordResetEmail(toEmail, token)` | Sends a password reset link (1h expiry) |
+| `sendEmail(to, subject, html)` | Low-level email sender via Resend HTTP API |
+
+### Email Templates
+All emails use a shared HTML template (`getEmailTemplate()`) featuring:
+- Arabic RTL support with `dir="rtl"`
+- Custom fonts (Amiri for Arabic, Inter for UI)
+- QVM branding with gradient header
+- Call-to-action button
+- Responsive design for mobile clients
 
 ## Database Layer
 
-### SQLite Configuration (`utility/db.js`)
-- **Engine**: better-sqlite3 (synchronous, non-blocking for concurrent reads)
-- **Location**: `Data/db/qvm.db`
-- **Pragmas**: `journal_mode = WAL` (concurrent reads), `foreign_keys = ON`
+### Turso/libsql Configuration (`utility/db.js`)
+- **Engine**: `@libsql/client` (async, cloud-capable)
+- **Cloud URL**: `TURSO_DATABASE_URL` environment variable (e.g., `libsql://your-db.turso.io`)
+- **Local Fallback**: `file:Data/db/qvm.db` (used when `TURSO_DATABASE_URL` is not set)
+- **Auth**: `TURSO_AUTH_TOKEN` for cloud authentication
 
 ### Schema
 ```sql
@@ -434,7 +496,18 @@ CREATE TABLE users (
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     passwordHash TEXT NOT NULL,
+    isVerified INTEGER DEFAULT 0,
     createdAt TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE auth_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    userId INTEGER NOT NULL,
+    token TEXT UNIQUE NOT NULL,
+    type TEXT NOT NULL,            -- 'verify' or 'reset'
+    expiresAt TEXT NOT NULL,
+    createdAt TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE videos (
@@ -448,6 +521,7 @@ CREATE TABLE videos (
 
 CREATE INDEX idx_videos_userId ON videos(userId);
 CREATE INDEX idx_videos_s3Key ON videos(s3Key);
+CREATE INDEX idx_auth_tokens_token ON auth_tokens(token);
 ```
 
 ### Key Functions
@@ -456,11 +530,17 @@ CREATE INDEX idx_videos_s3Key ON videos(s3Key);
 | `createUser(username, email, hash)` | Insert new user, returns `{ id, username, email }` |
 | `findUserByUsername(username)` | Lookup user by username |
 | `findUserByEmail(email)` | Lookup user by email |
-| `findUserById(id)` | Lookup user (excludes passwordHash) |
+| `findUserById(id)` | Lookup user (excludes passwordHash, includes isVerified) |
+| `createAuthToken(userId, token, type, expiresAt)` | Create a verification or reset token |
+| `findAuthToken(token, type)` | Find a valid (non-expired) auth token |
+| `deleteAuthTokensForUser(userId, type)` | Remove all tokens of a type for a user |
+| `verifyUserEmail(userId)` | Set `isVerified = 1` for a user |
+| `updateUserPassword(userId, hash)` | Update a user's password hash |
 | `addVideo(userId, s3Key, filename)` | Record a generated video |
 | `getUserVideos(userId)` | Get all videos for a user (newest first) |
 | `findVideoByKey(s3Key)` | Lookup video by S3 key |
 | `deleteUserVideo(userId, s3Key)` | Delete a video record (with ownership check) |
+| `deleteUser(userId)` | Delete user and all associated data (tokens, videos) |
 
 ### Worker Integration
 After a video job completes, `worker.js` automatically calls `addVideo()` to record the video in the database, linking it to the user who queued the job.
@@ -492,9 +572,9 @@ Three tiers of rate limiting using `express-rate-limit`:
 
 | Limiter | Window | Max Requests | Applied To |
 |---------|--------|-------------|------------|
-| General | 15 min | 100 | All routes |
-| Video Generation | 1 hour | 10 | `/generate-*-video` |
-| Upload | 15 min | 20 | Upload endpoints |
+| General | 15 min | 500 | All routes |
+| Video Generation | 1 hour | 30 | `/generate-*-video` |
+| Upload | 15 min | 50 | Upload endpoints |
 
 ### CORS Configuration
 - Origin whitelist via `ALLOWED_ORIGINS` environment variable
@@ -1102,6 +1182,9 @@ describe('Video Generation', () => {
 1. ~~**User Account System**~~ ✅ **Completed**
    - ~~Registration/login with JWT~~
    - ~~Personal video galleries~~
+   - ~~Email verification~~ ✅
+   - ~~Password reset~~ ✅
+   - ~~Account deletion~~ ✅
    - User preferences storage
 
 2. **Code Refactoring**
@@ -1149,6 +1232,7 @@ describe('Video Generation', () => {
 1. ~~**Security Enhancements**~~ ✅ **Completed**
    - ~~Input validation and sanitization~~
    - ~~Rate limiting on upload endpoints~~
+   - ~~Email verification for new accounts~~ ✅
    - HTTPS enforcement in production
    - Security headers implementation
 
@@ -1194,7 +1278,7 @@ describe('Video Generation', () => {
 
 ---
 
-*Last Updated: 14 February 2026*
-*Version: 2.0*
+*Last Updated: 6 March 2026*
+*Version: 3.0*
 *Documentation Maintainer: [MODHTOM](https://github.com/modhtom)*
 *For issues or contributions, see [GitHub Repository](https://github.com/modhtom/QVM/blob/main/TO-DOs.md)*
