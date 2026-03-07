@@ -526,10 +526,34 @@ async function getEndVerse(surahNumber, retries = 3) {
 
 async function downloadFile(url, dest) {
   const writer = fs.createWriteStream(dest);
-  const response = await axios({ url, method: 'GET', responseType: 'stream' });
+  const response = await axios({
+    url,
+    method: 'GET',
+    responseType: 'stream',
+    timeout: 300000, // 5 minute timeout for large files
+  });
+  const totalLength = parseInt(response.headers['content-length'] || '0');
+  let downloaded = 0;
+  let lastLoggedMB = 0;
+  response.data.on('data', (chunk) => {
+    downloaded += chunk.length;
+    const currentMB = Math.floor(downloaded / (1024 * 1024));
+    if (currentMB > lastLoggedMB) {
+      lastLoggedMB = currentMB;
+      if (totalLength > 0) {
+        const pct = ((downloaded / totalLength) * 100).toFixed(1);
+        console.log(`[Download] ${pct}% (${currentMB}MB / ${(totalLength / 1024 / 1024).toFixed(1)}MB)`);
+      } else {
+        console.log(`[Download] ${currentMB}MB downloaded...`);
+      }
+    }
+  });
   response.data.pipe(writer);
   return new Promise((resolve, reject) => {
-    writer.on('finish', resolve);
+    writer.on('finish', () => {
+      console.log(`[Download] Complete: ${(downloaded / 1024 / 1024).toFixed(1)}MB`);
+      resolve();
+    });
     writer.on('error', reject);
   });
 }

@@ -6,6 +6,8 @@ import * as mm from "music-metadata";
 import { cache } from "./cache.js";
 import { PassThrough } from "stream";
 
+const AUDIO_BATCH_SIZE = 10;
+
 const audioCacheDir = path.resolve("Data/audio/cache");
 if (!fs.existsSync(audioCacheDir)) {
     fs.mkdirSync(audioCacheDir, { recursive: true });
@@ -49,11 +51,11 @@ async function getOrFetchAudio(surah, verse, edition) {
 
         if (!buffer) {
             const url = `http://api.alquran.cloud/v1/ayah/${surah}:${verse}/${edition}`;
-            const res = await axios.get(url);
+            const res = await axios.get(url, { timeout: 15000 });
             const audioUrl = res.data?.data?.audio;
             
             if (audioUrl) {
-                const audioRes = await axios.get(audioUrl, { responseType: 'arraybuffer' });
+                const audioRes = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 15000 });
                 buffer = Buffer.from(audioRes.data);
                 await cacheAudio(edition, surah, verse, buffer);
             }
@@ -134,9 +136,40 @@ export async function getSurahDataRange(
         if (fullTextObj.ayahs[idx]) combinedText += fullTextObj.ayahs[idx].text + "\n";
         if (fullTransObj && fullTransObj.ayahs[idx]) combinedTranslation += fullTransObj.ayahs[idx].text + "\n";
         if (fullTranslitObj && fullTranslitObj.ayahs[idx]) combinedTransliteration += fullTranslitObj.ayahs[idx].text + "\n";
+    }
+    
+    if (!textOnly && reciterEdition) {
+        const totalVerses = endVerse - startVerse + 1;
+        console.log(`[Audio] Fetching ${totalVerses} verses in batches of ${AUDIO_BATCH_SIZE}...`);
+        const audioResults = new Array(totalVerses).fill(null);
 
-        if (!textOnly && reciterEdition) {
-            const verseAudio = await getOrFetchAudio(surahNumber, v, reciterEdition);
+        for (let i = 0; i < totalVerses; i += AUDIO_BATCH_SIZE) {
+            const batchEnd = Math.min(i + AUDIO_BATCH_SIZE, totalVerses);
+            const batchNum = Math.floor(i / AUDIO_BATCH_SIZE) + 1;
+            const totalBatches = Math.ceil(totalVerses / AUDIO_BATCH_SIZE);
+            console.log(`[Audio] Batch ${batchNum}/${totalBatches} (verses ${startVerse + i}-${startVerse + batchEnd - 1})`);
+
+            const batchPromises = [];
+            for (let j = i; j < batchEnd; j++) {
+                const v = startVerse + j;
+                batchPromises.push(
+                    getOrFetchAudio(surahNumber, v, reciterEdition)
+                        .then(result => ({ index: j, verse: v, result }))
+                        .catch(err => {
+                            console.warn(`[Audio] Failed verse ${v}: ${err.message}`);
+                            return { index: j, verse: v, result: null };
+                        })
+                );
+            }
+            const results = await Promise.all(batchPromises);
+            results.forEach(({ index, result }) => {
+                audioResults[index] = result;
+            });
+        }
+
+        for (let i = 0; i < totalVerses; i++) {
+            const v = startVerse + i;
+            const verseAudio = audioResults[i];
             if (verseAudio && verseAudio.buffer) {
                 audioBuffers.push({ verse: v, audio: verseAudio.buffer });
                 durationPerAyah.push(verseAudio.duration);
@@ -144,6 +177,7 @@ export async function getSurahDataRange(
                 durationPerAyah.push(0);
             }
         }
+        console.log(`[Audio] All ${totalVerses} verses fetched.`);
     }
 
     return {

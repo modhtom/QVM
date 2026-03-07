@@ -40,7 +40,7 @@ export const S3_CONFIG = {
 
 export const VIDEO_DEFAULTS = {
     FONT_POSITION: '1920,1080',
-    API_TIMEOUT: 10000,
+    API_TIMEOUT: 30000,
     DEFAULT_COLOR: '#ffffff',
     DEFAULT_CROP: 'vertical',
     DEFAULT_FONT: 'TaseesRegular',

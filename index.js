@@ -1,4 +1,5 @@
 import express from "express";
+import axios from "axios";
 import fs from "fs";
 import path from "path";
 import { EventEmitter } from 'events';
@@ -301,7 +302,7 @@ app.get('/api/surah-verses-text', async (req, res) => {
   }
 });
 
-app.get("/videos/*", (req, res) => {
+app.get("/videos/*", async (req, res) => {
   const fileKey = req.params[0];
   if (!fileKey || fileKey.includes('..') || fileKey.startsWith('/') || fileKey.startsWith('http')) {
     return res.status(400).json({ error: 'Invalid file key' });
@@ -310,7 +311,39 @@ app.get("/videos/*", (req, res) => {
     return res.status(500).json({ error: 'Storage not configured' });
   }
   const publicUrl = `${process.env.R2_PUBLIC_URL}/${encodeURI(fileKey)}`;
-  res.redirect(publicUrl);
+  try {
+    const proxyHeaders = {};
+    if (req.headers.range) {
+      proxyHeaders.Range = req.headers.range;
+    }
+
+    const r2Response = await axios.get(publicUrl, {
+      responseType: 'stream',
+      headers: proxyHeaders,
+      validateStatus: (status) => status < 500,
+    });
+
+    const fwd = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
+    fwd.forEach(h => {
+      if (r2Response.headers[h]) res.setHeader(h, r2Response.headers[h]);
+    });
+
+    if (!res.getHeader('content-type')) {
+      res.setHeader('Content-Type', 'video/mp4');
+    }
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    if (req.query.download) {
+      const filename = fileKey.split('/').pop();
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    }
+
+    res.status(r2Response.status);
+    r2Response.data.pipe(res);
+  } catch (err) {
+    console.error('Video proxy error:', err.message);
+    res.status(502).json({ error: 'Failed to load video' });
+  }
 });
 
 app.delete('/api/videos/*', authenticateToken, async (req, res) => {

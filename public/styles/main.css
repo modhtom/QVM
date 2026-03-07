@@ -511,6 +511,8 @@ body {
     height: auto;
     max-height: 70vh;
     display: block;
+    position: relative;
+    z-index: 2;
 }
 
 .video-frame::before {
@@ -520,6 +522,8 @@ body {
     height: 100%;
     background-size: cover;
     opacity: 0.7;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .quran-text {
@@ -605,6 +609,8 @@ body {
     width: 100%;
     height: auto;
     display: block;
+    position: relative;
+    z-index: 2;
 }
 
 .gallery-preview::before {
@@ -614,6 +620,8 @@ body {
     height: 100%;
     background-size: cover;
     opacity: 0.7;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .gallery-actions {
@@ -874,6 +882,136 @@ body {
     background-color: var(--accent-color);
     border-radius: 5px;
     transition: width 0.1s linear;
+}
+
+/* Share Modal Overlay */
+.share-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.share-modal-overlay .share-modal {
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.share-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    gap: 8px;
+}
+
+.share-option:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-medium);
+    border-color: var(--primary-color);
+}
+
+.share-option i {
+    font-size: 2rem;
+}
+
+.share-option span {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Social button platform colors */
+.social-btn.telegram {
+    background: #0088cc;
+}
+
+.social-btn.twitter {
+    background: #000000;
+}
+
+.social-btn.facebook {
+    background: #1877f2;
+}
+
+.social-btn.copy-link {
+    background: var(--primary-color);
+}
+
+/* Toast Notification */
+.toast-notification {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--gradient-primary);
+    color: white;
+    padding: 14px 28px;
+    border-radius: 50px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 8px 25px rgba(26, 77, 58, 0.3);
+    z-index: 3000;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Gallery content layout */
+.gallery-content {
+    padding: 15px;
+}
+
+.gallery-title {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
 }
 
 /* Tablets and small screens */
@@ -1276,5 +1414,23 @@ body {
     .share-option i {
         font-size: 1.8rem;
         margin-bottom: 6px;
+    }
+
+    /* Toast */
+    .toast-notification {
+        bottom: 20px;
+        padding: 10px 20px;
+        font-size: 0.85rem;
+    }
+
+    /* Share modal overlay */
+    .share-modal-overlay .share-modal {
+        width: 95%;
+        margin: 0 auto;
+    }
+
+    .share-platforms {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
     }
 }
