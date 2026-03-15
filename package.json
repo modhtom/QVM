@@ -29,7 +29,7 @@
     "ioredis": "^5.7.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
-    "music-metadata": "^10.6.2",
+    "music-metadata": "^11.12.3",
     "node-cache": "^5.1.2",
     "nodemailer": "^8.0.1",
     "pm2": "^5.4.2",
