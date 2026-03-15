@@ -101,6 +101,14 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ---
 
+### 12\. Analytics & Monitoring (Admin Panel)
+- **Structured Logging**: Uses `winston` for robust, central application and error JSON logging (stored in `Data/logs/`).
+- **Performance Metrics**: In-memory tracking of total requests, successful/failed jobs, and average server processing time.
+- **Webhook Notifications**: Can be configured via `WEBHOOK_URL` in `.env` to broadcast real-time events (`SERVER_STARTED`, `API_ERROR`, `JOB_COMPLETED`, etc.) to external integrations (e.g. Discord, Slack, Zapier).
+- **Admin Dashboard**: A secure web panel (`/admin.html`) protected by Basic Auth to visualize live system metrics and view the streaming event/error logs directly.
+
+---
+
 ## System Requirements
 
 - Node.js v16+
@@ -132,6 +140,9 @@ The easiest and most reliable way to run this project is with Docker Compose. It
    R2_PUBLIC_URL=https://pub-<id>.r2.dev
    GROQ_API_KEY=your_key_here
    JWT_SECRET=your_strong_secret_key_here
+   ADMIN_USERNAME=your_admin_username
+   ADMIN_PASSWORD=your_admin_password
+   WEBHOOK_URL=your_webhook_url_here
    # Optional: Email verification & password reset
    RESEND_API_KEY=re_xxxxxxxxxxxx
    EMAIL_FROM=QVM <onboarding@resend.dev>

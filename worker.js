@@ -3,6 +3,9 @@ import IORedis from 'ioredis';
 import { generatePartialVideo, generateFullVideo } from './video.js';
 import { runAutoSync } from './utility/autoSync.js';
 import { initDB, addVideo } from './utility/db.js';
+import { logger } from './utility/logger.js';
+import { recordJobSuccess, recordJobFailure, recordError } from './utility/metrics.js';
+import { sendWebhookNotification } from './utility/webhooks.js';
 
 const redisOptions = {
   maxRetriesPerRequest: null,
@@ -30,14 +33,15 @@ connection.on('error', (err) => {
 console.log('Worker connecting to Redis...');
 
 const worker = new Worker('video-queue', async (job) => {
-  console.log(`Processing job ${job.id}:`, job.data.type);
+  logger.info(`Processing job ${job.id}: ${job.data.type}`);
+  const startTime = Date.now();
   const { type, videoData, userId } = job.data;
 
   try {
     const progressCallback = (progress) => {
       job.updateProgress(progress);
       if (progress.percent % 10 === 0 || progress.step.includes('Starting') || progress.step.includes('Complete')) {
-        console.log(`Job ${job.id}: ${progress.step} (${Math.round(progress.percent)}%)`);
+        logger.info(`Job ${job.id}: ${progress.step} (${Math.round(progress.percent)}%)`);
       }
     };
 
@@ -112,16 +116,22 @@ const worker = new Worker('video-queue', async (job) => {
       try {
         const filename = result.vidPath.split('/').pop();
         await addVideo(userId, result.vidPath, filename);
-        console.log(`[Worker] Video record saved for user ${userId}: ${result.vidPath}`);
+        logger.info(`[Worker] Video record saved for user ${userId}: ${result.vidPath}`);
       } catch (dbErr) {
-        console.error(`[Worker] Failed to save video record:`, dbErr);
+        logger.error(`[Worker] Failed to save video record: ${dbErr.message}`);
       }
     }
 
-    console.log(`Job ${job.id} completed. Output: ${result.vidPath}`);
+    const durationMs = Date.now() - startTime;
+    recordJobSuccess(durationMs);
+    logger.info(`Job ${job.id} completed in ${durationMs}ms. Output: ${result.vidPath}`);
+    sendWebhookNotification('JOB_COMPLETED', { jobId: job.id, durationMs, type });
     return result;
   } catch (error) {
-    console.error(`Job ${job.id} CRITICAL FAILURE:`, error);
+    recordJobFailure();
+    recordError();
+    logger.error(`Job ${job.id} CRITICAL FAILURE: ${error.message}\nStack: ${error.stack}`);
+    sendWebhookNotification('JOB_FAILED', { jobId: job.id, error: error.message, type });
     throw new Error(error.message || "Unknown error occurred during video processing.");
   }
 }, {
@@ -131,16 +141,16 @@ const worker = new Worker('video-queue', async (job) => {
 });
 
 worker.on('completed', (job) => {
-  console.log(`[Worker] Job ${job.id} marked as completed.`);
+  logger.info(`[Worker] Job ${job.id} marked as completed.`);
 });
 
 worker.on('failed', (job, err) => {
-  console.log(`[Worker] Job ${job.id} marked as failed: ${err.message}`);
+  logger.error(`[Worker] Job ${job.id} marked as failed: ${err.message}`);
 });
 
 initDB().then(() => {
-  console.log('Video processing worker started.');
+  logger.info('Video processing worker started.');
 }).catch(err => {
-  console.error('[DB] Worker failed to initialize database:', err);
+  logger.error(`[DB] Worker failed to initialize database: ${err.message}`);
   process.exit(1);
 });

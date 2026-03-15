@@ -14,7 +14,11 @@ import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
 import { getSurahDataRange } from './utility/data.js';
 import authRoutes from './utility/authRoutes.js';
 import { authenticateToken } from './utility/auth.js';
-import { initDB, getUserVideos, deleteUserVideo, findVideoByKey } from './utility/db.js'
+import { initDB, getUserVideos, deleteUserVideo, findVideoByKey } from './utility/db.js';
+import { logger } from './utility/logger.js';
+import { recordRequest, recordError, getMetricsSummary } from './utility/metrics.js';
+import { sendWebhookNotification } from './utility/webhooks.js';
+import adminRoutes from './utility/adminRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -168,6 +172,13 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.resolve(__dirname, "public")));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+
+app.use((req, res, next) => {
+  recordRequest(req);
+  logger.info(`Received ${req.method} ${req.url} from ${req.ip}`);
+  next();
+});
 
 app.get("/", (req, res) => {
   res.sendFile(path.resolve(__dirname, "public/index.html"));
@@ -273,9 +284,12 @@ app.get("/Output_Video/:video", (req, res) => {
 app.post("/generate-partial-video", authenticateToken, videoGenLimiter, async (req, res) => {
   try {
     const job = await videoQueue.add('process-video', { type: 'partial', videoData: req.body, userId: req.user.id });
+    logger.info(`Queued partial video job ${job.id} for user ${req.user.id}`);
     res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
-    console.error('Queue error:', error);
+    recordError();
+    logger.error(`Partial Video Queue error: ${error.message}`);
+    sendWebhookNotification('API_ERROR', { type: 'video_queue_partial', error: error.message, userId: req.user.id });
     res.status(500).json({ error: 'Failed to queue video generation.' });
   }
 });
@@ -283,9 +297,12 @@ app.post("/generate-partial-video", authenticateToken, videoGenLimiter, async (r
 app.post("/generate-full-video", authenticateToken, videoGenLimiter, async (req, res) => {
   try {
     const job = await videoQueue.add('process-video', { type: 'full', videoData: req.body, userId: req.user.id });
+    logger.info(`Queued full video job ${job.id} for user ${req.user.id}`);
     res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
-    console.error('Queue error:', error);
+    recordError();
+    logger.error(`Full Video Queue error: ${error.message}`);
+    sendWebhookNotification('API_ERROR', { type: 'video_queue_full', error: error.message, userId: req.user.id });
     res.status(500).json({ error: 'Failed to queue video generation.' });
   }
 });
@@ -429,24 +446,30 @@ app.get('/api/metadata', (req, res) => {
 });
 
 app.use((err, req, res, _next) => {
+  recordError();
   if (err instanceof multer.MulterError) {
+    logger.warn(`Upload error (${req.ip}): ${err.message}`);
     return res.status(400).json({ error: `Upload error: ${err.message}` });
   }
   if (err.message && err.message.includes('Invalid file type')) {
+    logger.warn(`Invalid file type upload attempt (${req.ip}): ${err.message}`);
     return res.status(400).json({ error: err.message });
   }
   if (err.message === 'Not allowed by CORS') {
+    logger.warn(`CORS rejection for origin check`);
     return res.status(403).json({ error: 'CORS: Origin not allowed' });
   }
-  console.error('Unhandled error:', err);
+  logger.error(`Unhandled Request Error: ${err.message}\nStack: ${err.stack}`);
+  sendWebhookNotification('GLOBAL_ERROR', { path: req.path, error: err.message });
   res.status(500).json({ error: 'Internal server error' });
 });
 
 initDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    logger.info(`Server running on http://localhost:${PORT}`);
+    sendWebhookNotification('SERVER_STARTED', { port: PORT, env: process.env.NODE_ENV });
   });
 }).catch(err => {
-  console.error('[DB] Failed to initialize database:', err);
+  logger.error(`[DB] Failed to initialize database: ${err.message}`);
   process.exit(1);
 });
