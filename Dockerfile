@@ -60,6 +60,7 @@ RUN mkdir -p \
     Data/Background_Video/uploads \
     Data/Font \
     Data/db \
+    Data/logs \
     Output_Video
 
 RUN chown -R node:node /app

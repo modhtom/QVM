@@ -10,7 +10,7 @@
 ```bash
 # 1. Copy and configure environment variables
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your API keys, ADMIN_USERNAME, ADMIN_PASSWORD, and WEBHOOK_URL.
 
 # 2. Build and start
 docker compose up --build -d
@@ -40,6 +40,7 @@ The `qvm-app` container includes:
 |----------------|----------------------|-----------------------------|
 | `output_video` | `/app/Output_Video`  | Generated video output      |
 | `redis_data`   | `/data`              | Redis persistence           |
+| `logs_data`    | `/app/Data/logs`     | Winston JSON application logs|
 
 Host-mounted (read-only):
 - `Data/Font/` → Custom `.ttf` fonts

@@ -7,6 +7,7 @@ services:
     volumes:
       - output_video:/app/Output_Video
       - sqlite_data:/app/Data/db
+      - logs_data:/app/Data/logs
       - ./Data/Font:/app/Data/Font:ro
       - ./Data/metadata.json:/app/Data/metadata.json:ro
     env_file:
@@ -15,6 +16,9 @@ services:
       - NODE_ENV=production
       - REDIS_HOST=redis
       - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme}
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     depends_on:
       redis:
         condition: service_healthy
@@ -44,4 +48,6 @@ volumes:
   sqlite_data:
     driver: local
   redis_data:
+    driver: local
+  logs_data:
     driver: local
