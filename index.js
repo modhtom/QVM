@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import cors from "cors";
 import multer from "multer";
 import rateLimit from 'express-rate-limit';
+import helmet from "helmet";
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
@@ -125,6 +126,21 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   }
+}));
+
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      return res.redirect(`https://${req.header('host')}${req.url}`);
+    }
+    next();
+  });
+}
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 const generalLimiter = rateLimit({

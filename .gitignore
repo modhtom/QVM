@@ -9,3 +9,4 @@ Output_Video/*
 .env
 Data/temp_images/*
 Data/db/*
+Data/logs/*

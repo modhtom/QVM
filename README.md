@@ -94,6 +94,13 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ---
 
+### 11\. Security & Production Readiness
+- **HTTPS Enforcement**: Automatically redirects HTTP to HTTPS in production environments based on the `x-forwarded-proto` header.
+- **Security Headers**: Utilizes **Helmet** to set appropriate HTTP security headers, protecting against well-known web vulnerabilities while maintaining cross-origin functionally for media assets.
+- **Media Path Fix**: Ensures that custom user-uploaded background medias (stored in remote Cloudflare R2) are correctly downloaded and processed by the worker service before rendering.
+
+---
+
 ## System Requirements
 
 - Node.js v16+

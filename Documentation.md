@@ -1233,8 +1233,8 @@ describe('Video Generation', () => {
    - ~~Input validation and sanitization~~
    - ~~Rate limiting on upload endpoints~~
    - ~~Email verification for new accounts~~ ✅
-   - HTTPS enforcement in production
-   - Security headers implementation
+   - ~~HTTPS enforcement in production~~
+   - ~~Security headers implementation~~
 
 2. **Monitoring & Logging**
    - Structured logging with Winston

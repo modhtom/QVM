@@ -5,6 +5,7 @@ import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { getSurahDataRange } from "./data.js";
+import { downloadFromStorage } from "./storage.js";
 
 dotenv.config();
 
@@ -76,10 +77,22 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
     if (!len || isNaN(len)) len = Math.ceil(len) || 0;
 
     if (newBackground) {
+        if (typeof videoNumber === 'string' && videoNumber.startsWith('uploads/')) {
+            console.log(`Downloading cloud background: ${videoNumber}`);
+            const tempDir = path.resolve("Data/temp");
+            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+            
+            const localFileName = path.basename(videoNumber);
+            const localPath = path.join(tempDir, `bg_${Date.now()}_${localFileName}`);
+            
+            await downloadFromStorage(videoNumber, localPath);
+            videoNumber = localPath;
+        }
+
         if (typeof videoNumber === 'string' && fs.existsSync(videoNumber)) {
             console.log(`Using local uploaded file: ${videoNumber}`);
             const fileExtension = path.extname(videoNumber).toLowerCase();
-            if (['.jpg', '.jpeg', '.png'].includes(fileExtension)) {
+            if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(fileExtension)) {
                 return await createBackgroundFromImage(videoNumber, len, crop);
             } else {
                 return await createBackgroundVideo(videoNumber, len, crop);
