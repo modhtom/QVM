@@ -110,7 +110,7 @@ function alignTokens(officialTokens, aiTokens) {
         const ai = aiTokens[j - 1].norm;
         const isMatch = off === ai || stringSimilarity.compareTwoStrings(off, ai) > 0.85;
         if (isMatch) {
-            matches.push({ verseNum: officialTokens[i - 1].verseNum, start: aiTokens[j - 1].start, end: aiTokens[j - 1].end });
+            matches.push({ verseNum: officialTokens[i - 1].verseNum, wordIndex: officialTokens[i - 1].wordIndex, start: aiTokens[j - 1].start, end: aiTokens[j - 1].end });
             i--; j--;
         } else if (dp[i - 1][j] > dp[i][j - 1]) i--;
         else j--;
@@ -139,8 +139,8 @@ export async function runAutoSync(originalAudioPath, surah, startVerse, endVerse
         if (indexOffset === 1 && idx === 0) return; // Skip Header for ALIGNMENT (we inject manually later)
         
         const verseNum = idx + 1 - indexOffset; 
-        txt.trim().split(/\s+/).forEach(w => {
-            officialTokens.push({ norm: normalizeToken(w), verseNum: verseNum });
+        txt.trim().split(/\s+/).forEach((w, wIdx) => {
+            officialTokens.push({ norm: normalizeToken(w), verseNum: verseNum, wordIndex: wIdx });
         });
     });
 
@@ -204,10 +204,11 @@ export async function runAutoSync(originalAudioPath, surah, startVerse, endVerse
                 verseTimings.push({
                     verse_num: v,
                     start: vMatches[0].start,
-                    end: vMatches[vMatches.length - 1].end
+                    end: vMatches[vMatches.length - 1].end,
+                    words: vMatches
                 });
             } else {
-                verseTimings.push({ verse_num: v, start: -1, end: -1 });
+                verseTimings.push({ verse_num: v, start: -1, end: -1, words: [] });
             }
         }
 

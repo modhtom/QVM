@@ -81,10 +81,10 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
             console.log(`Downloading cloud background: ${videoNumber}`);
             const tempDir = path.resolve("Data/temp");
             if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-            
+
             const localFileName = path.basename(videoNumber);
             const localPath = path.join(tempDir, `bg_${Date.now()}_${localFileName}`);
-            
+
             await downloadFromStorage(videoNumber, localPath);
             videoNumber = localPath;
         }
@@ -110,8 +110,24 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
             }
         }
 
-        if (typeof videoNumber === 'string' && (videoNumber.endsWith('.jpg') || videoNumber.endsWith('.png') || videoNumber.endsWith('.jpeg'))) {
-            return await createBackgroundFromImage(videoNumber, len, crop);
+        if (typeof videoNumber === 'string' && isImageUrl(videoNumber)) {
+            let imagePath = videoNumber;
+            let isTemp = false;
+            if (videoNumber.startsWith('http')) {
+                console.log(`Downloading external image background: ${videoNumber}`);
+                try {
+                    imagePath = await downloadExternalImage(videoNumber);
+                    isTemp = true;
+                } catch (err) {
+                    console.error("Error downloading external image:", err.message);
+                    throw new Error("Failed to download custom background image URL.");
+                }
+            }
+            const result = await createBackgroundFromImage(imagePath, len, crop);
+            if (isTemp) {
+                try { if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath); } catch (e) { }
+            }
+            return result;
         }
         else {
             const url = videoNumber;
@@ -120,7 +136,7 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
                 return await createBackgroundVideo(downloadedPath, len, crop);
             } catch (error) {
                 console.error("Error downloading video:", error.message);
-                throw new Error("Failed to download and process custom background video.");
+                throw new Error("Failed to download and process custom background video. If you provided an image URL, ensure it is a direct link.");
             }
         }
     } else {
@@ -509,4 +525,35 @@ function shuffleArray(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
+}
+
+function isImageUrl(url) {
+    if (typeof url !== 'string') return false;
+    const imageExtensions = /\.(jpg|jpeg|png|webp|gif|bmp|tiff|jfif|avif)(\?.*)?$/i;
+    if (imageExtensions.test(url)) return true;
+    if (url.includes('images.unsplash.com')) return true;
+    return false;
+}
+
+async function downloadExternalImage(url) {
+    const tempDir = path.resolve("Data/temp");
+    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
+    const fileName = `ext_bg_${Date.now()}.jpg`;
+    const localPath = path.join(tempDir, fileName);
+
+    const writer = fs.createWriteStream(localPath);
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream',
+        timeout: 15000
+    });
+
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+        writer.on('finish', () => resolve(localPath));
+        writer.on('error', reject);
+    });
 }

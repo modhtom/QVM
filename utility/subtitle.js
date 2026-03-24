@@ -4,6 +4,19 @@ import * as mm from "music-metadata";
 
 const MAX_CHARS_PER_LINE = 70;
 
+function splitTextIntoNChunks(text, n) {
+    if (!text) return [];
+    if (n <= 1) return [text];
+    const words = text.split(' ');
+    const chunks = [];
+    const wordsPerChunk = Math.ceil(words.length / n);
+    for (let i = 0; i < n; i++) {
+        chunks.push(words.slice(i * wordsPerChunk, (i + 1) * wordsPerChunk).join(' '));
+    }
+    while (chunks.length < n) chunks.push("");
+    return chunks;
+}
+
 function splitTextIntoChunks(text, maxLength) {
     if (!text) return [];
     const words = text.split(' ');
@@ -92,12 +105,50 @@ export async function generateSubtitles(
                     if (end > audioLen) end = audioLen;
                     
                     if (end > start) {
-                        const wrappedMain = splitTextIntoChunks(textContent[i], MAX_CHARS_PER_LINE).join("\\N");
-                        const wrappedTranslit = splitTextIntoChunks(translitContent[i] || "", MAX_CHARS_PER_LINE).join("\\N");
-                        const wrappedTrans = splitTextIntoChunks(transContent[i] || "", MAX_CHARS_PER_LINE).join("\\N");
+                        const arabicChunks = splitTextIntoChunks(textContent[i], MAX_CHARS_PER_LINE);
+                        const n = arabicChunks.length;
+                        const translitChunks = splitTextIntoNChunks(translitContent[i] || "", n);
+                        const transChunks = splitTextIntoNChunks(transContent[i] || "", n);
 
-                        const line = buildFullLine(wrappedMain, wrappedTranslit, wrappedTrans, color, fontName, size, alignment);
-                        subtitles += `Dialogue: 0,${formatTime(start)},${formatTime(end)},Default,,0,0,0,,${line}\n`;
+                        let currentWordIndex = 0;
+                        const totalWords = textContent[i].split(' ').length;
+
+                        for (let c = 0; c < n; c++) {
+                            const chunkWordCount = arabicChunks[c].split(' ').filter(Boolean).length;
+                            if (chunkWordCount === 0) continue;
+
+                            const startWordIndex = currentWordIndex;
+                            const endWordIndex = currentWordIndex + chunkWordCount - 1;
+
+                            let chunkStart = start;
+                            let chunkEnd = end;
+
+                            if (timing.words && timing.words.length > 0) {
+                                const propStart = start + (end - start) * (startWordIndex / totalWords);
+                                const propEnd = start + (end - start) * ((endWordIndex + 1) / totalWords);
+
+                                const startMatch = timing.words.find(w => w.wordIndex === startWordIndex);
+                                const endMatch = timing.words.find(w => w.wordIndex === endWordIndex);
+
+                                chunkStart = startMatch ? Math.max(0, startMatch.start - startTimeOffset) : propStart;
+                                chunkEnd = endMatch ? Math.max(0, endMatch.end - startTimeOffset) : propEnd;
+
+                                if (chunkStart < start) chunkStart = start;
+                                if (chunkEnd > end) chunkEnd = end;
+                            } else {
+                                const ratioStart = startWordIndex / totalWords;
+                                const ratioEnd = (endWordIndex + 1) / totalWords;
+                                chunkStart = start + (end - start) * ratioStart;
+                                chunkEnd = start + (end - start) * ratioEnd;
+                            }
+
+                            if (chunkStart >= chunkEnd) chunkEnd = chunkStart + 0.1;
+
+                            const line = buildFullLine(arabicChunks[c], translitChunks[c], transChunks[c], color, fontName, size, alignment);
+                            subtitles += `Dialogue: 0,${formatTime(chunkStart)},${formatTime(chunkEnd)},Default,,0,0,0,,${line}\n`;
+
+                            currentWordIndex += chunkWordCount;
+                        }
                     }
                 } else {
                     console.log(`[Subtitles] Skipping text line ${i} (Verse ${currentVerseNum}) - No timing found.`);
@@ -109,9 +160,19 @@ export async function generateSubtitles(
             for (let i = 0; i < textContent.length; i++) {
                 const start = i * durPerVerse;
                 const end = (i + 1) * durPerVerse;
-                const wrappedMain = splitTextIntoChunks(textContent[i], MAX_CHARS_PER_LINE).join("\\N");
-                const line = buildFullLine(wrappedMain, translitContent[i], transContent[i], color, fontName, size, alignment);
-                subtitles += `Dialogue: 0,${formatTime(start)},${formatTime(end)},Default,,0,0,0,,${line}\n`;
+                
+                const arabicChunks = splitTextIntoChunks(textContent[i], MAX_CHARS_PER_LINE);
+                const n = arabicChunks.length;
+                const translitChunks = splitTextIntoNChunks(translitContent[i] || "", n);
+                const transChunks = splitTextIntoNChunks(transContent[i] || "", n);
+
+                const durPerChunk = (end - start) / n;
+                for (let c = 0; c < n; c++) {
+                    const chunkStart = start + (c * durPerChunk);
+                    const chunkEnd = chunkStart + durPerChunk;
+                    const line = buildFullLine(arabicChunks[c], translitChunks[c], transChunks[c], color, fontName, size, alignment);
+                    subtitles += `Dialogue: 0,${formatTime(chunkStart)},${formatTime(chunkEnd)},Default,,0,0,0,,${line}\n`;
+                }
             }
         }
 
