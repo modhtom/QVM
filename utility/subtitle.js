@@ -4,7 +4,7 @@ import * as mm from "music-metadata";
 
 const MAX_CHARS_PER_LINE = 70;
 
-function splitTextIntoNChunks(text, n) {
+export function splitTextIntoNChunks(text, n) {
     if (!text) return [];
     if (n <= 1) return [text];
     const words = text.split(' ');
@@ -17,7 +17,7 @@ function splitTextIntoNChunks(text, n) {
     return chunks;
 }
 
-function splitTextIntoChunks(text, maxLength) {
+export function splitTextIntoChunks(text, maxLength) {
     if (!text) return [];
     const words = text.split(' ');
     const chunks = [];
@@ -31,7 +31,7 @@ function splitTextIntoChunks(text, maxLength) {
     return chunks;
 }
 
-function buildFullLine(mainText, transliterationText, translationText, color, fontName, size, alignment) {
+export function buildFullLine(mainText, transliterationText, translationText, color, fontName, size, alignment) {
     const safeFont = fontName || "Arial";
     let line = `{\\an${alignment}\\c${color}\\q1\\bord2\\fn${safeFont}}${mainText || ''}`;
     if (transliterationText) line += `\\N{\\fs${Math.round(size * 5)}}${transliterationText}`;
@@ -39,7 +39,7 @@ function buildFullLine(mainText, transliterationText, translationText, color, fo
     return line;
 }
 
-function formatTime(seconds) {
+export function formatTime(seconds) {
     if (isNaN(seconds) || seconds < 0) seconds = 0;
     const totalMs = Math.floor(seconds * 1000);
     const ms = totalMs % 1000;

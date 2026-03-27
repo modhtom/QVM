@@ -27,7 +27,7 @@ async function cacheAudio(reciterEdition, surahNumber, verseNumber, buffer) {
     fs.writeFileSync(audioFile, buffer);
 }
 
-async function fetchFullSurahData(surahNumber, edition) {
+export async function fetchFullSurahData(surahNumber, edition) {
     const cacheKey = `surah:${surahNumber}:edition:${edition}`;
     const cached = await cache.get(cacheKey);
     if (cached) return cached;
