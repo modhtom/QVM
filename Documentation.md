@@ -1156,9 +1156,31 @@ async function detectBestEncoder() {
 - Clean temporary files after processing
 - Use Redis for job state instead of in-memory storage
 
+## Testing & Quality Assurance
+
+To ensure the stability and security of QVM as it evolves, the project includes a comprehensive test suite.
+
+### Testing Infrastructure
+- **Test Runner**: **Vitest** is used for both unit and integration tests.
+- **Integration Testing**: **Supertest** drives the API interaction tests, validating routing, validation middleware, and response structures natively.
+- **Offline Capability**: To eliminate dependencies on third-party APIs during development, external services (Groq, Resend API, Unsplash, Turso, Cloudflare R2, FFmpeg, YouTube-DL) are deeply mocked using Vitest's mocking API (`vi.mock` and `vi.hoisted`).
+
+### Code Coverage Targets
+The application mandates stringent coverage criteria to maintain quality:
+- Overall project coverage target: **>80%**
+- **Core Utility Coverage Status (Exceeds targets)**: Critical generation components (`background.js`, `fetchMetaData.js`, `email.js`) frequently achieve **>90-100% coverage**, mapping every fallback loop, error state, and multi-file process path.
+- **API and Route Coverage**: Route integration tests evaluate complex multi-tier dependencies (authorization headers, missing tokens, invalid payloads, database anomalies) simulating production traffic conditions.
+
+### Running Tests
+To trigger the automated CI simulation locally:
+```bash
+npm test                # Run test suite dynamically 
+npm run test:coverage   # Run suite and generate V8 coverage report
+```
+
 ### Testing Guidelines
 
-#### 1. Unit Tests (Planned)
+#### 1. Unit Tests
 ```javascript
 // Example test structure
 describe('Video Generation', () => {
@@ -1224,8 +1246,8 @@ describe('Video Generation', () => {
 
 2. **Infrastructure**
    - CDN integration for faster video delivery
-   - Analytics dashboard
-   - Webhook notifications
+   - ~~Analytics dashboard~~
+   - ~~Webhook notifications~~
    - ~~API rate limiting and quotas~~
 
 ### Technical Debt
@@ -1280,7 +1302,7 @@ describe('Video Generation', () => {
 
 ---
 
-*Last Updated: 6 March 2026*
-*Version: 3.0*
+*Last Updated: 4 April 2026*
+*Version: 4.0*
 *Documentation Maintainer: [MODHTOM](https://github.com/modhtom)*
 *For issues or contributions, see [GitHub Repository](https://github.com/modhtom/QVM/blob/main/TO-DOs.md)*

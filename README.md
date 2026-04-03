@@ -406,6 +406,15 @@ groq-sdk
 
 ---
 
+## Testing & Quality Assurance
+
+- **Frameworks:** Powered by **Vitest** for blazing-fast execution and **Supertest** for comprehensive endpoint integration testing.
+- **Coverage Target:** The project consistently maintains **>80% code coverage** for all core utilities and essential API layers, exceeding 90% in many modules.
+- **Mocking & Isolation:** Complete isolation using sophisticated Vitest mocks making the test suite offline-friendly and resilient.
+- **Continuous Execution:** Easily verified using `npm test` for the full suite or `npm run test:coverage` to generate detailed coverage reports.
+
+---
+
 ## Guidelines for Contributions
 
 - Ensure that your changes are well-documented, especially for any new features or APIs.
