@@ -235,33 +235,33 @@ app.get("/video-preview/:video", (req, res) => {
   res.sendFile(filePath);
 });
 
+const imageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.resolve(__dirname, 'Data/Background_Images');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}_${sanitizeFilename(file.originalname)}`);
+  }
+});
 
-app.post('/upload-image', uploadLimiter, (req, res) => {
-  if (!req.files || !req.files.image) {
+const uploadImage = multer({
+  storage: imageStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_IMAGE_MIMES.includes(file.mimetype)) {
+      return cb(new Error('Invalid file type.'));
+    }
+    cb(null, true);
+  }
+});
+
+app.post('/upload-image', uploadLimiter, uploadImage.single("image"), (req, res) => {
+  if (!req.file) {
     return res.status(400).send('No image uploaded.');
   }
-
-  const image = req.files.image;
-  const safeName = sanitizeFilename(image.name);
-  const destDir = path.resolve(__dirname, 'Data/Background_Images');
-  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-  const imagePath = safePath(destDir, `${Date.now()}_${safeName}`);
-  if (!imagePath) {
-    return res.status(403).json({ error: 'Forbidden: invalid filename' });
-  }
-
-  if (!ALLOWED_IMAGE_MIMES.includes(image.mimetype)) {
-    return res.status(400).json({ error: 'Invalid file type. Only images are allowed.' });
-  }
-
-  image.mv(imagePath, (err) => {
-    if (err) {
-      console.error('Image upload error:', err);
-      return res.status(500).json({ error: 'Failed to save image' });
-    }
-
-    res.json({ imagePath });
-  });
+  res.json({ imagePath: req.file.path.split(path.sep).join('/') });
 });
 
 app.get("/Output_Video/:video", (req, res) => {
