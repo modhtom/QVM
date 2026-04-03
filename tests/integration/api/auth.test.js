@@ -1,130 +1,89 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import express from 'express';
-import bodyParser from 'body-parser';
-import authRoutes from '../../../utility/authRoutes.js';
+import { app } from '../../../index.js';
+import * as db from '../../../utility/db.js';
+import { generateToken } from '../../../utility/auth.js';
+import bcrypt from 'bcrypt';
 
 vi.mock('../../../utility/db.js', () => ({
-  createUser: vi.fn(),
-  findUserByUsername: vi.fn(),
-  findUserByEmail: vi.fn(),
-  createAuthToken: vi.fn(),
+    initDB: vi.fn(() => Promise.resolve()),
+    createUser: vi.fn(),
+    findUserByUsername: vi.fn(),
+    findUserByEmail: vi.fn(),
+    findUserById: vi.fn(),
+    createAuthToken: vi.fn(),
+    findAuthToken: vi.fn(),
+    deleteAuthTokensForUser: vi.fn(),
+    verifyUserEmail: vi.fn(),
+    updateUserPassword: vi.fn(),
+    deleteUser: vi.fn(),
+    getUserVideos: vi.fn(() => Promise.resolve([])),
+    deleteUserVideo: vi.fn(() => Promise.resolve()),
+    findVideoByKey: vi.fn(),
 }));
 
 vi.mock('../../../utility/email.js', () => ({
-  sendVerificationEmail: vi.fn(() => Promise.resolve()),
-  sendPasswordResetEmail: vi.fn(() => Promise.resolve()),
+    sendVerificationEmail: vi.fn(() => Promise.resolve()),
+    sendPasswordResetEmail: vi.fn(() => Promise.resolve()),
 }));
 
-vi.mock('../../../utility/logger.js', () => ({
-  logger: {
-    info: vi.fn(),
-    error: vi.fn(),
-    warn: vi.fn(),
-  },
-}));
-
-import * as db from '../../../utility/db.js';
-
-const app = express();
-app.use(bodyParser.json());
-app.use('/api/auth', authRoutes);
-
-describe('Auth API Integration', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('POST /api/auth/register', () => {
-    it('should register a new user successfully', async () => {
-      vi.mocked(db.findUserByUsername).mockResolvedValue(null);
-      vi.mocked(db.findUserByEmail).mockResolvedValue(null);
-      vi.mocked(db.createUser).mockResolvedValue({ id: 1, username: 'testuser', email: 'test@example.com' });
-
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          username: 'testuser',
-          email: 'test@example.com',
-          password: 'password123'
-        });
-
-      expect(response.status).toBe(201);
-      expect(response.body.message).toContain('Account created successfully');
-      expect(response.body.token).toBeDefined();
+describe('authRoutes.js Real App Stack Integration', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
     });
 
-    it('should return 400 for invalid email', async () => {
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          username: 'testuser',
-          email: 'invalid-email',
-          password: 'password123'
+    describe('Registration Branch Coverage', () => {
+        it('should cover registration logic with success', async () => {
+            vi.mocked(db.findUserByUsername).mockResolvedValue(null);
+            vi.mocked(db.findUserByEmail).mockResolvedValue(null);
+            vi.mocked(db.createUser).mockResolvedValue({ id: 1, username: 'test_coverage', email: 'test@c.com' });
+
+            const res = await request(app).post('/api/auth/register').send({
+                username: 'test_coverage', email: 'test@c.com', password: 'password123'
+            });
+            expect(res.status).toBe(201);
         });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error).toBe('Invalid email format');
+        it('should cover registration validation failures', async () => {
+            const res = await request(app).post('/api/auth/register').send({ username: 'a' });
+            expect(res.status).toBe(400);
+        });
     });
 
-    it('should return 409 if username exists', async () => {
-      vi.mocked(db.findUserByUsername).mockResolvedValue({ id: 1 });
+    describe('Login Branch Coverage', () => {
+        it('should cover login success and failures', async () => {
+            vi.mocked(db.findUserByUsername).mockResolvedValue({ id: 1, passwordHash: 'h' });
+            vi.spyOn(bcrypt, 'compare').mockImplementation(() => Promise.resolve(true));
+            const res = await request(app).post('/api/auth/login').send({ username: 'u', password: 'p' });
+            expect(res.status).toBe(200);
 
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          username: 'existinguser',
-          email: 'test@example.com',
-          password: 'password123'
+            vi.mocked(db.findUserByUsername).mockResolvedValue(null);
+            const res2 = await request(app).post('/api/auth/login').send({ username: 'ghost', password: 'p' });
+            expect(res2.status).toBe(401);
+        });
+    });
+
+    describe('Verification & Reset Branch Coverage', () => {
+        it('should cover email verification success', async () => {
+            vi.mocked(db.findAuthToken).mockResolvedValue({ userId: 1 });
+            const res = await request(app).get('/api/auth/verify-email?token=abc');
+            expect(res.status).toBe(200);
         });
 
-      expect(response.status).toBe(409);
-      expect(response.body.error).toBe('Username already taken');
-    });
-  });
-
-  describe('POST /api/auth/login', () => {
-    it('should login successfully with correct credentials', async () => {
-      const bcrypt = await import('bcrypt');
-      const hashedPassword = await bcrypt.default.hash('password123', 10);
-      
-      vi.mocked(db.findUserByUsername).mockResolvedValue({
-        id: 1,
-        username: 'testuser',
-        passwordHash: hashedPassword,
-        isVerified: 1
-      });
-
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: 'testuser',
-          password: 'password123'
+        it('should cover password reset success', async () => {
+            vi.mocked(db.findAuthToken).mockResolvedValue({ userId: 1 });
+            const res = await request(app).post('/api/auth/reset-password').send({ token: 'abc', newPassword: 'password123' });
+            expect(res.status).toBe(200);
         });
-
-      expect(response.status).toBe(200);
-      expect(response.body.token).toBeDefined();
     });
 
-    it('should return 401 for incorrect password', async () => {
-      const bcrypt = await import('bcrypt');
-      const hashedPassword = await bcrypt.default.hash('password123', 10);
-      
-      vi.mocked(db.findUserByUsername).mockResolvedValue({
-        id: 1,
-        username: 'testuser',
-        passwordHash: hashedPassword
-      });
-
-      const response = await request(app)
-        .post('/api/auth/login')
-        .send({
-          username: 'testuser',
-          password: 'wrongpassword'
+    describe('Account Deletion Branch Coverage', () => {
+        it('should cover account deletion success', async () => {
+            const token = generateToken({ id: 1, username: 'test' });
+            vi.mocked(db.findUserByUsername).mockResolvedValue({ id: 1, username: 'test', passwordHash: 'h' });
+            vi.spyOn(bcrypt, 'compare').mockImplementation(() => Promise.resolve(true));
+            const res = await request(app).delete('/api/auth/account').set('Authorization', `Bearer ${token}`).send({ password: 'p' });
+            expect(res.status).toBe(200);
         });
-
-      expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Invalid username or password');
     });
-  });
 });

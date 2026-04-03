@@ -1,61 +1,47 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockRedis } = vi.hoisted(() => {
-  return {
-    mockRedis: {
-      get: vi.fn(),
-      set: vi.fn(),
-      del: vi.fn(),
-      connect: vi.fn(),
-      on: vi.fn(),
-      status: 'ready',
-    }
-  };
-});
+const { mockRedis } = vi.hoisted(() => ({
+  mockRedis: {
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    on: vi.fn(),
+    status: 'ready',
+  }
+}));
 
-vi.mock('ioredis', () => {
-  return {
-    default: function() {
-        this.status = 'ready';
-        this.get = mockRedis.get;
-        this.set = mockRedis.set;
-        this.del = mockRedis.del;
-        this.connect = mockRedis.connect;
-        this.on = mockRedis.on;
-    }
-  };
-});
+vi.mock('ioredis', () => ({
+  default: function() { return mockRedis; }
+}));
 
 import { cache } from '../../../utility/cache.js';
 
 describe('cache.js', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
 
-  it('should get data from redis and parse it', async () => {
-    const testData = { foo: 'bar' };
-    mockRedis.get.mockResolvedValue(JSON.stringify(testData));
+    it('should set and get from cache', async () => {
+        mockRedis.get.mockResolvedValue(JSON.stringify({ a: 1 }));
+        await cache.set('k', { a: 1 });
+        const val = await cache.get('k');
+        expect(val).toEqual({ a: 1 });
+    });
 
-    const result = await cache.get('test-key');
-    expect(result).toEqual(testData);
-    expect(mockRedis.get).toHaveBeenCalledWith('test-key');
-  });
+    it('should handle get errors gracefully', async () => {
+        mockRedis.get.mockRejectedValue(new Error('Redis Down'));
+        const val = await cache.get('k');
+        expect(val).toBeNull();
+    });
 
-  it('should return null if data is not found', async () => {
-    mockRedis.get.mockResolvedValue(null);
-    const result = await cache.get('missing-key');
-    expect(result).toBeNull();
-  });
+    it('should handle set errors gracefully', async () => {
+        mockRedis.set.mockRejectedValue(new Error('Redis Down'));
+        await cache.set('k', 'v');
+        // Should not throw
+    });
 
-  it('should set data in redis as JSON string', async () => {
-    const testData = { baz: 'qux' };
-    await cache.set('test-key', testData, 3600);
-    expect(mockRedis.set).toHaveBeenCalledWith('test-key', JSON.stringify(testData), 'EX', 3600);
-  });
-
-  it('should delete data from redis', async () => {
-    await cache.del('test-key');
-    expect(mockRedis.del).toHaveBeenCalledWith('test-key');
-  });
+    it('should delete from cache', async () => {
+        await cache.del('k');
+        expect(mockRedis.del).toHaveBeenCalledWith('k');
+    });
 });

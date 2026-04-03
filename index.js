@@ -464,12 +464,16 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-initDB().then(() => {
-  app.listen(PORT, () => {
-    logger.info(`Server running on http://localhost:${PORT}`);
-    sendWebhookNotification('SERVER_STARTED', { port: PORT, env: process.env.NODE_ENV });
+export { app };
+
+if (process.env.NODE_ENV !== 'test') {
+  initDB().then(() => {
+    app.listen(PORT, () => {
+      logger.info(`Server running on http://localhost:${PORT}`);
+      sendWebhookNotification('SERVER_STARTED', { port: PORT, env: process.env.NODE_ENV });
+    });
+  }).catch(err => {
+    logger.error(`[DB] Failed to initialize database: ${err.message}`);
+    process.exit(1);
   });
-}).catch(err => {
-  logger.error(`[DB] Failed to initialize database: ${err.message}`);
-  process.exit(1);
-});
+}
