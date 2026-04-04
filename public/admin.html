@@ -1,189 +1,349 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QVM - Admin Panel</title>
+  <title>QVM Analytics & Insights</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg-color: #1a1a2e;
-      --card-bg: #16213e;
-      --text-color: #e0e0e0;
-      --accent-color: #0f3460;
-      --success: #4caf50;
-      --danger: #f44336;
-      --header-bg: #0f3460;
+      --bg-color: #0b0f19;
+      --card-bg: rgba(20, 25, 40, 0.6);
+      --card-border: rgba(255, 255, 255, 0.05);
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --glass-blur: blur(12px);
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Inter', sans-serif;
       margin: 0;
       padding: 0;
-      background-color: var(--bg-color);
-      color: var(--text-color);
+      background: radial-gradient(circle at top right, #111827, #0b0f19 70%);
+      color: var(--text-main);
+      min-height: 100vh;
     }
 
-    /* Login Screen */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-color);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
     #loginScreen {
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
+      background: var(--bg-color);
     }
 
     .login-box {
       background: var(--card-bg);
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      width: 300px;
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--card-border);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      width: 350px;
       text-align: center;
     }
 
+    .login-box h2 {
+      margin-top: 0;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
     .login-box input {
-      width: 90%;
-      padding: 10px;
+      width: 100%;
+      padding: 12px;
       margin: 10px 0;
-      border: 1px solid #333;
-      background: #0f3460;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.2);
       color: white;
-      border-radius: 4px;
+      border-radius: 8px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .login-box input:focus {
+      border-color: var(--accent);
     }
 
     .login-box button {
       width: 100%;
-      padding: 10px;
-      background: var(--success);
+      padding: 12px;
+      background: var(--accent);
       color: white;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
       cursor: pointer;
       font-size: 16px;
-      margin-top: 10px;
+      font-weight: 500;
+      margin-top: 15px;
+      transition: background 0.3s;
+    }
+
+    .login-box button:hover {
+      background: var(--accent-hover);
     }
 
     #loginError {
       color: var(--danger);
       font-size: 14px;
-      margin-top: 10px;
+      margin-top: 12px;
       display: none;
     }
 
-    /* Dashboard */
     #dashboard {
       display: none;
+      padding-bottom: 50px;
     }
 
     header {
-      background: var(--header-bg);
-      padding: 20px;
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--card-border);
+      padding: 20px 40px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
 
     header h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .logout-btn {
-      background: var(--danger);
-      color: white;
-      border: none;
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
       padding: 8px 16px;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
     }
 
     .container {
-      padding: 20px;
-      max-width: 1200px;
+      padding: 30px 40px;
+      max-width: 1400px;
       margin: 0 auto;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 25px;
+      font-size: 14px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
     }
 
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
       margin-bottom: 30px;
     }
 
     .metric-card {
       background: var(--card-bg);
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      backdrop-filter: var(--glass-blur);
+      padding: 25px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      transition: transform 0.2s;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
     }
 
     .metric-card h3 {
       margin: 0 0 10px 0;
-      font-size: 16px;
-      color: #888;
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .metric-card .value {
       font-size: 32px;
-      font-weight: bold;
+      font-weight: 700;
       margin: 0;
-      color: #4fc3f7;
+      color: white;
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+
+    .metric-card .sub-value {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    @media (max-width: 1024px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-container {
+      background: var(--card-bg);
+      backdrop-filter: var(--glass-blur);
+      padding: 20px;
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      position: relative;
+    }
+
+    .chart-container h3 {
+      margin: 0 0 20px 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
     }
 
     .logs-section {
       background: var(--card-bg);
-      padding: 20px;
-      border-radius: 8px;
+      backdrop-filter: var(--glass-blur);
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      overflow: hidden;
     }
 
     .logs-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--card-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
     }
 
-    .logs-header select {
-      padding: 8px;
-      background: #0f3460;
+    .logs-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .controls select {
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.3);
       color: white;
-      border: 1px solid #333;
-      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      outline: none;
+      font-family: inherit;
     }
 
     .logs-container {
-      background: #000;
-      padding: 15px;
-      border-radius: 4px;
-      height: 400px;
+      padding: 20px;
+      height: 350px;
       overflow-y: auto;
-      font-family: monospace;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
       font-size: 13px;
+      background: rgba(0, 0, 0, 0.2);
     }
 
     .log-line {
-      margin: 0 0 5px 0;
-      border-bottom: 1px solid #222;
-      padding-bottom: 5px;
-    }
-
-    .log-info {
-      color: #4caf50;
-    }
-
-    .log-error {
-      color: #f44336;
-    }
-
-    .log-warn {
-      color: #ff9800;
+      margin: 0 0 8px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      line-height: 1.4;
+      display: flex;
+      gap: 10px;
     }
 
     .log-timestamp {
-      color: #888;
-      margin-left: 10px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    .log-info {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .log-error {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    .log-warn {
+      color: var(--warning);
+      font-weight: 600;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(11, 15, 25, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 16px;
+      z-index: 5;
+      font-weight: 500;
+      display: none;
     }
   </style>
 </head>
@@ -193,72 +353,100 @@
   <!-- Login Screen -->
   <div id="loginScreen">
     <div class="login-box">
-      <h2>QVM Admin</h2>
-      <input type="text" id="adminUser" placeholder="اسم المستخدم" />
-      <input type="password" id="adminPass" placeholder="كلمة المرور" />
-      <button onclick="login()">تسجيل الدخول</button>
-      <div id="loginError">بيانات الدخول غير صحيحة</div>
+      <h2>System Authentication</h2>
+      <input type="text" id="adminUser" placeholder="Username" />
+      <input type="password" id="adminPass" placeholder="Password" />
+      <button onclick="login()">Access Dashboard</button>
+      <div id="loginError">Invalid credentials.</div>
     </div>
   </div>
 
   <!-- Dashboard Screen -->
   <div id="dashboard">
     <header>
-      <h1>لوحة تحكم النظام (Admin Panel)</h1>
-      <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
+      <h1>QVM Analytics</h1>
+      <button class="logout-btn" onclick="logout()">Disconnect</button>
     </header>
 
     <div class="container">
-      <h2>الإحصائيات (Metrics)</h2>
+
+      <div class="status-bar">
+        <div class="status-indicator" id="statusDot"></div>
+        <span id="statusText" style="color: var(--text-muted)">System Online & Polling</span>
+      </div>
+
+      <!-- Top Row Metrics -->
       <div class="metrics-grid">
         <div class="metric-card">
-          <h3>الطلبات الكلية (Requests)</h3>
-          <p class="value" id="m-reqs">0</p>
+          <h3>Total Requests</h3>
+          <p class="value" id="m-reqs">--</p>
         </div>
         <div class="metric-card">
-          <h3>إنتاج ناجح (Success)</h3>
-          <p class="value" id="m-success" style="color: var(--success)">0</p>
+          <h3>Jobs Processed</h3>
+          <p class="value" id="m-jobs">--</p>
         </div>
         <div class="metric-card">
-          <h3>إنتاج فاشل (Failed)</h3>
-          <p class="value" id="m-failed" style="color: var(--danger)">0</p>
+          <h3>Success Rate</h3>
+          <p class="value" style="color: var(--success)" id="m-success">-- <span class="sub-value">%</span></p>
         </div>
         <div class="metric-card">
-          <h3>متوسط وقت الإنتاج</h3>
-          <p class="value" id="m-avgTime">0s</p>
+          <h3>Avg Job Duration</h3>
+          <p class="value" id="m-avgTime">-- <span class="sub-value">sec</span></p>
         </div>
         <div class="metric-card">
-          <h3>الأخطاء المسجلة</h3>
-          <p class="value" id="m-errors" style="color: #ff9800">0</p>
+          <h3>Active Users</h3>
+          <p class="value" style="color: var(--accent)" id="m-users">-- <span class="sub-value">24h</span></p>
         </div>
         <div class="metric-card">
-          <h3>وقت التشغيل (Uptime)</h3>
-          <p class="value" id="m-uptime">0s</p>
+          <h3>System Errors</h3>
+          <p class="value" style="color: var(--danger)" id="m-errors">--</p>
         </div>
       </div>
 
+      <!-- Charts Row -->
+      <div class="charts-grid">
+        <div class="chart-container">
+          <div class="loading-overlay" id="load-chart1">Syncing...</div>
+          <h3>7-Day Job Processing Trend</h3>
+          <canvas id="jobTrendChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <div class="loading-overlay" id="load-chart2">Syncing...</div>
+          <h3>Popular Surahs</h3>
+          <canvas id="surahChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Logs -->
       <div class="logs-section">
         <div class="logs-header">
-          <h2>سجلات النظام (Logs)</h2>
-          <div>
+          <h2>Live System Streams</h2>
+          <div class="controls">
             <select id="logType" onchange="fetchLogs()">
-              <option value="app">سجلات التطبيق (App Logs)</option>
-              <option value="error">سجلات الأخطاء (Error Logs)</option>
+              <option value="app">Application Traces</option>
+              <option value="error">Error Exceptions</option>
             </select>
             <button onclick="fetchLogs()"
-              style="padding: 8px; background: #0f3460; color: white; border:none;border-radius:4px;cursor:pointer;">تحديث</button>
+              style="padding: 8px 12px; margin-left: 10px; background: rgba(255,255,255,0.1); color: white; border:1px solid rgba(255,255,255,0.2); border-radius:6px; cursor:pointer;">Refresh</button>
           </div>
         </div>
         <div class="logs-container" id="logsContainer">
           <!-- Logs injected here -->
         </div>
       </div>
+
     </div>
   </div>
 
   <script>
     let authHeader = '';
     let pollingInterval = null;
+
+    let jobTrendChartInstance = null;
+    let surahChartInstance = null;
+
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Inter', sans-serif";
 
     const storedAuth = sessionStorage.getItem('adminAuth');
     if (storedAuth) {
@@ -286,7 +474,7 @@
           document.getElementById('loginError').style.display = 'block';
         }
       } catch (err) {
-        document.getElementById('loginError').innerText = 'حدث خطأ في الاتصال';
+        document.getElementById('loginError').innerText = 'Connection Refused';
         document.getElementById('loginError').style.display = 'block';
       }
     }
@@ -297,36 +485,149 @@
       if (pollingInterval) clearInterval(pollingInterval);
       document.getElementById('dashboard').style.display = 'none';
       document.getElementById('loginScreen').style.display = 'flex';
+
+      if (jobTrendChartInstance) jobTrendChartInstance.destroy();
+      if (surahChartInstance) surahChartInstance.destroy();
     }
 
     function showDashboard() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
-      fetchMetrics();
-      fetchLogs();
-      pollingInterval = setInterval(() => {
-        fetchMetrics();
-        fetchLogs();
-      }, 5000); // Poll every 5 seconds
+
+      initCharts();
+      syncData();
+
+      pollingInterval = setInterval(syncData, 5000);
+    }
+
+    async function syncData() {
+      await Promise.all([
+        fetchMetrics(),
+        fetchCharts(),
+        fetchLogs()
+      ]);
     }
 
     async function fetchMetrics() {
       try {
-        const res = await fetch('/api/admin/metrics', {
-          headers: { 'Authorization': authHeader }
-        });
+        const res = await fetch('/api/admin/metrics', { headers: { 'Authorization': authHeader } });
         if (res.status === 401 || res.status === 403) return logout();
         const data = await res.json();
 
+        const totalJobs = data.totalJobs || 0;
+        const successful = data.successfulJobs || 0;
+        const rate = totalJobs > 0 ? ((successful / totalJobs) * 100).toFixed(1) : 0;
+
         document.getElementById('m-reqs').innerText = data.totalRequests || 0;
-        document.getElementById('m-success').innerText = data.successfulJobs || 0;
-        document.getElementById('m-failed').innerText = data.failedJobs || 0;
-        document.getElementById('m-avgTime').innerText = (data.averageJobTimeSeconds || 0) + 's';
+        document.getElementById('m-jobs').innerText = totalJobs;
+        document.getElementById('m-success').innerHTML = `${rate} <span class="sub-value">%</span>`;
+        document.getElementById('m-avgTime').innerText = data.averageJobTimeSeconds || 0;
+        document.getElementById('m-users').innerText = data.uniqueUsersCurrentSession || 0;
         document.getElementById('m-errors').innerText = data.errorsLogged || 0;
-        document.getElementById('m-uptime').innerText = formatUptime(data.uptimeSeconds || 0);
+
+        document.getElementById('statusDot').style.background = 'var(--success)';
+        document.getElementById('statusDot').style.boxShadow = '0 0 10px var(--success)';
+        document.getElementById('statusText').innerText = 'System Online & Syncing';
 
       } catch (e) {
-        console.error('Failed to fetch metrics:', e);
+        console.error('Metrics Error:', e);
+        document.getElementById('statusDot').style.background = 'var(--danger)';
+        document.getElementById('statusDot').style.boxShadow = '0 0 10px var(--danger)';
+        document.getElementById('statusText').innerText = 'Connection Lost';
+      }
+    }
+
+    function initCharts() {
+      const ctxTrend = document.getElementById('jobTrendChart').getContext('2d');
+      const ctxSurah = document.getElementById('surahChart').getContext('2d');
+
+      jobTrendChartInstance = new Chart(ctxTrend, {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false, color: 'rgba(255,255,255,0.05)' } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+          }
+        }
+      });
+
+      surahChartInstance = new Chart(ctxSurah, {
+        type: 'doughnut',
+        data: { labels: [], datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12 } }
+          },
+          cutout: '70%',
+          borderWidth: 0
+        }
+      });
+    }
+
+    async function fetchCharts() {
+      try {
+        const res = await fetch('/api/admin/analytics/charts', { headers: { 'Authorization': authHeader } });
+        if (res.status === 401 || res.status === 403) return logout();
+        const data = await res.json();
+
+        if (data.dailyJobs) {
+          const timeline = data.dailyJobs.reverse();
+          const labels = timeline.map(d => d.day);
+          const counts = timeline.map(d => d.count);
+          const fails = timeline.map(d => d.fails);
+
+          jobTrendChartInstance.data = {
+            labels,
+            datasets: [
+              {
+                label: 'Jobs Processed',
+                data: counts,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.4
+              },
+              {
+                label: 'Failures',
+                data: fails,
+                borderColor: '#ef4444',
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                tension: 0.4
+              }
+            ]
+          };
+          jobTrendChartInstance.update('none');
+        }
+
+        if (data.popularSurahs) {
+          const labels = data.popularSurahs.map(s => `Surah ${s.surah}`);
+          const vals = data.popularSurahs.map(s => s.count);
+
+          surahChartInstance.data = {
+            labels,
+            datasets: [{
+              data: vals,
+              backgroundColor: [
+                '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b',
+                '#6366f1', '#14b8a6', '#f43f5e', '#84cc16', '#06b6d4'
+              ],
+              borderWidth: 2,
+              borderColor: '#0b0f19'
+            }]
+          };
+          surahChartInstance.update('none');
+        }
+
+      } catch (e) {
+        console.error('Chart Data Error:', e);
       }
     }
 
@@ -340,35 +641,33 @@
         const data = await res.json();
         const container = document.getElementById('logsContainer');
 
-        container.innerHTML = '';
+        let html = '';
         if (data.logs && data.logs.length > 0) {
           data.logs.forEach(log => {
-            const p = document.createElement('p');
-            p.className = 'log-line';
-
             if (typeof log === 'object' && log.level) {
-              const levelClass = log.level === 'error' ? 'log-error' : (log.level === 'warn' ? 'log-warn' : 'log-info');
-              p.innerHTML = `<span class="log-timestamp">[${log.timestamp || ''}]</span> <span class="${levelClass}">[${log.level.toUpperCase()}]</span> ${log.message}`;
+              const lvl = log.level.toLowerCase();
+              const levelClass = lvl === 'error' ? 'log-error' : (lvl === 'warn' ? 'log-warn' : 'log-info');
+              html += `<div class="log-line">
+                  <span class="log-timestamp">${log.timestamp || new Date().toISOString()}</span>
+                  <span class="${levelClass}">[${log.level.toUpperCase()}]</span>
+                  <span class="log-msg">${log.message}</span>
+                </div>`;
             } else {
-              p.innerText = JSON.stringify(log);
+              html += `<div class="log-line"><span class="log-msg">${JSON.stringify(log)}</span></div>`;
             }
-            container.appendChild(p);
           });
-          container.scrollTop = container.scrollHeight;
         } else {
-          container.innerHTML = '<p style="color:#888;">No logs found.</p>';
+          html = '<div style="color:var(--text-muted); text-align:center; padding: 20px;">No streams available.</div>';
+        }
+
+        if (container.innerHTML !== html) {
+          container.innerHTML = html;
+          container.scrollTop = container.scrollHeight;
         }
 
       } catch (e) {
-        console.error('Failed to fetch logs:', e);
+        console.error('Logs Error:', e);
       }
-    }
-
-    function formatUptime(seconds) {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = seconds % 60;
-      return `${h}h ${m}m ${s}s`;
     }
   </script>
 </body>

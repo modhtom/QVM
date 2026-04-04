@@ -2,9 +2,9 @@ import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { generatePartialVideo, generateFullVideo } from './video.js';
 import { runAutoSync } from './utility/autoSync.js';
-import { initDB, addVideo } from './utility/db.js';
+import { initDB, addVideo, updateAnalyticsJobStats } from './utility/db.js';
 import { logger } from './utility/logger.js';
-import { recordJobSuccess, recordJobFailure, recordError } from './utility/metrics.js';
+import { recordError } from './utility/metrics.js';
 import { sendWebhookNotification } from './utility/webhooks.js';
 
 const redisOptions = {
@@ -36,6 +36,8 @@ const worker = new Worker('video-queue', async (job) => {
   logger.info(`Processing job ${job.id}: ${job.data.type}`);
   const startTime = Date.now();
   const { type, videoData, userId } = job.data;
+  
+  await updateAnalyticsJobStats(job.id, 'processing');
 
   try {
     const progressCallback = (progress) => {
@@ -123,12 +125,12 @@ const worker = new Worker('video-queue', async (job) => {
     }
 
     const durationMs = Date.now() - startTime;
-    recordJobSuccess(durationMs);
+    await updateAnalyticsJobStats(job.id, 'completed', durationMs);
     logger.info(`Job ${job.id} completed in ${durationMs}ms. Output: ${result.vidPath}`);
     sendWebhookNotification('JOB_COMPLETED', { jobId: job.id, durationMs, type });
     return result;
   } catch (error) {
-    recordJobFailure();
+    await updateAnalyticsJobStats(job.id, 'failed', null, error.message);
     recordError();
     logger.error(`Job ${job.id} CRITICAL FAILURE: ${error.message}\nStack: ${error.stack}`);
     sendWebhookNotification('JOB_FAILED', { jobId: job.id, error: error.message, type });

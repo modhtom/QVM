@@ -14,7 +14,7 @@ import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
 import { getSurahDataRange } from './utility/data.js';
 import authRoutes from './utility/authRoutes.js';
 import { authenticateToken } from './utility/auth.js';
-import { initDB, getUserVideos, deleteUserVideo, findVideoByKey } from './utility/db.js';
+import { initDB, getUserVideos, deleteUserVideo, findVideoByKey, createAnalyticsJob } from './utility/db.js';
 import { logger } from './utility/logger.js';
 import { recordRequest, recordError, getMetricsSummary } from './utility/metrics.js';
 import { sendWebhookNotification } from './utility/webhooks.js';
@@ -284,6 +284,7 @@ app.get("/Output_Video/:video", (req, res) => {
 app.post("/generate-partial-video", authenticateToken, videoGenLimiter, async (req, res) => {
   try {
     const job = await videoQueue.add('process-video', { type: 'partial', videoData: req.body, userId: req.user.id });
+    await createAnalyticsJob(job.id || String(Date.now()), req.user.id, 'partial', req.body);
     logger.info(`Queued partial video job ${job.id} for user ${req.user.id}`);
     res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
@@ -297,6 +298,7 @@ app.post("/generate-partial-video", authenticateToken, videoGenLimiter, async (r
 app.post("/generate-full-video", authenticateToken, videoGenLimiter, async (req, res) => {
   try {
     const job = await videoQueue.add('process-video', { type: 'full', videoData: req.body, userId: req.user.id });
+    await createAnalyticsJob(job.id || String(Date.now()), req.user.id, 'full', req.body);
     logger.info(`Queued full video job ${job.id} for user ${req.user.id}`);
     res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {

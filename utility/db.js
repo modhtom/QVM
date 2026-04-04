@@ -40,6 +40,26 @@ export async function initDB() {
         CREATE INDEX IF NOT EXISTS idx_videos_userId ON videos(userId);
         CREATE INDEX IF NOT EXISTS idx_videos_s3Key ON videos(s3Key);
         CREATE INDEX IF NOT EXISTS idx_auth_tokens_token ON auth_tokens(token);
+
+        CREATE TABLE IF NOT EXISTS analytics_jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            jobId TEXT UNIQUE NOT NULL,
+            userId INTEGER,
+            jobType TEXT,
+            status TEXT DEFAULT 'pending',
+            durationMs INTEGER,
+            errorMsg TEXT,
+            details TEXT,
+            createdAt TEXT DEFAULT (datetime('now')),
+            finishedAt TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS analytics_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            eventType TEXT NOT NULL,
+            details TEXT,
+            createdAt TEXT DEFAULT (datetime('now'))
+        );
     `);
 
     try {
@@ -157,6 +177,81 @@ export async function deleteUser(userId) {
     await db.execute({ sql: 'DELETE FROM auth_tokens WHERE userId = ?', args: [userId] });
     await db.execute({ sql: 'DELETE FROM videos WHERE userId = ?', args: [userId] });
     await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [userId] });
+}
+
+export async function createAnalyticsJob(jobId, userId, jobType, details) {
+    await db.execute({
+        sql: 'INSERT INTO analytics_jobs (jobId, userId, jobType, details) VALUES (?, ?, ?, ?)',
+        args: [jobId, userId, jobType, JSON.stringify(details)],
+    });
+}
+
+export async function updateAnalyticsJobStats(jobId, status, durationMs = null, errorMsg = null) {
+    const finishedAt = ['completed', 'failed'].includes(status) ? new Date().toISOString() : null;
+    await db.execute({
+        sql: 'UPDATE analytics_jobs SET status = ?, durationMs = ?, errorMsg = ?, finishedAt = COALESCE(?, finishedAt) WHERE jobId = ?',
+        args: [status, durationMs, errorMsg, finishedAt, jobId],
+    });
+}
+
+export async function recordEvent(eventType, details = {}) {
+    await db.execute({
+        sql: 'INSERT INTO analytics_events (eventType, details) VALUES (?, ?)',
+        args: [eventType, JSON.stringify(details)],
+    });
+}
+
+export async function getJobAggregations() {
+    const result = await db.execute(`
+        SELECT 
+            COUNT(id) as totalJobs,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as successfulJobs,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failedJobs,
+            AVG(durationMs) as avgDuration
+        FROM analytics_jobs
+    `);
+    return result.rows[0];
+}
+
+export async function getDailyJobCounts() {
+    const result = await db.execute(`
+        SELECT date(createdAt) as day, COUNT(*) as count, SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as fails
+        FROM analytics_jobs
+        GROUP BY day
+        ORDER BY day DESC
+        LIMIT 7
+    `);
+    return result.rows;
+}
+
+export async function getPopularSurahs() {
+    const result = await db.execute(`
+        SELECT json_extract(details, '$.surahNumber') as surah, COUNT(*) as count
+        FROM analytics_jobs
+        WHERE json_extract(details, '$.surahNumber') IS NOT NULL
+        GROUP BY surah
+        ORDER BY count DESC
+        LIMIT 10
+    `);
+    return result.rows;
+}
+
+export async function getTotalVideosCount() {
+    const result = await db.execute('SELECT COUNT(*) as vcount FROM videos');
+    return result.rows[0].vcount;
+}
+
+export async function getSystemEventsCount(eventType) {
+    const result = await db.execute({
+        sql: 'SELECT COUNT(*) as evtCount FROM analytics_events WHERE eventType = ?',
+        args: [eventType]
+    });
+    return result.rows[0].evtCount;
+}
+
+export async function getActiveUsersCount() {
+    const result = await db.execute('SELECT COUNT(DISTINCT userId) as ucount FROM analytics_jobs WHERE createdAt >= datetime("now", "-1 day")');
+    return result.rows[0].ucount;
 }
 
 export default db;

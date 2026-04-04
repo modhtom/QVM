@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { authenticateAdmin } from './adminAuth.js';
 import { getMetricsSummary } from './metrics.js';
+import { getDailyJobCounts, getPopularSurahs } from './db.js';
 import { logger } from './logger.js';
 
 const router = express.Router();
@@ -13,13 +14,26 @@ router.post('/login', authenticateAdmin, (req, res) => {
   res.json({ success: true, message: 'Logged in successfully as admin' });
 });
 
-router.get('/metrics', authenticateAdmin, (req, res) => {
+router.get('/metrics', authenticateAdmin, async (req, res) => {
   try {
-    const data = getMetricsSummary();
+    const data = await getMetricsSummary();
     res.json(data);
   } catch (err) {
     logger.error(`Error fetching metrics: ${err.message}`);
     res.status(500).json({ error: 'Failed to fetch metrics' });
+  }
+});
+
+router.get('/analytics/charts', authenticateAdmin, async (req, res) => {
+  try {
+    const [dailyJobs, popularSurahs] = await Promise.all([
+      getDailyJobCounts(),
+      getPopularSurahs()
+    ]);
+    res.json({ dailyJobs, popularSurahs });
+  } catch (err) {
+    logger.error(`Error fetching chart data: ${err.message}`);
+    res.status(500).json({ error: 'Failed to fetch chart data' });
   }
 });
 
