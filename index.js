@@ -283,29 +283,31 @@ app.get("/Output_Video/:video", (req, res) => {
 
 app.post("/generate-partial-video", authenticateToken, videoGenLimiter, async (req, res) => {
   try {
-    const job = await videoQueue.add('process-video', { type: 'partial', videoData: req.body, userId: req.user.id });
-    await createAnalyticsJob(job.id || String(Date.now()), req.user.id, 'partial', req.body);
+    const customJobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    await createAnalyticsJob(customJobId, req.user.id, 'partial', req.body);
+    const job = await videoQueue.add('process-video', { type: 'partial', videoData: req.body, userId: req.user.id }, { jobId: customJobId });
     logger.info(`Queued partial video job ${job.id} for user ${req.user.id}`);
     res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
     recordError();
     logger.error(`Partial Video Queue error: ${error.message}`);
     sendWebhookNotification('API_ERROR', { type: 'video_queue_partial', error: error.message, userId: req.user.id });
-    res.status(500).json({ error: 'Failed to queue video generation.' });
+    res.status(500).json({ error: 'Failed to queue video generation.', details: error.message  });
   }
 });
 
 app.post("/generate-full-video", authenticateToken, videoGenLimiter, async (req, res) => {
   try {
-    const job = await videoQueue.add('process-video', { type: 'full', videoData: req.body, userId: req.user.id });
-    await createAnalyticsJob(job.id || String(Date.now()), req.user.id, 'full', req.body);
+    const customJobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    await createAnalyticsJob(customJobId, req.user.id, 'full', req.body);
+    const job = await videoQueue.add('process-video', { type: 'full', videoData: req.body, userId: req.user.id }, { jobId: customJobId });
     logger.info(`Queued full video job ${job.id} for user ${req.user.id}`);
     res.status(202).json({ message: "Queued", jobId: job.id });
   } catch (error) {
     recordError();
     logger.error(`Full Video Queue error: ${error.message}`);
     sendWebhookNotification('API_ERROR', { type: 'video_queue_full', error: error.message, userId: req.user.id });
-    res.status(500).json({ error: 'Failed to queue video generation.' });
+    res.status(500).json({ error: 'Failed to queue video generation.', details: error.message });
   }
 });
 

@@ -1,3 +1,5 @@
+import { startTourIfNeeded } from './tour.js';
+
 const TOKEN_KEY = 'qvm_auth_token';
 const USER_KEY = 'qvm_auth_user';
 
@@ -339,6 +341,8 @@ export function updateAuthState() {
             const usernameEl = document.getElementById('currentUsername');
             if (usernameEl) usernameEl.textContent = user.username;
         }
+
+        startTourIfNeeded();
     } else {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         if (authPage) authPage.classList.add('active');
