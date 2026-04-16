@@ -5,6 +5,7 @@ import {
   collectFormOptions,
   submitVideoJob,
 } from './videoFormHelpers.js';
+import { showImagePicker, needsImagePicker } from './imagePicker.js';
 
 export async function handleFullVideoSubmit(e) {
   e.preventDefault();
@@ -57,6 +58,27 @@ export async function handleFullVideoSubmit(e) {
     removeFilesAfterCreation: true,
     surahNumber: requestBody.surahNumber || getVal(isCustomFlow ? "fullSurahNumberCustom" : "fullSurahNumber"),
   });
+
+  let query = null;
+  if (typeof requestBody.videoNumber === 'string' && requestBody.videoNumber.startsWith('unsplash:')) {
+    query = requestBody.videoNumber.split(':')[1];
+  }
+
+  if (needsImagePicker(useCustomBg, requestBody.videoNumber)) {
+    const selectedUrls = await showImagePicker({
+      surahNumber: requestBody.surahNumber,
+      startVerse: 1,
+      endVerse: 10,
+      crop: requestBody.crop === 'vertical' ? 'vertical' : 'horizontal',
+      query: query
+    });
+
+    if (!selectedUrls) {
+      return;
+    }
+
+    requestBody.selectedImageUrls = selectedUrls;
+  }
 
   try {
     await submitVideoJob('/generate-full-video', requestBody);

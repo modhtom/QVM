@@ -86,7 +86,8 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.showMetadata,
         videoData.audioSource,
         videoData.autoSync,
-        userId
+        userId,
+        videoData.selectedImageUrls || null
       );
     } else if (type === 'full') {
       result = await generateFullVideo(
@@ -108,7 +109,8 @@ const worker = new Worker('video-queue', async (job) => {
         videoData.showMetadata,
         videoData.audioSource,
         videoData.autoSync,
-        userId
+        userId,
+        videoData.selectedImageUrls || null
       );
     } else {
       throw new Error(`Unknown job type: ${type}`);

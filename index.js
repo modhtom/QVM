@@ -12,6 +12,7 @@ import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
 import { getSurahDataRange } from './utility/data.js';
+import { extractKeywords, searchImagesWithMetadata } from './utility/background.js';
 import authRoutes from './utility/authRoutes.js';
 import { authenticateToken } from './utility/auth.js';
 import { initDB, getUserVideos, deleteUserVideo, findVideoByKey, createAnalyticsJob } from './utility/db.js';
@@ -292,7 +293,7 @@ app.post("/generate-partial-video", authenticateToken, videoGenLimiter, async (r
     recordError();
     logger.error(`Partial Video Queue error: ${error.message}`);
     sendWebhookNotification('API_ERROR', { type: 'video_queue_partial', error: error.message, userId: req.user.id });
-    res.status(500).json({ error: 'Failed to queue video generation.', details: error.message  });
+    res.status(500).json({ error: 'Failed to queue video generation.', details: error.message });
   }
 });
 
@@ -308,6 +309,34 @@ app.post("/generate-full-video", authenticateToken, videoGenLimiter, async (req,
     logger.error(`Full Video Queue error: ${error.message}`);
     sendWebhookNotification('API_ERROR', { type: 'video_queue_full', error: error.message, userId: req.user.id });
     res.status(500).json({ error: 'Failed to queue video generation.', details: error.message });
+  }
+});
+
+app.get('/api/suggest-backgrounds', authenticateToken, async (req, res) => {
+  const { surahNumber, startVerse, endVerse, crop, excludeIds, page, query } = req.query;
+  const pageNum = parseInt(page) || 1;
+  const exclude = excludeIds ? excludeIds.split(',').filter(Boolean) : [];
+
+  try {
+    let keywords;
+    if (query && query.trim() !== '') {
+      keywords = [query.trim()];
+    } else {
+      const surah = parseInt(surahNumber);
+      if (isNaN(surah) || surah < 1 || surah > 114) {
+        return res.status(400).json({ error: 'Invalid surah number (must be 1-114)' });
+      }
+      const start = parseInt(startVerse) || 1;
+      const end = parseInt(endVerse) || start;
+      const { combinedTranslation } = await getSurahDataRange(surah, start, end, null, "quran-simple", "en.sahih", null, true);
+      keywords = extractKeywords(combinedTranslation, surah);
+    }
+
+    const images = await searchImagesWithMetadata(keywords, 15, crop || 'landscape', exclude, pageNum);
+    res.json({ images, keywords });
+  } catch (error) {
+    console.error("Suggest backgrounds error:", error);
+    res.status(500).json({ error: 'Failed to fetch background suggestions' });
   }
 });
 

@@ -73,8 +73,13 @@ const visualThesaurus = {
     'skin': ['texture', 'parchment']
 };
 
-export async function getBackgroundPath(newBackground, videoNumber, len, crop, verseInfo) {
+export async function getBackgroundPath(newBackground, videoNumber, len, crop, verseInfo, selectedImageUrls = null) {
     if (!len || isNaN(len)) len = Math.ceil(len) || 0;
+
+    if (selectedImageUrls && Array.isArray(selectedImageUrls) && selectedImageUrls.length > 0) {
+        console.log(`Using ${selectedImageUrls.length} user-selected images from picker.`);
+        return await processFoundImages(selectedImageUrls, len, crop);
+    }
 
     if (newBackground) {
         if (typeof videoNumber === 'string' && videoNumber.startsWith('uploads/')) {
@@ -169,7 +174,7 @@ async function createAiBackground(verseInfo, len, crop) {
 
     console.log(`Extracted keywords: ${baseKeywords.join(', ')}`);
 
-    const approxPerImageSec = 15;
+    const approxPerImageSec = 10;
     const desiredCount = Math.min(12, Math.max(3, Math.ceil(len / approxPerImageSec)));
 
     const imageUrls = await searchImagesOnUnsplash(baseKeywords, desiredCount, crop, verseInfo);
@@ -184,7 +189,7 @@ async function createAiBackground(verseInfo, len, crop) {
     return await processFoundImages(imageUrls, len, crop);
 }
 
-function extractKeywords(text, surahNumber, count = 6) {
+export function extractKeywords(text, surahNumber, count = 6) {
     const candidates = {};
 
     if (surahNumber && surahContexts[surahNumber]) {
@@ -228,25 +233,25 @@ function extractKeywords(text, surahNumber, count = 6) {
         .slice(0, count);
 }
 
-async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landscape', verseInfo = {}) {
-    const blacklist = [
-        'woman', 'women', 'girl', 'lady', 'female', 'bikini', 'model', 'face', 'portrait',
-        'man', 'men', 'boy', 'male', 'people', 'person', 'human', 'body', 'skin',
-        'family', 'families', 'child', 'children', 'kid', 'kids', 'baby', 'toddler', 'infant',
-        'parent', 'mother', 'father', 'sister', 'brother', 'grandparent', 'sibling', 'siblings',
-        'son', 'daughter', 'wife', 'husband', 'uncle', 'aunt',
-        'couple', 'kiss', 'hug', 'embrace', 'embracing', 'romance', 'love', 'dating', 'wedding', 'bride', 'groom',
-        'bed', 'sleeping', 'asleep', 'bedroom', 'huddle', 'blanket', 'pillow',
-        'cross', 'church', 'temple', 'idol', 'statue', 'gods', 'jesus', 'christ', 'buddha',
-        'priest', 'nun', 'rabbi', 'hindu', 'shrine',
-        'alcohol', 'beer', 'wine', 'bar', 'pub', 'club', 'nightclub', 'party', 'dance',
-        'nude', 'naked', 'sexy', 'underwear', 'lingerie', 'swimsuit',
-        'gambling', 'casino', 'poker', 'cards',
-        'pork', 'pig', 'ham', 'bacon', 'dog', 'puppy',
-        'drug', 'smoke', 'weed', 'cannabis', 'cigarette',
-        'concert', 'festival', 'crowd', 'audience'
-    ].map(s => s.toLowerCase());
+const UNSPLASH_BLACKLIST = [
+    'woman', 'women', 'girl', 'lady', 'female', 'bikini', 'model', 'face', 'portrait',
+    'man', 'men', 'boy', 'male', 'people', 'person', 'human', 'body', 'skin',
+    'family', 'families', 'child', 'children', 'kid', 'kids', 'baby', 'toddler', 'infant',
+    'parent', 'mother', 'father', 'sister', 'brother', 'grandparent', 'sibling', 'siblings',
+    'son', 'daughter', 'wife', 'husband', 'uncle', 'aunt',
+    'couple', 'kiss', 'hug', 'embrace', 'embracing', 'romance', 'love', 'dating', 'wedding', 'bride', 'groom',
+    'bed', 'sleeping', 'asleep', 'bedroom', 'huddle', 'blanket', 'pillow',
+    'cross', 'church', 'temple', 'idol', 'statue', 'gods', 'jesus', 'christ', 'buddha',
+    'priest', 'nun', 'rabbi', 'hindu', 'shrine',
+    'alcohol', 'beer', 'wine', 'bar', 'pub', 'club', 'nightclub', 'party', 'dance',
+    'nude', 'naked', 'sexy', 'underwear', 'lingerie', 'swimsuit',
+    'gambling', 'casino', 'poker', 'cards',
+    'pork', 'pig', 'ham', 'bacon', 'dog', 'puppy',
+    'drug', 'smoke', 'weed', 'cannabis', 'cigarette',
+    'concert', 'festival', 'crowd', 'audience'
+].map(s => s.toLowerCase());
 
+async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landscape', verseInfo = {}) {
     if (!process.env.UNSPLASH_ACCESS_KEY) throw new Error("UNSPLASH_ACCESS_KEY is not set.");
 
     const orientation = crop === 'vertical' ? 'portrait' : 'landscape';
@@ -303,7 +308,7 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
                     urls: r.urls || {}
                 };
 
-                const rejected = isForbiddenImage(r, blacklist);
+                const rejected = isForbiddenImage(r, UNSPLASH_BLACKLIST);
                 debugCandidates.push({ meta, rejected });
 
                 if (rejected) continue;
@@ -332,6 +337,73 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
 
     } catch (error) {
         console.error("Error searching Unsplash:", error.message);
+        return [];
+    }
+}
+
+export async function searchImagesWithMetadata(keywords, desiredCount = 15, crop = 'landscape', excludeIds = [], page = 1) {
+    if (!process.env.UNSPLASH_ACCESS_KEY) throw new Error("UNSPLASH_ACCESS_KEY is not set.");
+
+    const orientation = crop === 'vertical' ? 'portrait' : 'landscape';
+    const safeFallbacks = ['nature landscape', 'clouds sky', 'abstract texture', 'islamic pattern'];
+    const orderedQueries = [...new Set([...keywords, ...safeFallbacks])];
+    const excludeSet = new Set(excludeIds);
+    const collected = [];
+    console.log(`[ImagePicker] Searching for ${desiredCount} images (page=${page}, excluding ${excludeIds.length} IDs) with queries: ${orderedQueries.join(', ')}`);
+
+    try {
+        for (const q of orderedQueries) {
+            if (collected.length >= desiredCount) break;
+
+            let resp;
+            try {
+                resp = await axios.get('https://api.unsplash.com/search/photos', {
+                    params: {
+                        query: q,
+                        per_page: 30,
+                        page,
+                        orientation,
+                        content_filter: 'high',
+                        order_by: 'relevant'
+                    },
+                    headers: { Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}` },
+                    timeout: 10000
+                });
+            } catch (err) {
+                if (err.response && (err.response.status === 403 || err.response.status === 429)) {
+                    console.warn(`[ImagePicker] Unsplash rate limit hit (${err.response.status}).`);
+                    break;
+                }
+                continue;
+            }
+
+            const results = (resp.data && resp.data.results) || [];
+            for (const r of results) {
+                if (isForbiddenImage(r, UNSPLASH_BLACKLIST)) continue;
+
+                const url = r.urls?.regular || r.urls?.small;
+                const thumb = r.urls?.small || r.urls?.thumb;
+                if (!url || !thumb) continue;
+
+                if (excludeSet.has(r.id)) continue;
+                if (collected.some(c => c.id === r.id)) continue;
+
+                collected.push({
+                    url,
+                    thumb,
+                    id: r.id,
+                    alt: r.alt_description || r.description || q
+                });
+
+                if (collected.length >= desiredCount) break;
+            }
+        }
+
+        console.log(`[ImagePicker] Found ${collected.length} images.`);
+        return collected;
+
+    } catch (error) {
+        console.error("[ImagePicker] Error searching Unsplash:", error.message);
         return [];
     }
 }
@@ -442,12 +514,21 @@ async function createImageSlideshow(imagePaths, len, crop) {
     const resolution = crop === 'vertical' ? '1080:1920' : '1920:1080';
     const fps = 25;
     const targetDurationSeconds = Math.max(1, Math.ceil(len || 1));
-
+    const fadeDur = 1.5;
+    const MIN_IMAGE_DURATION = 3;
     if (!imagePaths || imagePaths.length === 0) throw new Error("Zero images for slideshow.");
 
-    if (imagePaths.length === 1) {
+    const maxImages = Math.max(1, Math.floor((targetDurationSeconds - fadeDur) / (MIN_IMAGE_DURATION - fadeDur)));
+    if (imagePaths.length > maxImages && targetDurationSeconds > MIN_IMAGE_DURATION) {
+        console.log(`Image count ${imagePaths.length} too high for ${targetDurationSeconds}s video. Limiting to ${maxImages} images to maintain ${MIN_IMAGE_DURATION}s visibility.`);
+        imagePaths = imagePaths.slice(0, maxImages);
+    }
+
+    const n = imagePaths.length;
+    const D = (targetDurationSeconds + (n - 1) * fadeDur) / n;
+
+    if (n === 1) {
         return new Promise((resolve, reject) => {
-            const frames = Math.max(1, Math.round(targetDurationSeconds * fps));
             ffmpeg(imagePaths[0])
                 .inputOptions(['-loop 1'])
                 .videoFilters([
@@ -460,10 +541,6 @@ async function createImageSlideshow(imagePaths, len, crop) {
                 .save(outputPath);
         });
     }
-
-    const fadeDur = 1.5;
-    const n = imagePaths.length;
-    const D = (targetDurationSeconds + (n - 1) * fadeDur) / n;
 
     const command = ffmpeg();
     imagePaths.forEach(p => {

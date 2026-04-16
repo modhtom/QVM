@@ -5,6 +5,7 @@ import {
   collectFormOptions,
   submitVideoJob,
 } from './videoFormHelpers.js';
+import { showImagePicker, needsImagePicker } from './imagePicker.js';
 
 export async function handlePartialVideoSubmit(e) {
   e.preventDefault();
@@ -51,6 +52,27 @@ export async function handlePartialVideoSubmit(e) {
     startVerse: requestBody.startVerse || parseInt(getVal(isCustomFlow ? "startVerseCustom" : "startVerse")),
     endVerse: requestBody.endVerse || parseInt(getVal(isCustomFlow ? "endVerseCustom" : "endVerse")),
   });
+
+  let query = null;
+  if (typeof requestBody.videoNumber === 'string' && requestBody.videoNumber.startsWith('unsplash:')) {
+    query = requestBody.videoNumber.split(':')[1];
+  }
+
+  if (needsImagePicker(useCustomBg, requestBody.videoNumber)) {
+    const selectedUrls = await showImagePicker({
+      surahNumber: requestBody.surahNumber,
+      startVerse: requestBody.startVerse,
+      endVerse: requestBody.endVerse,
+      crop: requestBody.crop === 'vertical' ? 'vertical' : 'horizontal',
+      query: query
+    });
+
+    if (!selectedUrls) {
+      return;
+    }
+
+    requestBody.selectedImageUrls = selectedUrls;
+  }
 
   try {
     await submitVideoJob('/generate-partial-video', requestBody);

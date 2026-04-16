@@ -3,6 +3,7 @@ import { handleFullVideoSubmit } from "./fullVideo.js";
 import { loadVideos } from "./videos.js";
 import { surahs } from "./data/surahs.js";
 import { initAuthUI, updateAuthState, isLoggedIn } from "./auth.js";
+import { handlePickerShuffle, handlePickerConfirm, handlePickerCancel, handlePickerSelectAll } from "./imagePicker.js";
 
 let waveSurfer;
 window.tempVideoFormData = {};
@@ -81,7 +82,7 @@ window.loadVideos = loadVideos;
 
 async function getVerseText(surahNumber, startVerse, endVerse) {
   try {
-    if(startVerse < 1 || endVerse < startVerse) {
+    if (startVerse < 1 || endVerse < startVerse) {
       alert('Please enter a valid verse range. Start verse must be at least 1 and end verse must be greater than or equal to start verse.');
       throw new Error('Invalid verse range');
     }
@@ -625,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
         color: document.getElementById("fontColorFullCustom").value,
         size: document.getElementById("fontSizeFullCustom").value,
         useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
-        videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `pexels:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
+        videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `unsplash:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
         crop: document.getElementById("verticalVideoFullCustom")?.checked ? "horizontal" : "vertical",
         subtitlePosition: document.getElementById("subtitlePositionFullCustom")?.value || 'bottom',
         showMetadata: document.getElementById("showMetadataFullCustom")?.checked || false
@@ -667,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
         color: document.getElementById("fontColorPartCustom").value,
         size: document.getElementById("fontSizePartCustom").value,
         useCustomBackground: (document.getElementById("pexelsVideoPartCustom")?.value || document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value) !== '',
-        videoNumber: (document.getElementById("pexelsVideoPartCustom")?.value ? `pexels:${document.getElementById("pexelsVideoPartCustom").value}` : (document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value)),
+        videoNumber: (document.getElementById("pexelsVideoPartCustom")?.value ? `unsplash:${document.getElementById("pexelsVideoPartCustom").value}` : (document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value)),
         crop: document.getElementById("verticalVideoPartCustom")?.checked ? "horizontal" : "vertical",
         subtitlePosition: document.getElementById("subtitlePositionPartCustom")?.value || 'bottom',
         showMetadata: document.getElementById("showMetadataPartCustom")?.checked || false
@@ -720,6 +721,12 @@ document.addEventListener('DOMContentLoaded', () => {
       waveSurfer.stop(); // Stops and rewinds to the beginning
     }
   });
+
+  document.getElementById('imagePickerShuffle')?.addEventListener('click', handlePickerShuffle);
+  document.getElementById('imagePickerConfirm')?.addEventListener('click', handlePickerConfirm);
+  document.getElementById('imagePickerCancel')?.addEventListener('click', handlePickerCancel);
+  document.getElementById('imagePickerCancelBtn')?.addEventListener('click', handlePickerCancel);
+  document.getElementById('imagePickerSelectAll')?.addEventListener('click', handlePickerSelectAll);
 
   initAuthUI();
   updateAuthState();

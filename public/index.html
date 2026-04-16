@@ -541,6 +541,38 @@
     </div>
   </div>
 
+  <!-- Image Picker Modal -->
+  <div id="imagePickerOverlay" class="image-picker-overlay" style="display:none;">
+    <div class="image-picker-modal">
+      <div class="image-picker-header">
+        <div class="image-picker-header-text">
+          <h3><i class="fas fa-images" style="margin-left:8px;"></i>اختر صور الخلفية</h3>
+          <p class="image-picker-subtitle">اختر الصور التي ستظهر في خلفية الفيديو. انقر لإلغاء التحديد.</p>
+        </div>
+        <button class="image-picker-close" id="imagePickerCancel">&times;</button>
+      </div>
+
+      <div class="image-picker-toolbar">
+        <button class="image-picker-tool-btn" id="imagePickerShuffle">
+          <i class="fas fa-random"></i> صور جديدة
+        </button>
+        <button class="image-picker-tool-btn" id="imagePickerSelectAll">
+          <i class="fas fa-check-double"></i> تحديد / إلغاء الكل
+        </button>
+        <span class="image-picker-badge">المحددة: <strong id="imagePickerCount">0</strong></span>
+      </div>
+
+      <div class="image-picker-grid" id="imagePickerGrid"></div>
+
+      <div class="image-picker-actions">
+        <button class="image-picker-cancel-btn" id="imagePickerCancelBtn">إلغاء</button>
+        <button class="image-picker-confirm-btn" id="imagePickerConfirm" disabled>
+          <i class="fas fa-check"></i> تأكيد وإنشاء الفيديو
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast notification -->
   <div id="toastNotification" class="toast-notification" style="display:none;"></div>
 
