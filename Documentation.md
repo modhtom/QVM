@@ -29,6 +29,7 @@ Quran Video Maker (QVM) is a full-stack web application designed to create profe
 - **Multi-Format Output**: Generate videos in horizontal (16:9) and vertical (9:16) formats
 - **Multi-Source Audio**: Built-in reciter library or custom audio uploads
 - **Intelligent Backgrounds**: AI-generated backgrounds based on verse meaning or user-provided media
+- **Interactive Backgrounds**: search, preview, and select specific images from Unsplash via a grid UI
 - **Advanced Synchronization**: Both AI-powered automatic sync and manual tap-to-sync interfaces
 - **Multi-Language Support**: Display Arabic text with translations and transliterations
 - **Typography Control**: Customizable fonts, colors, sizes, and positioning
@@ -37,9 +38,12 @@ Quran Video Maker (QVM) is a full-stack web application designed to create profe
 - **User Accounts**: JWT-based authentication with per-user video galleries
 - **Email Verification**: Resend-powered email verification and password reset flows
 - **Account Management**: Password reset, email verification, and account deletion
-- **Security Hardened**: Rate limiting, CORS whitelisting, input validation, path traversal prevention
+- **Security Hardened**: Helmet security headers, rate limiting, and input validation
 - **Turso Database**: Cloud-capable Turso/libsql database with local SQLite fallback
 - **Redis Caching**: Optional caching layer for API responses with graceful degradation
+- **Admin Dashboard**: Secure metrics visualization and live log streaming
+- **Webhook Notifications**: Real-time server event broadcasts
+- **Structured Logging**: Unified JSON logging with Winston
 
 ## System Architecture
 
@@ -304,10 +308,17 @@ QVM/
 **Purpose**: Intelligent background selection and creation.
 
 **Sources**:
-- Unsplash API (keyword-based image search)
+- Unsplash Interactive Picker (Search, Preview, Select)
+- Unsplash API (Keyword-based video search)
 - YouTube video downloads
 - Local image/video uploads
 - AI-generated slideshows from verse context
+
+**Interactive Image Picker**:
+- Grid view of 15 suggested images based on verse meaning
+- Multi-select capability
+- "Shuffle" feature to fetch next page of results while keeping selected items
+- Fallback to keyword search if automatic context fails
 
 **AI Background Features**:
 - Verse keyword extraction
@@ -836,10 +847,14 @@ if (autoSync) {
 ### Step 3: Background Preparation
 **Priority Order**:
 1. User-uploaded background
-2. Unsplash keyword search
-3. YouTube video
-4. Image URL
-5. AI-generated from verse context
+2. Interactive Unsplash Picker (User selects specific images)
+3. Unsplash keyword search (Automated video/image fetch)
+4. YouTube video
+5. Image URL
+6. AI-generated from verse context (Default)
+
+**Background Selection Logic**:
+If the user chooses "Unsplash" or uses AI-defaults, the **Interactive Image Picker** is triggered (`public/js/imagePicker.js`). This allows the user to confirm the visual style before the rendering job is even created.
 
 **AI Background Generation**:
 ```javascript
@@ -1024,6 +1039,46 @@ window.evtSource.onmessage = (event) => {
   updateProgressBar(progress);
 };
 ```
+
+## Administration & Monitoring
+
+### 1. Admin Dashboard (`/admin.html`)
+**Purpose**: Secure visualization of system health, processing metrics, and live logs.
+**Access**: Protected by Basic Authentication (`ADMIN_USERNAME`, `ADMIN_PASSWORD`).
+
+**Features**:
+- **Live Metrics**: Real-time display of requests, job success rate, and average processing speed.
+- **Resource Monitoring**: Basic CPU and memory usage tracking.
+- **Log Streaming**: Live stream of Winston application logs directly to the browser.
+- **Job Control**: View active and waiting jobs in the queue.
+
+### 2. Metrics Tracking (`utility/metrics.js`)
+**Purpose**: In-memory and persistent aggregation of application performance.
+
+**Collected Metrics**:
+- `totalRequests`: Global request count since restart.
+- `uptime`: Server uptime in seconds.
+- `jobSuccessRate`: Percentage of successfully completed video renders.
+- `averageProcessingTime`: Mean duration of rendering jobs.
+- `uniqueUserSessions`: Dynamic tracking of distinct active users (via DB analytics).
+
+### 3. Webhook Notifications (`utility/webhooks.js`)
+**Purpose**: Real-time alerts to external services (Discord/Slack/Zapier).
+
+**Supported Events**:
+- `SERVER_STARTED`: Sent when the Express app begins listening.
+- `API_ERROR`: Critical service failures or rate limit violations.
+- `JOB_COMPLETED`: Notification when a video render is successful.
+- `GLOBAL_ERROR`: Unhandled middleware errors.
+
+### 4. Structured Logging (`utility/logger.js`)
+**Purpose**: Centralized logging for debugging and audit trails.
+**Engine**: `winston`
+
+**Log Types**:
+- `Data/logs/application.log`: General application flow and info events.
+- `Data/logs/error.log`: Error stack traces and critical failures.
+- **Console Output**: Styled logs with timestamps for development.
 
 ## Troubleshooting
 
@@ -1260,11 +1315,17 @@ describe('Video Generation', () => {
 
 2. ~~**Monitoring & Logging**~~ ✅ **Completed**
    - ~~Structured logging~~ ✅ (Implemented via `winston`)
-   - ~~Performance metrics collection~~ ✅ (Implemented via `utility/metrics.js` and `/api/admin/metrics`)
-   - ~~Error tracking~~ ✅ (Implemented via global error handlers and `winston` error logs)
+   - ~~Performance metrics collection~~ ✅ (Implemented via `utility/metrics.js`)
+   - ~~Error tracking~~ ✅ (Implemented via global error handlers)
    - ~~Analytics dashboard~~ ✅ (Implemented via `public/admin.html`)
    - ~~Webhook notifications~~ ✅ (Implemented via `utility/webhooks.js`)
    - ~~Health check endpoints~~ ✅ (Docker healthcheck)
+
+3. **Administration & Security** ✅ **Completed**
+   - ~~HTTPS enforcement in production~~ ✅
+   - ~~Security headers implementation~~ ✅ (via `helmet`)
+   - ~~Rate limiting on all endpoints~~ ✅
+   - ~~Ownership enforcement on all user data~~ ✅
 
 ---
 
@@ -1302,7 +1363,7 @@ describe('Video Generation', () => {
 
 ---
 
-*Last Updated: 4 April 2026*
-*Version: 4.0*
+*Last Updated: 16 April 2026*
+*Version: 5.0*
 *Documentation Maintainer: [MODHTOM](https://github.com/modhtom)*
 *For issues or contributions, see [GitHub Repository](https://github.com/modhtom/QVM/blob/main/TO-DOs.md)*

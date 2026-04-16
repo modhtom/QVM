@@ -11,7 +11,8 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ### 1\. Multi-Source Backgrounds
 
-- **AI-Generated Default:** When no background is selected, the application analyzes the meaning of the selected verses and automatically creates a beautiful video slideshow from relevant, high-quality images sourced from Unsplash.
+- **AI-Generated Default:** When no background is selected, the application analyzes the meaning of the selected verses and automatically creates a beautiful video slideshow.
+- **Interactive Image Picker:** Search for high-quality images from Unsplash and **manually select** favorites from a grid. Features include "Shuffle" for new results and "Select All" for quick slideshows.
 - **Unsplash API:** Search for high-quality videos by keywords.
 - **YouTube:** Use any YouTube video as a background OR upload your own.
 - **Custom Images:** Provide a URL to any image OR upload your own.
@@ -103,9 +104,9 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ### 12\. Analytics & Monitoring (Admin Panel)
 - **Structured Logging**: Uses `winston` for robust, central application and error JSON logging (stored in `Data/logs/`).
-- **Performance Metrics**: In-memory tracking of total requests, successful/failed jobs, and average server processing time.
-- **Webhook Notifications**: Can be configured via `WEBHOOK_URL` in `.env` to broadcast real-time events (`SERVER_STARTED`, `API_ERROR`, `JOB_COMPLETED`, etc.) to external integrations (e.g. Discord, Slack, Zapier).
-- **Admin Dashboard**: A secure web panel (`/admin.html`) protected by Basic Auth to visualize live system metrics and view the streaming event/error logs directly.
+- **Performance Metrics**: Real-time tracking of total requests, successful/failed jobs, average processing time, and unique user sessions.
+- **Webhook Notifications**: Broadcasts real-time events (`SERVER_STARTED`, `API_ERROR`, `JOB_COMPLETED`, etc.) to external platforms (Discord, Slack).
+- **Admin Dashboard**: A secure web panel (`/admin.html`) protected by Basic Auth to visualize live metrics, monitor resource usage, and view streaming logs.
 
 ---
 
