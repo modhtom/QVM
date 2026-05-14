@@ -77,7 +77,6 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
     if (!len || isNaN(len)) len = Math.ceil(len) || 0;
 
     if (selectedImageUrls && Array.isArray(selectedImageUrls) && selectedImageUrls.length > 0) {
-        console.log(`Using ${selectedImageUrls.length} user-selected images from picker.`);
         return await processFoundImages(selectedImageUrls, len, crop);
     }
 
@@ -318,6 +317,12 @@ async function searchImagesOnUnsplash(keywords, desiredCount = 6, crop = 'landsc
 
                 if (collected.some(c => c.id === r.id)) continue;
 
+                if (r.links && r.links.download_location) {
+                    axios.get(r.links.download_location, {
+                        headers: { Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}` }
+                    }).catch(e => console.warn("Failed to trigger Unsplash download:", e.message));
+                }
+
                 collected.push({ url, id: r.id });
                 if (collected.length >= desiredCount) break;
             }
@@ -389,10 +394,15 @@ export async function searchImagesWithMetadata(keywords, desiredCount = 15, crop
                 if (collected.some(c => c.id === r.id)) continue;
 
                 collected.push({
-                    url,
-                    thumb,
+                    url: r.urls?.regular || r.urls?.small,
+                    thumb: r.urls?.small || r.urls?.thumb,
                     id: r.id,
-                    alt: r.alt_description || r.description || q
+                    alt: r.alt_description || r.description || q,
+                    user: r.user ? {
+                        name: r.user.name,
+                        link: r.user.links?.html
+                    } : null,
+                    downloadLocation: r.links?.download_location
                 });
 
                 if (collected.length >= desiredCount) break;
@@ -436,32 +446,80 @@ function writeDebugJson(filePath, obj) {
     }
 }
 
-async function processFoundImages(imageUrls, len, crop) {
-    const tempImageDir = path.resolve("Data/temp_images");
-    if (!fs.existsSync(tempImageDir)) fs.mkdirSync(tempImageDir, { recursive: true });
+export async function searchVideosOnPexels(keywords, desiredCount = 6, crop = 'landscape', excludeIds = [], page = 1) {
+    if (!process.env.PEXELS_API_KEY)
+        return [];
 
-    if (imageUrls.length === 1) {
-        const singlePath = path.join(tempImageDir, `single_img_${Date.now()}.jpg`);
-        const writer = fs.createWriteStream(singlePath);
-        const response = await axios({ url: imageUrls[0], method: 'GET', responseType: 'stream', timeout: 20000 });
-        response.data.pipe(writer);
+    const excludeSet = new Set(excludeIds);
+    const collected = [];
+    const q = keywords.slice(0, 2).join(' ');
+    const orientation = crop === 'vertical' ? 'portrait' : 'landscape';
 
-        await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
+    try {
+        const resp = await axios.get('https://api.pexels.com/videos/search', {
+            params: {
+                query: q,
+                per_page: 30,
+                page,
+                orientation
+            },
+            headers: { Authorization: process.env.PEXELS_API_KEY },
+            timeout: 10000
         });
 
-        const slideshowPath = await createImageSlideshow([singlePath], len, crop);
+        const results = resp.data.videos || [];
+        for (const r of results) {
+            if (excludeSet.has(r.id.toString())) continue;
 
-        try { if (fs.existsSync(singlePath)) fs.unlinkSync(singlePath); } catch (e) { }
-        return slideshowPath;
+            let bestVideoUrl = '';
+            let files = r.video_files || [];
+            const hdFiles = files.filter(f => f.quality === 'hd' && f.file_type === 'video/mp4');
+            if (hdFiles.length > 0) bestVideoUrl = hdFiles[0].link;
+            else if (files.length > 0) bestVideoUrl = files[0].link;
+            if (!bestVideoUrl) continue;
+
+            collected.push({
+                url: bestVideoUrl,
+                thumb: r.image,
+                id: r.id.toString(),
+                alt: q,
+                user: {
+                    name: r.user.name,
+                    link: r.user.url
+                },
+                isVideo: true,
+                provider: 'Pexels'
+            });
+
+            if (collected.length >= desiredCount) break;
+        }
+
+        return collected;
+    } catch (error) {
+        console.error("[Pexels] Error searching videos:", error.message);
+        return [];
+    }
+}
+
+async function processFoundImages(mediaUrls, len, crop) {
+    const tempImageDir = path.resolve("Data/temp_images");
+    if (!fs.existsSync(tempImageDir))
+        fs.mkdirSync(tempImageDir, { recursive: true });
+
+    const downloadedPaths = await downloadMedia(mediaUrls, tempImageDir);
+    if (downloadedPaths.length === 1 && downloadedPaths[0].endsWith('.mp4')) {
+        const finalVid = await createBackgroundVideo(downloadedPaths[0], len, crop);
+        try {
+            fs.unlinkSync(downloadedPaths[0]);
+        } catch (e) {
+            console.log("Failed to delete temp video:", e.message);
+        }
+        return finalVid;
     }
 
-    const downloadedImagePaths = await downloadImages(imageUrls, tempImageDir);
-    shuffleArray(downloadedImagePaths);
-    const slideshowPath = await createImageSlideshow(downloadedImagePaths, len, crop);
-
-    downloadedImagePaths.forEach(imgPath => {
+    shuffleArray(downloadedPaths);
+    const slideshowPath = await createImageSlideshow(downloadedPaths, len, crop);
+    downloadedPaths.forEach(imgPath => {
         try { if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath); } catch (e) { }
     });
 
@@ -515,7 +573,7 @@ async function createImageSlideshow(imagePaths, len, crop) {
     const fps = 25;
     const targetDurationSeconds = Math.max(1, Math.ceil(len || 1));
     const fadeDur = 1.5;
-    const MIN_IMAGE_DURATION = 3;
+    const MIN_IMAGE_DURATION = 5;
     if (!imagePaths || imagePaths.length === 0) throw new Error("Zero images for slideshow.");
 
     const maxImages = Math.max(1, Math.floor((targetDurationSeconds - fadeDur) / (MIN_IMAGE_DURATION - fadeDur)));
@@ -529,13 +587,15 @@ async function createImageSlideshow(imagePaths, len, crop) {
 
     if (n === 1) {
         return new Promise((resolve, reject) => {
+            const isVid = imagePaths[0].endsWith('.mp4');
+            const loopOpt = isVid ? ['-stream_loop', '-1'] : ['-loop', '1'];
             ffmpeg(imagePaths[0])
-                .inputOptions(['-loop 1'])
+                .inputOptions(loopOpt)
                 .videoFilters([
                     `scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution}`,
                     `setsar=1`
                 ])
-                .outputOptions([`-t ${targetDurationSeconds}`, `-r ${fps}`, `-pix_fmt yuv420p`, '-preset veryfast'])
+                .outputOptions([`-t ${targetDurationSeconds}`, `-r ${fps}`, `-pix_fmt yuv420p`, '-preset veryfast', '-an'])
                 .on('end', () => resolve(outputPath))
                 .on('error', (err, stdout, stderr) => reject(new Error("FFmpeg slideshow failed: " + stderr)))
                 .save(outputPath);
@@ -544,7 +604,11 @@ async function createImageSlideshow(imagePaths, len, crop) {
 
     const command = ffmpeg();
     imagePaths.forEach(p => {
-        command.input(p).inputOptions(['-loop 1', `-t ${D.toFixed(3)}`]);
+        if (p.endsWith('.mp4')) {
+            command.input(p).inputOptions(['-stream_loop', '-1', `-t ${D.toFixed(3)}`]);
+        } else {
+            command.input(p).inputOptions(['-loop', '1', `-t ${D.toFixed(3)}`]);
+        }
     });
 
     const filterComplex = [];
@@ -578,14 +642,16 @@ async function createImageSlideshow(imagePaths, len, crop) {
     });
 }
 
-async function downloadImages(urls, dir) {
+async function downloadMedia(urls, dir) {
     const downloadPromises = urls.map(async (url, index) => {
-        const imagePath = path.join(dir, `image_${index}.jpg`);
-        const writer = fs.createWriteStream(imagePath);
+        const isVid = url.includes('.mp4') || url.includes('pexels.com/video');
+        const ext = isVid ? 'mp4' : 'jpg';
+        const mediaPath = path.join(dir, `media_${index}_${Date.now()}.${ext}`);
+        const writer = fs.createWriteStream(mediaPath);
         const response = await axios({ url, method: 'GET', responseType: 'stream' });
         response.data.pipe(writer);
         return new Promise((resolve, reject) => {
-            writer.on('finish', () => resolve(imagePath));
+            writer.on('finish', () => resolve(mediaPath));
             writer.on('error', reject);
         });
     });
@@ -627,6 +693,27 @@ async function downloadExternalImage(url) {
         timeout: 15000
     });
 
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+        writer.on('finish', () => resolve(localPath));
+        writer.on('error', reject);
+    });
+}
+
+async function downloadExternalVideo(url) {
+    const tempDir = path.resolve("Data/Background_Video");
+    if (!fs.existsSync(tempDir))
+        fs.mkdirSync(tempDir, { recursive: true });
+
+    const localPath = path.join(tempDir, `direct_vid_${Date.now()}.mp4`);
+    const writer = fs.createWriteStream(localPath);
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream',
+        timeout: 60000
+    });
     response.data.pipe(writer);
 
     return new Promise((resolve, reject) => {

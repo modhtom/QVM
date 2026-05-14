@@ -28,7 +28,11 @@ Quran Video Maker (QVM) is a full-stack web application designed to create profe
 ### Key Capabilities
 - **Multi-Format Output**: Generate videos in horizontal (16:9) and vertical (9:16) formats
 - **Multi-Source Audio**: Built-in reciter library or custom audio uploads
-- **Intelligent Backgrounds**: AI-generated backgrounds based on verse meaning or user-provided media
+- **Mixed Media Engine**: Combine arbitrary counts of videos and images into a single professional background slideshow
+- **Source Selection**: Integrated search for Unsplash (Photos) and Pexels (Videos)
+- **Smooth Visuals**: Optimized image-to-image crossfade transitions for premium look and feel
+- **Webhook Notifications**: Real-time server event broadcasts
+- **Feedback Loop**: Integrated user feedback system with instant admin notifications via Webhook
 - **Interactive Backgrounds**: search, preview, and select specific images from Unsplash via a grid UI
 - **Advanced Synchronization**: Both AI-powered automatic sync and manual tap-to-sync interfaces
 - **Multi-Language Support**: Display Arabic text with translations and transliterations
@@ -42,7 +46,6 @@ Quran Video Maker (QVM) is a full-stack web application designed to create profe
 - **Turso Database**: Cloud-capable Turso/libsql database with local SQLite fallback
 - **Redis Caching**: Optional caching layer for API responses with graceful degradation
 - **Admin Dashboard**: Secure metrics visualization and live log streaming
-- **Webhook Notifications**: Real-time server event broadcasts
 - **Structured Logging**: Unified JSON logging with Winston
 
 ## System Architecture
@@ -170,6 +173,7 @@ fc-cache -fv
 |----------|-------------|----------|---------|
 | `UNSPLASH_ACCESS_KEY` | Unsplash API access key for background images | Yes | - |
 | `UNSPLASH_SECRET_KEY` | Unsplash API secret key | Yes | - |
+| `PEXELS_API_KEY` | Pexels API key for video backgrounds | Yes | - |
 | `R2_ENDPOINT` | Cloudflare R2 endpoint URL | Yes | - |
 | `R2_ACCESS_KEY_ID` | R2 access key ID | Yes | - |
 | `R2_SECRET_ACCESS_KEY` | R2 secret access key | Yes | - |
@@ -308,23 +312,24 @@ QVM/
 **Purpose**: Intelligent background selection and creation.
 
 **Sources**:
-- Unsplash Interactive Picker (Search, Preview, Select)
-- Unsplash API (Keyword-based video search)
+- Unsplash Interactive Picker (High-quality Photos)
+- Pexels API (Professional Videos)
+- Mixed Media Slideshow (Combining photos and videos)
 - YouTube video downloads
 - Local image/video uploads
 - AI-generated slideshows from verse context
 
-**Interactive Image Picker**:
-- Grid view of 15 suggested images based on verse meaning
-- Multi-select capability
-- "Shuffle" feature to fetch next page of results while keeping selected items
-- Fallback to keyword search if automatic context fails
+**Interactive Media Picker**:
+- Tabbed interface (All, Video, Photo) for refined searching
+- Grid view of suggested media based on verse meaning
+- Multi-select capability for slideshows
+- "Shuffle" feature to fetch next page of results
+- "Select All" for quick bulk selection
+- Content filtering and safety checks
 
-**AI Background Features**:
-- Verse keyword extraction
-- Surah-specific thematic mapping
-- Content filtering (removes inappropriate images)
-- Ken Burns effect slideshow creation
+**Visual Refinement**:
+- **Smooth Crossfades**: Transition duration for a more cinematic feel.
+- **Minimum Visibility**: Each asset is guaranteed a minimum screen time (4s) to ensure readability.
 
 ### 6. Subtitle Generation (`utility/subtitle.js`)
 **Purpose**: Create styled subtitles with proper timing.
@@ -1363,7 +1368,7 @@ describe('Video Generation', () => {
 
 ---
 
-*Last Updated: 16 April 2026*
-*Version: 5.0*
+*Last Updated: 14 May 2026*
+*Version: 6.0*
 *Documentation Maintainer: [MODHTOM](https://github.com/modhtom)*
 *For issues or contributions, see [GitHub Repository](https://github.com/modhtom/QVM/blob/main/TO-DOs.md)*

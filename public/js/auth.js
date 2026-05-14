@@ -12,6 +12,7 @@ export function getAuthHeaders() {
     if (!token) return {};
     return { 'Authorization': `Bearer ${token}` };
 }
+window.getAuthHeaders = getAuthHeaders;
 
 export function isLoggedIn() {
     return !!getToken();

@@ -17,7 +17,7 @@
     <div class="container">
       <div class="header">
         <h1 class="logo">QVM</h1>
-        <p class="arabic-subtitle">صانع فيديو القرآن الكريم</p>
+        <p class="arabic-subtitle">أداة إنشاء فيديوهات القرآن الكريم</p>
       </div>
 
       <div id="loginSection" class="form-container" style="max-width: 400px; margin: 0 auto;">
@@ -93,14 +93,13 @@
               id="currentUsername"></span></span>
           <a href="#" id="logoutBtn" style="color: #ff8a80; text-decoration: none; font-size: 13px;"><i
               class="fas fa-sign-out-alt" style="margin-left: 3px;"></i>خروج</a>
+          <a href="#" onclick="showPage('feedbackPage')" style="color: #64b5f6; text-decoration: none; font-size: 13px;"><i
+              class="fas fa-lightbulb" style="margin-left: 3px;"></i>آراء ومقترحات</a>
           <a href="#" id="deleteAccountBtn" style="color: #ff5252; text-decoration: none; font-size: 13px;"><i
               class="fas fa-trash-alt" style="margin-left: 3px;"></i>حذف الحساب</a>
         </div>
         <h1 class="logo">QVM</h1>
-        <p class="arabic-subtitle">صانع فيديو القرآن الكريم</p>
-        <p class="arabic-subtitle" style="font-size: 14px; color: #a5d6a7; margin-top: 10px; font-weight: normal;"><i
-            class="fas fa-heart" style="font-size: 10px; margin-left: 5px;"></i>دقائق الانتظار .. املأها بالاستغفار<i
-            class="fas fa-heart" style="font-size: 10px; margin-right: 5px;"></i></p>
+        <p class="arabic-subtitle">أداة إنشاء فيديوهات القرآن الكريم</p>
       </div>
       <div class="nav-buttons">
         <div class="nav-btn" onclick="showPage('fullOptions')">
@@ -145,13 +144,13 @@
       <div class="nav-buttons">
         <div class="nav-btn" onclick="showPage('fullForm')">
           <div class="nav-btn-content"><span class="nav-btn-icon">🎙️</span>
-            <div class="nav-btn-title">مكتبة التلاوة</div>
+            <div class="nav-btn-title">مكتبة القراء</div>
             <div class="nav-btn-desc">استخدام مكتبة التلاوة المدمجة</div>
           </div>
         </div>
         <div class="nav-btn" onclick="showPage('fullFormCustom')">
           <div class="nav-btn-content"><span class="nav-btn-icon">📁</span>
-            <div class="nav-btn-title">تلاوة مخصصة</div>
+            <div class="nav-btn-title">رفع تلاوة خارجية</div>
             <div class="nav-btn-desc">رفع تلاوتك الخاصة</div>
           </div>
         </div>
@@ -168,13 +167,13 @@
       <div class="nav-buttons">
         <div class="nav-btn" onclick="showPage('partForm')">
           <div class="nav-btn-content"><span class="nav-btn-icon">🎙️</span>
-            <div class="nav-btn-title">مكتبة التلاوة</div>
+            <div class="nav-btn-title">مكتبة القراء</div>
             <div class="nav-btn-desc">استخدام مكتبة التلاوة المدمجة</div>
           </div>
         </div>
         <div class="nav-btn" onclick="showPage('partFormCustom')">
           <div class="nav-btn-content"><span class="nav-btn-icon">📁</span>
-            <div class="nav-btn-title">تلاوة مخصصة</div>
+            <div class="nav-btn-title">رفع تلاوة خارجية</div>
             <div class="nav-btn-desc">رفع تلاوتك الخاصة</div>
           </div>
         </div>
@@ -214,8 +213,8 @@
                 <option value="en.sahih">English - Sahih</option>
                 <option value="es.cortes">Español - Cortes</option>
               </select></div>
-            <div class="form-group"><label for="pexelsVideoFull">خلفية من موقع unsplash</label><input type="text"
-                id="pexelsVideoFull" placeholder="أدخل كلمة مفتاحية"></div>
+            <div class="form-group"><label for="pexelsVideoFull">البحث عن خلفية بالكلمات المفتاحية </label><input
+                type="text" id="pexelsVideoFull" placeholder="أدخل كلمة مفتاحية"></div>
             <div class="form-group"><label for="imageLinkFull">خلفية صورة</label><input type="text" id="imageLinkFull"
                 placeholder="أدخل رابط الصورة"></div>
             <div class="form-group"><label for="youtubeLinkFull">خلفية YouTube</label><input type="text"
@@ -231,7 +230,7 @@
             <div class="form-group"><label for="fullSurahNumber">السورة</label><select id="fullSurahNumber"
                 class="form-control"></select></div>
             <div class="checkbox-group"><input type="checkbox" id="verticalVideoFull"><label
-                for="verticalVideoFull">فيديو عمودي (9:16) <i class="fas fa-info-circle tooltip-icon"
+                for="verticalVideoFull">فيديو طولي للريلز (9:16) <i class="fas fa-info-circle tooltip-icon"
                   style="color:#8b949e; cursor:pointer; margin-right:5px;"
                   onclick="window.showTooltip(this, 'verticalVideo')"></i></label></div>
             <button class="action-btn create-btn">إنشاء الفيديو</button>
@@ -290,14 +289,15 @@
             <div class="form-group"><label for="surahNumber">السورة</label><select id="surahNumber"
                 class="form-control"></select></div>
             <div class="arabic-input">
-              <div class="arabic-label">آية البداية</div><input type="text" id="startVerse"
+              <div class="arabic-label">آية البداية</div><input type="number" min="1" id="startVerse"
                 placeholder="رقم آية البداية">
             </div>
             <div class="arabic-input">
-              <div class="arabic-label">آية النهاية</div><input type="text" id="endVerse" placeholder="رقم آية النهاية">
+              <div class="arabic-label">آية النهاية</div><input type="number" min="1" id="endVerse"
+                placeholder="رقم آية النهاية">
             </div>
             <div class="checkbox-group"><input type="checkbox" id="verticalVideoPart"><label
-                for="verticalVideoPart">فيديو عمودي (9:16) <i class="fas fa-info-circle tooltip-icon"
+                for="verticalVideoPart">فيديو طولي للريلز (9:16) <i class="fas fa-info-circle tooltip-icon"
                   style="color:#8b949e; cursor:pointer; margin-right:5px;"
                   onclick="window.showTooltip(this, 'verticalVideo')"></i></label></div>
             <button class="action-btn create-btn">إنشاء الفيديو</button>
@@ -341,8 +341,8 @@
                 <option value="en.sahih">English - Sahih</option>
                 <option value="es.cortes">Español - Cortes</option>
               </select></div>
-            <div class="form-group"><label for="pexelsVideoFullCustom">خلفية من موقع unsplash</label><input type="text"
-                id="pexelsVideoFullCustom" placeholder="أدخل كلمة مفتاحية"></div>
+            <div class="form-group"><label for="pexelsVideoFullCustom">البحث عن خلفية بالكلمات المفتاحية </label><input
+                type="text" id="pexelsVideoFullCustom" placeholder="أدخل كلمة مفتاحية"></div>
             <div class="form-group"><label for="imageLinkFullCustom">خلفية صورة</label><input type="text"
                 id="imageLinkFullCustom" placeholder="أدخل رابط الصورة"></div>
             <div class="form-group"><label for="youtubeLinkFullCustom">خلفية YouTube</label><input type="text"
@@ -355,7 +355,7 @@
             <div class="form-group"><label for="customAudioFull">رفع التلاوة</label><input type="file"
                 id="customAudioFull" accept="audio/*"></div>
             <div class="checkbox-group"><input type="checkbox" id="verticalVideoFullCustom"><label
-                for="verticalVideoFullCustom">فيديو عمودي (9:16) <i class="fas fa-info-circle tooltip-icon"
+                for="verticalVideoFullCustom">فيديو طولي للريلز (9:16) <i class="fas fa-info-circle tooltip-icon"
                   style="color:#8b949e; cursor:pointer; margin-right:5px;"
                   onclick="window.showTooltip(this, 'verticalVideo')"></i></label></div>
             <div class="form-group" style="margin-top: 20px;">
@@ -411,8 +411,8 @@
                 <option value="en.sahih">English - Sahih</option>
                 <option value="es.cortes">Español - Cortes</option>
               </select></div>
-            <div class="form-group"><label for="pexelsVideoPartCustom">خلفية من موقع unsplash</label><input type="text"
-                id="pexelsVideoPartCustom" placeholder="أدخل كلمة مفتاحية"></div>
+            <div class="form-group"><label for="pexelsVideoPartCustom">البحث عن خلفية بالكلمات المفتاحية </label><input
+                type="text" id="pexelsVideoPartCustom" placeholder="أدخل كلمة مفتاحية"></div>
             <div class="form-group"><label for="imageLinkPartCustom">خلفية صورة</label><input type="text"
                 id="imageLinkPartCustom" placeholder="أدخل رابط الصورة"></div>
             <div class="form-group"><label for="youtubeLinkPartCustom">خلفية YouTube</label><input type="text"
@@ -423,17 +423,17 @@
             <div class="form-group"><label for="surahNumberCustom">السورة</label><select id="surahNumberCustom"
                 class="form-control"></select></div>
             <div class="arabic-input">
-              <div class="arabic-label">آية البداية</div><input type="text" id="startVerseCustom"
+              <div class="arabic-label">آية البداية</div><input type="number" min="1" id="startVerseCustom"
                 placeholder="رقم آية البداية">
             </div>
             <div class="arabic-input">
-              <div class="arabic-label">آية النهاية</div><input type="text" id="endVerseCustom"
+              <div class="arabic-label">آية النهاية</div><input type="number" min="1" id="endVerseCustom"
                 placeholder="رقم آية النهاية">
             </div>
             <div class="form-group"><label for="customAudioPart">رفع التلاوة</label><input type="file"
                 id="customAudioPart" accept="audio/*"></div>
             <div class="checkbox-group"><input type="checkbox" id="verticalVideoPartCustom"><label
-                for="verticalVideoPartCustom">فيديو عمودي (9:16) <i class="fas fa-info-circle tooltip-icon"
+                for="verticalVideoPartCustom">فيديو طولي للريلز (9:16) <i class="fas fa-info-circle tooltip-icon"
                   style="color:#8b949e; cursor:pointer; margin-right:5px;"
                   onclick="window.showTooltip(this, 'verticalVideo')"></i></label></div>
             <div class="form-group" style="margin-top: 20px;">
@@ -463,13 +463,19 @@
         <p class="subtitle">اضغط للمزامنة مع بداية كل آية</p>
       </div>
       <div class="verse-display" id="currentVerseDisplay">...</div>
+      <div id="syncInstructionOverlay"
+        style="text-align:center; color:var(--primary-color); font-weight:bold; margin-bottom:15px; font-size:1.1rem; animation: pulse 1.5s infinite;">
+        اضغط على تشغيل ثم انقر على (مزامنة) مع بداية قراءة كل آية
+      </div>
       <div id="waveform"></div>
       <audio id="syncAudioPlayer" style="display:none;"></audio>
       <div class="audio-controls">
         <button id="playPauseBtn" class="control-btn"><i class="fas fa-play"></i></button>
         <button id="stopBtn" class="control-btn"><i class="fas fa-stop"></i></button>
 
-        <button id="markVerseBtn">مزامنة الآية</button>
+        <button id="markVerseBtn"
+          style="flex:1; font-size:1.5rem; padding:20px; border-radius:15px; background:var(--gradient-accent); color:#fff; box-shadow:0 8px 15px rgba(0,0,0,0.2);">مزامنة
+          الآية</button>
         <button id="resetSyncBtn" style="background-color: #f44336;">إعادة الضبط</button>
       </div>
       <div id="syncStatus"></div>
@@ -495,6 +501,10 @@
             <button class="download-btn" onclick="downloadCurrentVideo()"><i class="fas fa-download"></i> تحميل</button>
             <button class="share-btn" onclick="shareCurrentVideo()"><i class="fas fa-share-alt"></i> مشاركة</button>
           </div>
+          <p class="preview-note" style="margin-top: 20px; font-size: 0.95rem; color: var(--text-secondary); background: var(--bg-primary); padding: 12px 16px; border-radius: 10px; border-right: 4px solid var(--accent-color); text-align: right;">
+            <i class="fas fa-lightbulb" style="color: var(--accent-color); margin-left: 8px;"></i>
+            <strong>ملاحظة:</strong> إذا كانت الخلفيات تتغير بسرعة ملحوظة، يمكنك التراجع واختيار عدد صور أقل ليتناسب مع مدة الفيديو.
+          </p>
         </div>
       </div>
     </div>
@@ -503,6 +513,36 @@
   <div id="gallery" class="page">
     <button class="back-btn" onclick="goBack()"><span>←</span> رجوع</button>
     <div class="gallery-grid" id="gallery-grid"></div>
+  </div>
+
+  <div id="feedbackPage" class="page">
+    <button class="back-btn" onclick="goBack()"><span>←</span> رجوع</button>
+    <div class="container">
+      <div class="header">
+        <h1 class="logo">آراء ومقترحات</h1>
+        <p class="subtitle">يسعدنا سماع رأيك لتحسين QVM</p>
+      </div>
+      <div class="form-container">
+        <form id="feedbackForm">
+          <div class="form-group">
+            <label for="feedbackType">نوع الرسالة</label>
+            <select id="feedbackType" class="form-control" required>
+              <option value="improvement">اقتراح تحسين</option>
+              <option value="bug">إبلاغ عن مشكلة</option>
+              <option value="feedback">رأي عام</option>
+              <option value="other">أخرى</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="feedbackContent">رسالتك</label>
+            <textarea id="feedbackContent" class="form-control" rows="6" placeholder="اكتب أفكارك هنا..." required></textarea>
+          </div>
+          <button type="submit" class="action-btn create-btn" style="width: 100%;">
+            <i class="fas fa-paper-plane"></i> إرسال
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 
   <!-- Share Modal -->
@@ -546,20 +586,28 @@
     <div class="image-picker-modal">
       <div class="image-picker-header">
         <div class="image-picker-header-text">
-          <h3><i class="fas fa-images" style="margin-left:8px;"></i>اختر صور الخلفية</h3>
-          <p class="image-picker-subtitle">اختر الصور التي ستظهر في خلفية الفيديو. انقر لإلغاء التحديد.</p>
+          <h3><i class="fas fa-photo-video" style="margin-left:8px;"></i>اختر خلفيات الفيديو</h3>
+          <p class="image-picker-subtitle">يمكنك دمج الصور والفيديوهات معاً (الحد الأدنى 3 مقاطع). انقر للتحديد أو الإلغاء، وفي حال لم تناسبك الخيارات، يمكنك التراجع والبحث بكلمات مفتاحية أخرى.</p>
         </div>
         <button class="image-picker-close" id="imagePickerCancel">&times;</button>
       </div>
 
       <div class="image-picker-toolbar">
-        <button class="image-picker-tool-btn" id="imagePickerShuffle">
-          <i class="fas fa-random"></i> صور جديدة
-        </button>
-        <button class="image-picker-tool-btn" id="imagePickerSelectAll">
-          <i class="fas fa-check-double"></i> تحديد / إلغاء الكل
-        </button>
-        <span class="image-picker-badge">المحددة: <strong id="imagePickerCount">0</strong></span>
+        <div class="image-picker-tabs" id="imagePickerTabs">
+          <button class="picker-tab active" data-filter="all">الكل</button>
+          <button class="picker-tab" data-filter="video">فيديو</button>
+          <button class="picker-tab" data-filter="photo">صور</button>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-right:auto;">
+          <button class="image-picker-tool-btn" id="imagePickerShuffle">
+            <i class="fas fa-sync-alt"></i> تحديث النتائج
+          </button>
+          <button class="image-picker-tool-btn" id="imagePickerSelectAll">
+            <i class="fas fa-check-double"></i> تحديد الكل
+          </button>
+          <span class="image-picker-badge">المحدد: <strong id="imagePickerCount">0</strong></span>
+        </div>
       </div>
 
       <div class="image-picker-grid" id="imagePickerGrid"></div>

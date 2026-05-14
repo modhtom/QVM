@@ -11,11 +11,11 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ### 1\. Multi-Source Backgrounds
 
-- **AI-Generated Default:** When no background is selected, the application analyzes the meaning of the selected verses and automatically creates a beautiful video slideshow.
-- **Interactive Image Picker:** Search for high-quality images from Unsplash and **manually select** favorites from a grid. Features include "Shuffle" for new results and "Select All" for quick slideshows.
-- **Unsplash API:** Search for high-quality videos by keywords.
+- **Mixed Media Engine:** Combine multiple high-quality images and videos into a single background slideshow.
+- **Unsplash API:** Search and select high-quality images.
+- **Pexels API:** Integrated high-quality video search and selection.
 - **YouTube:** Use any YouTube video as a background OR upload your own.
-- **Custom Images:** Provide a URL to any image OR upload your own.
+- **Custom Uploads:** Upload your own images or videos to use as backgrounds.
 
 ---
 
@@ -41,9 +41,10 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 - **Multi-Language Support:** Display verse translations (e.g., English, Spanish) and transliterations alongside the original Arabic text.
 - **Typography:** Choose from high-quality Arabic fonts (e.g., Tasees, DTHULUTH).
-- **Custom Positioning:** Users can now choose to display subtitles at the **Bottom** or the **Middle** of the screen.
-- **Metadata Overlay:** Option to display the Surah Name and Reciter Name as an elegant overlay at the top of the video.
-- **Styling:** Full control over font size (1-72px) and color.
+- **Custom Positioning:** Choose to display subtitles at the **Bottom** or the **Middle** of the screen.
+- **Metadata Overlay:** Elegant overlay at the top of the video showing Surah and Reciter names.
+- **Styling:** Full control over font size and color.
+- **Smooth Transitions:** Improved image-to-image crossfade transitions for a more professional look.
 
 ---
 
@@ -102,11 +103,17 @@ Quran Video Maker is a full-stack web application that enables users to create p
 
 ---
 
-### 12\. Analytics & Monitoring (Admin Panel)
-- **Structured Logging**: Uses `winston` for robust, central application and error JSON logging (stored in `Data/logs/`).
-- **Performance Metrics**: Real-time tracking of total requests, successful/failed jobs, average processing time, and unique user sessions.
-- **Webhook Notifications**: Broadcasts real-time events (`SERVER_STARTED`, `API_ERROR`, `JOB_COMPLETED`, etc.) to external platforms (Discord, Slack).
-- **Admin Dashboard**: A secure web panel (`/admin.html`) protected by Basic Auth to visualize live metrics, monitor resource usage, and view streaming logs.
+### 12\. Analytics & Monitoring
+- **Structured Logging**: Unified JSON logging with `winston` (stored in `Data/logs/`).
+- **Performance Metrics**: Real-time tracking of requests, jobs, and processing time.
+- **Webhook Notifications**: Broadcasts events (`USER_FEEDBACK`, `JOB_COMPLETED`, etc.) to Discord/Slack.
+- **Admin Dashboard**: Secure panel (`/admin.html`) to visualize metrics and monitor system health.
+
+---
+
+### 13\. Feedback & Ideas (New)
+- **Integrated Feedback System:** Users can now submit feelings, bugs, or improvement ideas directly from the app header.
+- **Instant Admin Alerts:** Submissions are stored in `Data/feedback.json` and instantly sent to the admin via Webhook.
 
 ---
 
@@ -134,6 +141,7 @@ The easiest and most reliable way to run this project is with Docker Compose. It
    ```env
    UNSPLASH_ACCESS_KEY=your_key_here
    UNSPLASH_Secret_KEY=your_key_here
+   PEXELS_API_KEY=your_pexels_key_here
    R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
    R2_ACCESS_KEY_ID=your_access_key_id
    R2_SECRET_ACCESS_KEY=your_secret_access_key

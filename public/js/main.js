@@ -256,16 +256,17 @@ function addProgressBar() {
   progressContainer.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
 
   progressContainer.innerHTML = `
-    <div class="progress-wrapper">
-      <h4>انتاج الفديو</h4>
-      <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden">
-        <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%"></div>
-      <h4>انتاج الفديو</h4>
-      <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden">
-        <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%"></div>
+    <div class="progress-wrapper" style="text-align: center;">
+      <h4 style="margin-bottom: 10px;">جاري إنشاء الفيديو...</h4>
+      <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden;margin:0 auto;">
+        <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%;transition:width 0.3s ease;"></div>
       </div>
-      <div class="progress-text" style="margin-top:10px">Starting...</div>
-      <div class="progress-text" style="margin-top:10px">Starting...</div>
+      <div class="progress-text" style="margin-top:10px; font-size: 14px; color: #555;">Starting...</div>
+      <div class="waiting-text" style="margin-top:15px; font-size: 12px; color: #888;">
+        <i class="fas fa-heart" style="font-size: 10px; margin-left: 5px;"></i>
+        دقائق الانتظار .. املأها بالاستغفار
+        <i class="fas fa-heart" style="font-size: 10px; margin-right: 5px;"></i>
+      </div>
     </div>
   `;
   document.body.appendChild(progressContainer);
@@ -448,6 +449,22 @@ function markVerse() {
   currentVerseIndex++;
   displayCurrentVerse();
 
+  const display = document.getElementById('currentVerseDisplay');
+  if (display) {
+    display.style.transform = 'scale(1.05)';
+    display.style.color = 'var(--primary-color)';
+    display.style.transition = 'all 0.2s ease';
+    setTimeout(() => {
+      display.style.transform = 'scale(1)';
+      display.style.color = '';
+    }, 200);
+  }
+
+  const instructionOverlay = document.getElementById('syncInstructionOverlay');
+  if (instructionOverlay) {
+    instructionOverlay.style.display = 'none';
+  }
+
   const progressPercent = (currentVerseIndex / currentVersesText.length) * 100;
   document.getElementById('syncProgressBar').style.width = `${progressPercent}%`;
   document.getElementById('syncStatus').textContent = `الآية ${currentVerseIndex} من ${currentVersesText.length}`;
@@ -472,6 +489,12 @@ function resetSync() {
   document.getElementById('syncStatus').textContent = `الآية 1 من ${currentVersesText.length}`;
   document.getElementById('syncProgressBar').style.width = '0%';
   document.getElementById('finishSyncBtn').style.display = 'none';
+
+  const instructionOverlay = document.getElementById('syncInstructionOverlay');
+  if (instructionOverlay) {
+    instructionOverlay.style.display = 'block';
+  }
+
   displayCurrentVerse();
 }
 
@@ -727,6 +750,45 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('imagePickerCancel')?.addEventListener('click', handlePickerCancel);
   document.getElementById('imagePickerCancelBtn')?.addEventListener('click', handlePickerCancel);
   document.getElementById('imagePickerSelectAll')?.addEventListener('click', handlePickerSelectAll);
+  document.querySelectorAll('.picker-tab').forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      document.querySelectorAll('.picker-tab').forEach(t => t.classList.remove('active'));
+      e.target.classList.add('active');
+      window.setPickerFilter?.(e.target.dataset.filter);
+    });
+  });
+  document.getElementById('feedbackForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const type = document.getElementById('feedbackType').value;
+    const content = document.getElementById('feedbackContent').value;
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+
+    try {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
+
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...window.getAuthHeaders?.()
+        },
+        body: JSON.stringify({ type, content })
+      });
+
+      if (!response.ok) throw new Error('فشل إرسال الرسالة');
+
+      window.showToast?.('تم إرسال رأيك بنجاح، شكراً لك!');
+      e.target.reset();
+      window.goBack?.();
+    } catch (error) {
+      console.error('Feedback error:', error);
+      window.showToast?.('حدث خطأ أثناء الإرسال، يرجى المحاولة لاحقاً');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> إرسال';
+    }
+  });
 
   initAuthUI();
   updateAuthState();

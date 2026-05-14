@@ -12,7 +12,7 @@ import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { uploadToStorage, deleteFromStorage } from "./utility/storage.js";
 import { getSurahDataRange } from './utility/data.js';
-import { extractKeywords, searchImagesWithMetadata } from './utility/background.js';
+import { extractKeywords, searchImagesWithMetadata, searchVideosOnPexels } from './utility/background.js';
 import authRoutes from './utility/authRoutes.js';
 import { authenticateToken } from './utility/auth.js';
 import { initDB, getUserVideos, deleteUserVideo, findVideoByKey, createAnalyticsJob } from './utility/db.js';
@@ -333,10 +333,45 @@ app.get('/api/suggest-backgrounds', authenticateToken, async (req, res) => {
     }
 
     const images = await searchImagesWithMetadata(keywords, 15, crop || 'landscape', exclude, pageNum);
-    res.json({ images, keywords });
+    
+    let videos = [];
+    if (process.env.PEXELS_API_KEY) {
+        videos = await searchVideosOnPexels(keywords, 6, crop || 'landscape', exclude, pageNum);
+    }
+
+    const mixed = [];
+    let i = 0, j = 0;
+    while (i < images.length || j < videos.length) {
+        if (j < videos.length && (i >= images.length || Math.random() > 0.6))
+          mixed.push(videos[j++]);
+        else if (i < images.length)
+          mixed.push(images[i++]);
+    }
+
+    res.json({ images: mixed, keywords });
   } catch (error) {
     console.error("Suggest backgrounds error:", error);
     res.status(500).json({ error: 'Failed to fetch background suggestions' });
+  }
+});
+
+app.post('/api/unsplash-download', authenticateToken, async (req, res) => {
+  const { downloadLocation } = req.body;
+
+  if (!downloadLocation)
+    return res.status(400).json({ error: 'Missing downloadLocation' });
+
+  if (!process.env.UNSPLASH_ACCESS_KEY)
+    return res.status(500).json({ error: 'Unsplash key not configured' });
+
+  try {
+    await axios.get(downloadLocation, {
+      headers: { Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}` }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Unsplash download trigger error:", error.message);
+    res.json({ success: false });
   }
 });
 
@@ -409,6 +444,49 @@ app.get("/videos/*", async (req, res) => {
   } catch (err) {
     console.error('Video proxy error:', err.message);
     res.status(502).json({ error: 'Failed to load video' });
+  }
+});
+
+app.post('/api/feedback', authenticateToken, async (req, res) => {
+  const { type, content } = req.body;
+  if (!type || !content) {
+    return res.status(400).json({ error: 'Missing feedback type or content' });
+  }
+
+  const feedbackDir = 'Data';
+  const feedbackFile = path.join(feedbackDir, 'feedback.json');
+  try {
+    if (!fs.existsSync(feedbackDir)) {
+      fs.mkdirSync(feedbackDir, { recursive: true });
+    }
+
+    let feedbackData = [];
+    if (fs.existsSync(feedbackFile)) {
+      const fileContent = fs.readFileSync(feedbackFile, 'utf8');
+      try {
+        feedbackData = JSON.parse(fileContent);
+      } catch (e) {
+        feedbackData = [];
+      }
+    }
+
+    const newFeedback = {
+      id: Date.now(),
+      userId: req.user.id,
+      username: req.user.username,
+      type,
+      content,
+      timestamp: new Date().toISOString()
+    };
+    feedbackData.push(newFeedback);
+    fs.writeFileSync(feedbackFile, JSON.stringify(feedbackData, null, 2));
+
+    await sendWebhookNotification('USER_FEEDBACK', newFeedback);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Feedback save error:', error);
+    res.status(500).json({ error: 'Failed to save feedback' });
   }
 });
 

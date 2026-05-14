@@ -5,6 +5,12 @@ let currentImages = [];
 let selectedIds = new Set();
 let pickerParams = {};
 let shufflePage = 1;
+let currentFilter = 'all';
+
+window.setPickerFilter = (filter) => {
+  currentFilter = filter;
+  renderGrid();
+};
 
 export function showImagePicker({ surahNumber, startVerse, endVerse, crop, query }) {
   pickerParams = { surahNumber, startVerse, endVerse, crop, query };
@@ -28,6 +34,11 @@ export function showImagePicker({ surahNumber, startVerse, endVerse, crop, query
       <p>جاري البحث عن صور مناسبة...</p>
     </div>
   `;
+
+  currentFilter = 'all';
+  document.querySelectorAll('.picker-tab').forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.filter === 'all');
+  });
 
   fetchAndRender();
 
@@ -90,13 +101,41 @@ function renderGrid() {
   const grid = document.getElementById('imagePickerGrid');
   grid.innerHTML = '';
 
-  currentImages.forEach((img) => {
+  const filteredImages = currentImages.filter(img => {
+    if (currentFilter === 'video')
+      return img.isVideo;
+
+    if (currentFilter === 'photo')
+      return !img.isVideo;
+    
+    return true;
+  });
+
+  if (filteredImages.length === 0) {
+    grid.innerHTML = `
+      <div class="image-picker-loading">
+        <p>لا يوجد عناصر مطابقة لهذا التصنيف.</p>
+      </div>
+    `;
+    return;
+  }
+
+  filteredImages.forEach((img) => {
     const item = document.createElement('div');
     item.className = `image-picker-item ${selectedIds.has(img.id) ? 'selected' : 'deselected'}`;
     item.dataset.id = img.id;
 
+    const sourceName = img.isVideo ? (img.provider || 'Pexels') : 'Unsplash';
+    const sourceLink = img.isVideo ? (img.provider === 'Pexels' ? 'https://www.pexels.com/' : 'https://pixabay.com/') : 'https://unsplash.com/?utm_source=Quran_Video_Maker&utm_medium=referral';
+    const typeLabel = img.isVideo ? 'Video' : 'Photo';
+    const videoIcon = img.isVideo ? '<div class="video-play-overlay"><i class="fas fa-play-circle"></i></div>' : '';
+
     item.innerHTML = `
       <img src="${img.thumb}" alt="${img.alt || ''}" loading="lazy" />
+      ${videoIcon}
+      <div class="image-picker-attribution">
+        ${typeLabel} by <a href="${img.user ? img.user.link : '#'}?utm_source=Quran_Video_Maker&utm_medium=referral" target="_blank" onclick="event.stopPropagation()">${img.user ? img.user.name : 'Unknown'}</a> on <a href="${sourceLink}" target="_blank" onclick="event.stopPropagation()">${sourceName}</a>
+      </div>
       <div class="image-picker-check">
         <i class="fas fa-check-circle"></i>
       </div>
@@ -130,12 +169,11 @@ function updateControls() {
   const confirmBtn = document.getElementById('imagePickerConfirm');
   const countBadge = document.getElementById('imagePickerCount');
   const count = selectedIds.size;
-
   countBadge.textContent = count;
 
   if (count < 3) {
     confirmBtn.disabled = true;
-    confirmBtn.title = 'اختر 3 صور على الأقل';
+    confirmBtn.title = 'اختر 3 صور أو فيديوهات على الأقل';
   } else {
     confirmBtn.disabled = false;
     confirmBtn.title = '';
@@ -153,11 +191,27 @@ export async function handlePickerShuffle() {
   const grid = document.getElementById('imagePickerGrid');
   grid.innerHTML = '';
   keptImages.forEach(img => {
+    if (currentFilter === 'video' && !img.isVideo)
+      return;
+
+    if (currentFilter === 'photo' && img.isVideo)
+      return;
+
     const item = document.createElement('div');
     item.className = 'image-picker-item selected';
     item.dataset.id = img.id;
+    
+    const sourceName = img.isVideo ? (img.provider || 'Pexels') : 'Unsplash';
+    const sourceLink = img.isVideo ? (img.provider === 'Pexels' ? 'https://www.pexels.com/' : 'https://pixabay.com/') : 'https://unsplash.com/?utm_source=Quran_Video_Maker&utm_medium=referral';
+    const typeLabel = img.isVideo ? 'Video' : 'Photo';
+    const videoIcon = img.isVideo ? '<div class="video-play-overlay"><i class="fas fa-play-circle"></i></div>' : '';
+
     item.innerHTML = `
       <img src="${img.thumb}" alt="${img.alt || ''}" loading="lazy" />
+      ${videoIcon}
+      <div class="image-picker-attribution">
+        ${typeLabel} by <a href="${img.user ? img.user.link : '#'}?utm_source=Quran_Video_Maker&utm_medium=referral" target="_blank" onclick="event.stopPropagation()">${img.user ? img.user.name : 'Unknown'}</a> on <a href="${sourceLink}" target="_blank" onclick="event.stopPropagation()">${sourceName}</a>
+      </div>
       <div class="image-picker-check">
         <i class="fas fa-check-circle"></i>
       </div>
@@ -222,9 +276,22 @@ export async function handlePickerShuffle() {
 }
 
 export function handlePickerConfirm() {
-  const selectedUrls = currentImages
-    .filter(img => selectedIds.has(img.id))
-    .map(img => img.url);
+  const selectedImages = currentImages.filter(img => selectedIds.has(img.id));
+  
+  selectedImages.forEach(img => {
+    if (img.downloadLocation) {
+      fetch('/api/unsplash-download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ downloadLocation: img.downloadLocation })
+      }).catch(err => console.error('Failed to trigger Unsplash download', err));
+    }
+  });
+
+  const selectedUrls = selectedImages.map(img => img.url);
 
   closeImagePicker();
 

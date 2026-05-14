@@ -21,7 +21,8 @@ export async function sendWebhookNotification(event, payload) {
         'API_ERROR': 15158332,     // Red
         'GLOBAL_ERROR': 15158332,  // Red
         'JOB_COMPLETED': 3447003,  // Blue
-        'JOB_FAILED': 15158332     // Red
+        'JOB_FAILED': 15158332,    // Red
+        'USER_FEEDBACK': 15844367  // Orange
       };
 
       postData = {

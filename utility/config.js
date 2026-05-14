@@ -47,6 +47,8 @@ export const VIDEO_DEFAULTS = {
     AUDIO_CHECK_INTERVAL_MS: 500,
     AUDIO_CHECK_MAX_ATTEMPTS: 60,
     CLEANUP_DELAY_MS: 500,
+    WATERMARK_TEXT: 'qvm.modhtom.com',
+    WATERMARK_ENABLED: true,
 };
 
 export const ALLOWED_FONT_CHARS = /^[a-zA-Z0-9\s\-_]+$/;

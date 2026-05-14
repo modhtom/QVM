@@ -65,7 +65,7 @@ function createVideoCard(video, galleryGrid) {
           card.style.opacity = '0';
           setTimeout(() => card.remove(), 300);
           if (document.querySelectorAll('.gallery-item').length <= 1) {
-            galleryGrid.innerHTML = '<div class="empty-state"><i class="fas fa-film"></i><p>لا توجد مقاطع فيديو حتى الآن قم باعادة تحميل الصفحة ان كنت تعتقد ان هنالك فديوهات</p></div>';
+            galleryGrid.innerHTML = '<div class="empty-state"><i class="fas fa-film"></i><p>لا توجد مقاطع فيديو حالياً. قم بتحديث الصفحة إذا كنت تتوقع وجودها.</p></div>';
           }
         } else {
           alert('حدث خطأ أثناء الحذف');
@@ -95,7 +95,7 @@ export async function loadVideos() {
     const response = await fetch('/api/videos', { headers: getAuthHeaders() });
     const data = await response.json();
     if (!data.videos || data.videos.length === 0) {
-      galleryGrid.innerHTML = '<div class="empty-state"><i class="fas fa-film"></i><p>لا توجد مقاطع فيديو حتى الآن قم باعادة تحميل الصفحة ان كنت تعتقد ان هنالك فديوهات</p></div>';
+      galleryGrid.innerHTML = '<div class="empty-state"><i class="fas fa-film"></i><p>لا توجد مقاطع فيديو حالياً. قم بتحديث الصفحة إذا كنت تتوقع وجودها.</p></div>';
       return;
     }
 

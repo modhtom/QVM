@@ -6,7 +6,7 @@ import { deleteVidData, deleteOldVideosAndTempFiles } from "./utility/delete.js"
 import { generateSubtitles } from "./utility/subtitle.js";
 import { uploadToStorage, downloadFromStorage } from "./utility/storage.js";
 import { runAutoSync } from "./utility/autoSync.js";
-import { VIDEO_DEFAULTS, ALLOWED_FONT_CHARS } from "./utility/config.js";
+import { VIDEO_DEFAULTS, ALLOWED_FONT_CHARS, PATHS } from "./utility/config.js";
 import fs from "fs";
 import * as mm from "music-metadata";
 import path from "path";
@@ -148,9 +148,15 @@ async function runFFmpegRender({
   audioLen,
   startTimeOffset,
   progressCallback,
+  watermarkText = VIDEO_DEFAULTS.WATERMARK_TEXT,
+  watermarkEnabled = VIDEO_DEFAULTS.WATERMARK_ENABLED,
 }) {
   const encoder = await detectBestEncoder();
   const encoderOptions = getEncoderSettings(encoder);
+  const fontPath = path.relative(process.cwd(), path.join(PATHS.FONT, 'TaseesRegular.ttf')).replace(/\\/g, '/');
+  const safeWatermark = watermarkText.replace(/:/g, '：').replace(/'/g, "\u2019");
+  const watermarkFilter = `drawtext=text='${safeWatermark}':x=main_w-text_w-40:y=main_h-text_h-40:fontfile='${fontPath}':fontsize=22:fontcolor=white@0.8:shadowcolor=black@0.6:shadowx=2:shadowy=2`;
+  const finalFilter = watermarkEnabled ? `${subtitleFilter},${watermarkFilter}` : subtitleFilter;
 
   const buildCommand = (enc, encOpts) => {
     const command = ffmpeg()
@@ -168,7 +174,7 @@ async function runFFmpegRender({
       .outputOptions(['-map', '0:v:0', '-map', '1:a:0'])
       .outputOptions(encOpts)
       .outputOptions(['-ar 44100', '-ac 2', '-b:a 128k'])
-      .videoFilter(subtitleFilter)
+      .videoFilter(finalFilter)
       .output(outputPath);
 
     if (audioLen) command.duration(audioLen);
@@ -288,7 +294,6 @@ export async function generatePartialVideo(
   color = color || VIDEO_DEFAULTS.DEFAULT_COLOR;
   crop = crop || VIDEO_DEFAULTS.DEFAULT_CROP;
   fontName = sanitizeFontName(fontName);
-  
   let audioPath, textPath, durationsFile;
 
   if (audioSource === 'custom') {
