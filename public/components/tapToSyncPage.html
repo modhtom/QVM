@@ -1,0 +1,29 @@
+<div id="tapToSyncPage" class="page">
+    <button class="back-btn" onclick="goBack()"><span>←</span> رجوع</button>
+    <div class="container">
+      <div class="header">
+        <h1 class="logo">مزامنة التلاوة</h1>
+        <p class="subtitle">اضغط للمزامنة مع بداية كل آية</p>
+      </div>
+      <div class="verse-display" id="currentVerseDisplay">...</div>
+      <div id="syncInstructionOverlay" style="text-align:center; color:var(--primary-color); font-weight:bold; margin-bottom:15px; font-size:1.1rem; animation: pulse 1.5s infinite;">
+        اضغط على تشغيل ثم انقر على (مزامنة) مع بداية قراءة كل آية
+      </div>
+      <div id="waveform"></div>
+      <audio id="syncAudioPlayer" style="display:none;"></audio>
+      <div class="audio-controls">
+        <button id="playPauseBtn" class="control-btn"><i class="fas fa-play"></i></button>
+        <button id="stopBtn" class="control-btn"><i class="fas fa-stop"></i></button>
+
+        <button id="markVerseBtn" style="flex:1; font-size:1.5rem; padding:20px; border-radius:15px; background:var(--gradient-accent); color:#fff; box-shadow:0 8px 15px rgba(0,0,0,0.2);">مزامنة
+          الآية</button>
+        <button id="resetSyncBtn" style="background-color: #f44336;">إعادة الضبط</button>
+      </div>
+      <div id="syncStatus"></div>
+      <div id="syncProgress">
+        <div id="syncProgressBar"></div>
+      </div>
+      <button id="finishSyncBtn" class="action-btn create-btn" style="margin-top: 30px; display: none;">إنهاء و إنشاء
+        الفيديو</button>
+    </div>
+  </div>

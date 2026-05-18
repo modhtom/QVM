@@ -1,0 +1,406 @@
+#share-modal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.share-modal {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    width: 90%;
+    max-width: 500px;
+}
+
+.share-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.share-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.close-share {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.share-platforms {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.share-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #f9f9f9;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.share-option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.share-option i {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+#tapToSyncPage {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+}
+
+#tapToSyncPage.active {
+    display: flex;
+}
+
+.verse-display {
+    font-size: 2.5em;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80%;
+    max-width: 700px;
+    color: var(--text-color);
+}
+
+.audio-controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.audio-controls button {
+    padding: 10px 20px;
+    font-size: 1.2em;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--accent-color);
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+.audio-controls button:hover {
+    background-color: var(--accent-hover-color);
+}
+
+#markVerseBtn {
+    background-color: #4CAF50;
+}
+
+#markVerseBtn:hover {
+    background-color: #45a049;
+}
+
+#syncStatus {
+    margin-top: 20px;
+    font-size: 1.1em;
+    color: #ccc;
+}
+
+#syncProgress {
+    margin-top: 10px;
+    width: 80%;
+    max-width: 600px;
+    height: 10px;
+    background-color: #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#syncProgressBar {
+    height: 100%;
+    width: 0%;
+    background-color: var(--accent-color);
+    border-radius: 5px;
+    transition: width 0.1s linear;
+}
+
+.share-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.share-modal-overlay .share-modal {
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.share-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    gap: 8px;
+}
+
+.share-option:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-medium);
+    border-color: var(--primary-color);
+}
+
+.share-option i {
+    font-size: 2rem;
+}
+
+.share-option span {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.social-btn.telegram {
+    background: #0088cc;
+}
+
+.social-btn.twitter {
+    background: #000000;
+}
+
+.social-btn.facebook {
+    background: #1877f2;
+}
+
+.social-btn.copy-link {
+    background: var(--primary-color);
+}
+
+.toast-notification {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--gradient-primary);
+    color: white;
+    padding: 14px 28px;
+    border-radius: 50px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 8px 25px rgba(26, 77, 58, 0.3);
+    z-index: 3000;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.gallery-content {
+    padding: 15px;
+}
+
+.gallery-title {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .page {
+        padding: 10px 0 40px;
+    }
+
+    .header {
+        padding: 30px 0 20px;
+    }
+
+    .arabic-subtitle {
+        font-size: 1.2rem;
+    }
+
+.nav-buttons {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin: 0 auto 40px;
+    }
+
+    .nav-btn {
+        padding: 28px 20px;
+    }
+
+    .nav-btn-icon {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+
+    .nav-btn-title {
+        font-size: 1.2rem;
+    }
+
+    .nav-btn-desc {
+        font-size: 0.85rem;
+    }
+
+.back-btn {
+        position: static;
+        margin: 16px auto;
+        display: flex;
+        width: fit-content;
+    }
+
+.form-container {
+        padding: 24px 16px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .form-section h3 {
+        font-size: 1.25rem;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+    }
+
+    .arabic-input {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .arabic-label {
+        font-size: 1.1rem;
+    }
+
+    .checkbox-group {
+        padding: 16px;
+    }
+
+.action-btn {
+        padding: 14px 28px;
+        font-size: 1rem;
+    }
+
+    .create-btn {
+        font-size: 1.1rem;
+        padding: 16px 32px;
+        margin-top: 20px;
+    }
+
+.sync-method-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sync-method-buttons .action-btn {
+        margin-top: 0 !important;
+    }
+
+.preview-container {
+        padding: 30px 16px;
+        min-height: 280px;
+        margin: 24px 0;
+    }
+
+    .preview-actions {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .download-btn,
+    .share-btn {
+        padding: 12px 28px;
+        font-size: 1rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+}

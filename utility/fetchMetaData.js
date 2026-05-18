@@ -19,7 +19,7 @@ async function fetchMetaData() {
     try {
         console.log("fetching reciters from mp3quran.net...");
         const reciterResp = await axios.get('https://mp3quran.net/api/v3/reciters?language=ar');
-        
+
         if (reciterResp.data && reciterResp.data.reciters) {
             metadata.reciters = reciterResp.data.reciters.map(r => ({
                 id: r.id,
@@ -37,7 +37,7 @@ async function fetchMetaData() {
         }
 
         console.log("fetching translations from Al-Quran Cloud...");
-        const transResp = await axios.get('http://api.alquran.cloud/v1/edition?format=text&type=translation');
+        const transResp = await axios.get('https://api.alquran.cloud/v1/edition?format=text&type=translation');
         
         if (transResp.data && transResp.data.data) {
             metadata.translations = transResp.data.data.map(t => ({

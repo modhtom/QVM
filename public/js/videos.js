@@ -90,6 +90,8 @@ function createVideoCard(video, galleryGrid) {
 
 export async function loadVideos() {
   const galleryGrid = document.getElementById('gallery-grid');
+  if (!galleryGrid)
+    return;
 
   try {
     const response = await fetch('/api/videos', { headers: getAuthHeaders() });

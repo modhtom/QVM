@@ -1,0 +1,56 @@
+<div id="authPage" class="page active">
+    <div class="container">
+      <div class="header">
+        <h1 class="logo">QVM</h1>
+        <p class="arabic-subtitle">أداة إنشاء فيديوهات القرآن الكريم</p>
+      </div>
+
+      <div id="loginSection" class="form-container" style="max-width: 400px; margin: 0 auto;">
+        <h3 style="text-align: center; margin-bottom: 20px;">تسجيل الدخول</h3>
+        <form id="loginForm">
+          <div class="form-group"><label for="loginUsername">اسم المستخدم</label><input type="text" id="loginUsername" class="form-control" required="" autocomplete="username"></div>
+          <div class="form-group"><label for="loginPassword">كلمة المرور</label><input type="password" id="loginPassword" class="form-control" required="" autocomplete="current-password"></div>
+          <div id="loginError" style="color: #ff4444; text-align: center; margin: 10px 0; font-size: 14px;"></div>
+          <button type="submit" class="action-btn create-btn" style="width: 100%;">تسجيل الدخول</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px; font-size: 14px;">ليس لديك حساب؟ <a href="#" id="showRegister" style="color: var(--accent-color);">إنشاء حساب جديد</a></p>
+        <p style="text-align: center; margin-top: 10px; font-size: 14px;"><a href="#" id="showForgotPassword" style="color: #8b949e; text-decoration: none;">نسيت كلمة المرور؟</a></p>
+      </div>
+
+      <div id="registerSection" class="form-container" style="max-width: 400px; margin: 0 auto; display: none;">
+        <h3 style="text-align: center; margin-bottom: 20px;">إنشاء حساب</h3>
+        <form id="registerForm">
+          <div class="form-group"><label for="regUsername">اسم المستخدم</label><input type="text" id="regUsername" class="form-control" required="" autocomplete="username" minlength="3" maxlength="30"></div>
+          <div class="form-group"><label for="regEmail">البريد الإلكتروني</label><input type="email" id="regEmail" class="form-control" required="" autocomplete="email"></div>
+          <div class="form-group"><label for="regPassword">كلمة المرور</label><input type="password" id="regPassword" class="form-control" required="" autocomplete="new-password" minlength="6"></div>
+          <div class="form-group"><label for="regConfirmPassword">تأكيد كلمة المرور</label><input type="password" id="regConfirmPassword" class="form-control" required="" autocomplete="new-password"></div>
+          <div id="registerError" style="color: #ff4444; text-align: center; margin: 10px 0; font-size: 14px;"></div>
+          <button type="submit" class="action-btn create-btn" style="width: 100%;">إنشاء حساب</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px; font-size: 14px;">لديك حساب بالفعل؟ <a href="#" id="showLogin" style="color: var(--accent-color);">تسجيل الدخول</a></p>
+      </div>
+
+      <div id="forgotPasswordSection" class="form-container" style="max-width: 400px; margin: 0 auto; display: none;">
+        <h3 style="text-align: center; margin-bottom: 20px;">استعادة كلمة المرور</h3>
+        <p style="text-align: center; font-size: 13px; color: #8b949e; margin-bottom: 20px;">أدخل بريدك الإلكتروني ليصلك
+          رابط إعادة التعيين</p>
+        <form id="forgotPasswordForm">
+          <div class="form-group"><label for="forgotEmail">البريد الإلكتروني</label><input type="email" id="forgotEmail" class="form-control" required=""></div>
+          <div id="forgotMessage" style="text-align: center; margin: 10px 0; font-size: 14px;"></div>
+          <button type="submit" class="action-btn create-btn" style="width: 100%;">إرسال الرابط</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px; font-size: 14px;"><a href="#" id="backToLoginFromForgot" style="color: var(--accent-color);">العودة إلى تسجيل الدخول</a></p>
+      </div>
+
+      <div id="resetPasswordSection" class="form-container" style="max-width: 400px; margin: 0 auto; display: none;">
+        <h3 style="text-align: center; margin-bottom: 20px;">كلمة مرور جديدة</h3>
+        <form id="resetPasswordForm">
+          <div class="form-group"><label for="newPassword">كلمة المرور الجديدة</label><input type="password" id="newPassword" class="form-control" required="" minlength="6"></div>
+          <div class="form-group"><label for="confirmNewPassword">تأكيد كلمة المرور</label><input type="password" id="confirmNewPassword" class="form-control" required="" minlength="6"></div>
+          <div id="resetMessage" style="text-align: center; margin: 10px 0; font-size: 14px;"></div>
+          <button type="submit" class="action-btn create-btn" style="width: 100%;">حفظ كلمة المرور</button>
+        </form>
+        <p style="text-align: center; margin-top: 15px; font-size: 14px;"><a href="#" id="backToLoginFromReset" style="color: var(--accent-color);">العودة إلى تسجيل الدخول</a></p>
+      </div>
+    </div>
+  </div>

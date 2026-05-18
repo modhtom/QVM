@@ -34,7 +34,7 @@ export async function fetchFullSurahData(surahNumber, edition) {
 
     console.log(`[API] Fetching full Surah ${surahNumber} (${edition})...`);
     try {
-        const response = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}/${edition}`);
+        const response = await axios.get(`https://api.alquran.cloud/v1/surah/${surahNumber}/${edition}`);
         const data = response.data.data;
         await cache.set(cacheKey, data, 86400);
         return data;
@@ -50,7 +50,7 @@ async function getOrFetchAudio(surah, verse, edition) {
         let duration = 0;
 
         if (!buffer) {
-            const url = `http://api.alquran.cloud/v1/ayah/${surah}:${verse}/${edition}`;
+            const url = `https://api.alquran.cloud/v1/ayah/${surah}:${verse}/${edition}`;
             const res = await axios.get(url, { timeout: 15000 });
             const audioUrl = res.data?.data?.audio;
             
@@ -90,7 +90,7 @@ export async function getSurahDataRange(
     transliterationEdition = null,
     textOnly = false,
 ) {
-    const shouldAddBasmalah = surahNumber !== "1" && surahNumber !== "9" && parseInt(startVerse) === 1;
+    const shouldAddBasmalah = String(surahNumber) !== "1" && String(surahNumber) !== "9" && parseInt(startVerse) === 1;
 
     let bismillahData = null;
     if (shouldAddBasmalah) {
@@ -225,7 +225,7 @@ export async function partAudioAndText(
     if (data.combinedText) {
         fs.writeFileSync(path.join(textOutputDir, `Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`), data.combinedText, "utf-8");
         if (data.combinedTranslation) {
-        fs.writeFileSync(path.join(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`), data.combinedTranslation, "utf-8");
+            fs.writeFileSync(path.join(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`), data.combinedTranslation, "utf-8");
         }
         if (data.combinedTransliteration) {
             fs.writeFileSync(path.join(textOutputDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`), data.combinedTransliteration, "utf-8");

@@ -1,0 +1,22 @@
+<div id="videoPreview" class="page">
+    <button class="back-btn" onclick="goBack()"><span>←</span> رجوع</button>
+    <div class="container">
+      <div class="header">
+        <h1 class="logo">المعاينة</h1>
+        <p class="subtitle">فيديو القرآن الخاص بك</p>
+      </div>
+      <div class="preview-container">
+        <div class="preview-content">
+          <div class="video-frame"><video id="previewVideo" controls="" playsinline="" webkit-playsinline=""></video></div>
+          <div class="preview-actions">
+            <button class="download-btn" onclick="downloadCurrentVideo()"><i class="fas fa-download"></i> تحميل</button>
+            <button class="share-btn" onclick="shareCurrentVideo()"><i class="fas fa-share-alt"></i> مشاركة</button>
+          </div>
+          <p class="preview-note" style="margin-top: 20px; font-size: 0.95rem; color: var(--text-secondary); background: var(--bg-primary); padding: 12px 16px; border-radius: 10px; border-right: 4px solid var(--accent-color); text-align: right;">
+            <i class="fas fa-lightbulb" style="color: var(--accent-color); margin-left: 8px;"></i>
+            <strong>ملاحظة:</strong> إذا كانت الخلفيات تتغير بسرعة ملحوظة، يمكنك التراجع واختيار عدد صور أقل ليتناسب مع مدة الفيديو.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>

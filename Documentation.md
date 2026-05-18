@@ -756,14 +756,27 @@ authPage (login/register)
     └── gallery (per-user video management)
 ```
 
+### SPA Architecture & Routing (`router.js`)
+The application uses a modern Single Page Application (SPA) architecture with **Navigo** for hash-based routing.
+
+**Key Features**:
+- **Component-Based Rendering**: UI views (`components/*.html`) are fetched dynamically and cached in memory.
+- **Seamless Navigation**: `window.location.hash` changes trigger component mounts/unmounts, eliminating full page reloads.
+- **State Preservation**: Component switching correctly retains background processes (like job polling) without interrupting them.
+
 ### Key JavaScript Modules
+
+#### `api.js` (Resilient Polling)
+**Responsibilities**:
+- Handling job polling from the backend queue.
+- **Fault Tolerance**: Contains retry logic up to 5 consecutive network errors, preventing false "Failed" alerts during heavy cloud uploads.
+- **State Handoff**: Safely passes job artifacts (like video URLs) into `sessionStorage` for handoff to the preview page after rendering.
 
 #### `main.js`
 **Responsibilities**:
-- Application state management
-- Page navigation and routing
+- Application state initialization
 - TomSelect dropdown initialization
-- Job polling and progress tracking
+- Global event listeners
 - Event source connection for real-time updates
 
 #### `fullVideo.js` & `partialVideo.js`
@@ -1368,7 +1381,7 @@ describe('Video Generation', () => {
 
 ---
 
-*Last Updated: 14 May 2026*
-*Version: 6.0*
+*Last Updated: 18 May 2026*
+*Version: 6.1*
 *Documentation Maintainer: [MODHTOM](https://github.com/modhtom)*
 *For issues or contributions, see [GitHub Repository](https://github.com/modhtom/QVM/blob/main/TO-DOs.md)*

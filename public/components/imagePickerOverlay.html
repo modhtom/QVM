@@ -1,0 +1,38 @@
+<div id="imagePickerOverlay" class="image-picker-overlay" style="display:none;">
+    <div class="image-picker-modal">
+      <div class="image-picker-header">
+        <div class="image-picker-header-text">
+          <h3><i class="fas fa-photo-video" style="margin-left:8px;"></i>اختر خلفيات الفيديو</h3>
+          <p class="image-picker-subtitle">يمكنك دمج الصور والفيديوهات معاً (الحد الأدنى 3 مقاطع). انقر للتحديد أو الإلغاء، وفي حال لم تناسبك الخيارات، يمكنك التراجع والبحث بكلمات مفتاحية أخرى.</p>
+        </div>
+        <button class="image-picker-close" id="imagePickerCancel">×</button>
+      </div>
+
+      <div class="image-picker-toolbar">
+        <div class="image-picker-tabs" id="imagePickerTabs">
+          <button class="picker-tab active" data-filter="all">الكل</button>
+          <button class="picker-tab" data-filter="video">فيديو</button>
+          <button class="picker-tab" data-filter="photo">صور</button>
+        </div>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-right:auto;">
+          <button class="image-picker-tool-btn" id="imagePickerShuffle">
+            <i class="fas fa-sync-alt"></i> تحديث النتائج
+          </button>
+          <button class="image-picker-tool-btn" id="imagePickerSelectAll">
+            <i class="fas fa-check-double"></i> تحديد الكل
+          </button>
+          <span class="image-picker-badge">المحدد: <strong id="imagePickerCount">0</strong></span>
+        </div>
+      </div>
+
+      <div class="image-picker-grid" id="imagePickerGrid"></div>
+
+      <div class="image-picker-actions">
+        <button class="image-picker-cancel-btn" id="imagePickerCancelBtn">إلغاء</button>
+        <button class="image-picker-confirm-btn" id="imagePickerConfirm" disabled="">
+          <i class="fas fa-check"></i> تأكيد وإنشاء الفيديو
+        </button>
+      </div>
+    </div>
+  </div>

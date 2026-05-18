@@ -1,4 +1,5 @@
 import { getAuthHeaders } from './auth.js';
+import { pollJobStatus } from './modules/api/api.js';
 
 const getVal = (id) => document.getElementById(id)?.value;
 const getChk = (id) => document.getElementById(id)?.checked;
@@ -73,7 +74,7 @@ export async function submitVideoJob(endpoint, requestBody) {
     if (response.status === 202) {
         const data = await response.json();
         alert('بدأ إنتاج الفيديو! سيتم إعلامك عند اكتماله.');
-        window.pollJobStatus(data.jobId);
+        pollJobStatus(data.jobId);
         window.showPage('mainMenu');
     } else {
         const errorText = await response.text();

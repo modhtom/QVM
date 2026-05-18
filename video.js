@@ -75,7 +75,7 @@ function getEncoderSettings(encoder) {
 
 async function getMetadataInfo(surahNumber, editionIdentifier) {
   try {
-    const surahRes = await axios.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
+    const surahRes = await axios.get(`https://api.alquran.cloud/v1/surah/${surahNumber}`);
     const surahName = surahRes.data.data.name;
 
     let reciterName = "";
@@ -113,7 +113,7 @@ async function getMetadataInfo(surahNumber, editionIdentifier) {
         }
       } else {
         try {
-          const editionRes = await axios.get(`http://api.alquran.cloud/v1/edition`);
+          const editionRes = await axios.get(`https://api.alquran.cloud/v1/edition`);
           const edition = editionRes.data.data.find(e => e.identifier === editionIdentifier);
           if (edition) {
             reciterName = edition.name;
@@ -518,7 +518,7 @@ async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEditi
 async function getEndVerse(surahNumber, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await api.get(`http://api.alquran.cloud/v1/surah/${surahNumber}`);
+      const response = await api.get(`https://api.alquran.cloud/v1/surah/${surahNumber}`);
       if (response.data?.data?.numberOfAyahs) {
         return response.data.data.numberOfAyahs;
       }

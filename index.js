@@ -186,19 +186,24 @@ app.get("/", (req, res) => {
 });
 
 app.get('/job-status/:id', async (req, res) => {
-  const jobId = req.params.id;
-  const job = await videoQueue.getJob(jobId);
+  try {
+    const jobId = req.params.id;
+    const job = await videoQueue.getJob(jobId);
 
-  if (!job) {
-    return res.status(404).json({ error: 'Job not found' });
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const state = await job.getState();
+    const progress = job.progress;
+    const result = job.returnvalue;
+    const failedReason = job.failedReason;
+
+    res.json({ id: job.id, state, progress, result, failedReason });
+  } catch (error) {
+    console.error(`Error in /job-status/:id:`, error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  const state = await job.getState();
-  const progress = job.progress;
-  const result = job.returnvalue;
-  const failedReason = job.failedReason;
-
-  res.json({ id: job.id, state, progress, result, failedReason });
 });
 
 
@@ -212,6 +217,7 @@ app.get('/progress', (req, res) => {
 });
 
 app.get("/api/videos", authenticateToken, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   try {
     const userVideos = await getUserVideos(req.user.id);
     const videos = userVideos.map(v => v.s3Key);
@@ -328,8 +334,13 @@ app.get('/api/suggest-backgrounds', authenticateToken, async (req, res) => {
       }
       const start = parseInt(startVerse) || 1;
       const end = parseInt(endVerse) || start;
-      const { combinedTranslation } = await getSurahDataRange(surah, start, end, null, "quran-simple", "en.sahih", null, true);
-      keywords = extractKeywords(combinedTranslation, surah);
+      try {
+        const { combinedTranslation } = await getSurahDataRange(surah, start, end, null, "quran-simple", "en.sahih", null, true);
+        keywords = extractKeywords(combinedTranslation, surah);
+      } catch (err) {
+        console.warn('Fallback: Failed to get translation for keywords', err.message);
+        keywords = ['islam', 'quran', 'mosque'];
+      }
     }
 
     const images = await searchImagesWithMetadata(keywords, 15, crop || 'landscape', exclude, pageNum);
@@ -366,7 +377,10 @@ app.post('/api/unsplash-download', authenticateToken, async (req, res) => {
 
   try {
     await axios.get(downloadLocation, {
-      headers: { Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}` }
+      headers: {
+        Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}`,
+        'User-Agent': 'QuranVideoMaker/1.0'
+      }
     });
     res.json({ success: true });
   } catch (error) {
