@@ -69,7 +69,7 @@ function getEncoderSettings(encoder) {
 
     case 'libx264':
     default:
-      return [...common, '-preset veryfast', '-crf 23', '-tune film'];
+      return [...common, '-preset ultrafast', '-crf 28', '-tune fastdecode', '-threads auto'];
   }
 }
 

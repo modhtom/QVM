@@ -536,7 +536,7 @@ async function createBackgroundFromImage(imagePath, len, crop) {
             .videoFilters([`scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution}`])
             .noAudio()
             .videoCodec("libx264")
-            .outputOptions(['-pix_fmt yuv420p', `-t ${Math.max(1, Math.ceil(len || 1))}`])
+            .outputOptions(['-pix_fmt yuv420p', `-t ${Math.max(1, Math.ceil(len || 1))}`, '-preset ultrafast', '-threads auto'])
             .on("end", () => resolve(outputPath))
             .on("error", (err) => reject(new Error("FFmpeg image process failed: " + err.message)))
             .save(outputPath);
@@ -560,7 +560,7 @@ function createBackgroundVideo(videoPath, len, crop) {
             .videoFilters([`scale=${resolution}:force_original_aspect_ratio=increase`, `crop=${resolution}`])
             .noAudio()
             .videoCodec("libx264")
-            .outputOptions(['-pix_fmt yuv420p'])
+            .outputOptions(['-pix_fmt yuv420p', '-preset ultrafast', '-threads auto'])
             .on("end", () => resolve(outputPath))
             .on("error", (err) => reject(new Error(`FFmpeg video process failed: ${err.message}`)))
             .save(outputPath);
@@ -595,7 +595,7 @@ async function createImageSlideshow(imagePaths, len, crop) {
                     `scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution}`,
                     `setsar=1`
                 ])
-                .outputOptions([`-t ${targetDurationSeconds}`, `-r ${fps}`, `-pix_fmt yuv420p`, '-preset veryfast', '-an'])
+                .outputOptions([`-t ${targetDurationSeconds}`, `-r ${fps}`, `-pix_fmt yuv420p`, '-preset ultrafast', '-threads auto', '-an'])
                 .on('end', () => resolve(outputPath))
                 .on('error', (err, stdout, stderr) => reject(new Error("FFmpeg slideshow failed: " + stderr)))
                 .save(outputPath);
@@ -635,7 +635,7 @@ async function createImageSlideshow(imagePaths, len, crop) {
     return new Promise((resolve, reject) => {
         command
             .complexFilter(filterComplex)
-            .outputOptions(['-map [out]', `-r ${fps}`, '-pix_fmt yuv420p', '-preset veryfast', `-t ${targetDurationSeconds}`, '-y'])
+            .outputOptions(['-map [out]', `-r ${fps}`, '-pix_fmt yuv420p', '-preset ultrafast', '-threads auto', `-t ${targetDurationSeconds}`, '-y'])
             .on('end', () => resolve(outputPath))
             .on('error', (err, stdout, stderr) => reject(new Error("Slideshow transition failed: " + stderr)))
             .save(outputPath);
