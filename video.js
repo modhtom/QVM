@@ -257,7 +257,8 @@ export async function generateFullVideo(
   audioSource = 'api',
   autoSync = false,
   userId = null,
-  selectedImageUrls = null
+  selectedImageUrls = null,
+  resolution = '720p'
 ) {
   const endVerse = await getEndVerse(surahNumber);
   if (endVerse === -1) {
@@ -265,7 +266,7 @@ export async function generateFullVideo(
   }
   progressCallback({ step: 'Starting full video generation', percent: 0 });
   return generatePartialVideo(
-    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource, autoSync, userId, selectedImageUrls
+    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource, autoSync, userId, selectedImageUrls, resolution
   );
 }
 
@@ -278,7 +279,8 @@ export async function generatePartialVideo(
   audioSource = 'api',
   autoSync = false,
   userId = null,
-  selectedImageUrls = null
+  selectedImageUrls = null,
+  resolution = '720p'
 ) {
   console.log("MAKING A VIDEO");
   console.log("DEBUG ARGS:", { surahNumber, startVerse, edition, customAudioPath });
@@ -372,7 +374,7 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Preparing background video', percent: 40 });
   const verseInfo = { surahNumber, startVerse, endVerse, translationEdition };
-  const backgroundPath = await getBackgroundPath(useCustomBackground, videoNumber || 1, audioLen, crop, verseInfo, selectedImageUrls);
+  const backgroundPath = await getBackgroundPath(useCustomBackground, videoNumber || 1, audioLen, crop, verseInfo, selectedImageUrls, resolution);
 
   progressCallback({ step: 'Generating subtitles', percent: 50 });
   const subPath = `Data/subtitles/Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`;

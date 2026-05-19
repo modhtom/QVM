@@ -60,6 +60,7 @@ export function collectFormOptions(suffix) {
         crop: getChk(`verticalVideo${suffix}`) ? 'vertical' : 'horizontal',
         subtitlePosition: getVal(`subtitlePosition${suffix}`) || 'bottom',
         showMetadata: getChk(`showMetadata${suffix}`) || false,
+        resolution: getVal(`resolution${suffix}`) || '720p',
     };
 }
 

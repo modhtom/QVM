@@ -41,7 +41,8 @@ export function initMain() {
         showMetadata: document.getElementById("showMetadataPartCustom")?.checked,
         crop: document.getElementById("verticalVideoPartCustom")?.checked ? "vertical" : "horizontal",
         useCustomBackground: false,
-        videoNumber: 1
+        videoNumber: 1,
+        resolution: document.getElementById("resolutionPartCustom")?.value || '720p'
       });
 
       const formData = VideoState.get();
@@ -86,6 +87,7 @@ export function initMain() {
         crop: document.getElementById("verticalVideoFullCustom")?.checked ? "vertical" : "horizontal",
         useCustomBackground: (document.getElementById("pexelsVideoFullCustom")?.value || document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value) !== '',
         videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `unsplash:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
+        resolution: document.getElementById("resolutionFullCustom")?.value || '720p'
       });
 
       const formData = VideoState.get();
@@ -115,7 +117,8 @@ export function initMain() {
         videoNumber: (document.getElementById("pexelsVideoFullCustom")?.value ? `unsplash:${document.getElementById("pexelsVideoFullCustom").value}` : (document.getElementById("imageLinkFullCustom")?.value || document.getElementById("youtubeLinkFullCustom")?.value)),
         crop: document.getElementById("verticalVideoFullCustom")?.checked ? "horizontal" : "vertical",
         subtitlePosition: document.getElementById("subtitlePositionFullCustom")?.value || 'bottom',
-        showMetadata: document.getElementById("showMetadataFullCustom")?.checked || false
+        showMetadata: document.getElementById("showMetadataFullCustom")?.checked || false,
+        resolution: document.getElementById("resolutionFullCustom")?.value || '720p'
       };
 
       const surahNum = window.tempVideoFormData.surahNumber;
@@ -157,7 +160,8 @@ export function initMain() {
         videoNumber: (document.getElementById("pexelsVideoPartCustom")?.value ? `unsplash:${document.getElementById("pexelsVideoPartCustom").value}` : (document.getElementById("imageLinkPartCustom")?.value || document.getElementById("youtubeLinkPartCustom")?.value)),
         crop: document.getElementById("verticalVideoPartCustom")?.checked ? "horizontal" : "vertical",
         subtitlePosition: document.getElementById("subtitlePositionPartCustom")?.value || 'bottom',
-        showMetadata: document.getElementById("showMetadataPartCustom")?.checked || false
+        showMetadata: document.getElementById("showMetadataPartCustom")?.checked || false,
+        resolution: document.getElementById("resolutionPartCustom")?.value || '720p'
       };
 
       initTapToSync(customAudio, window.tempVideoFormData.surahNumber, window.tempVideoFormData.startVerse, window.tempVideoFormData.endVerse, window.tempVideoFormData.edition);

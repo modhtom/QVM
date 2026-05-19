@@ -73,11 +73,24 @@ const visualThesaurus = {
     'skin': ['texture', 'parchment']
 };
 
-export async function getBackgroundPath(newBackground, videoNumber, len, crop, verseInfo, selectedImageUrls = null) {
+function getResolutionDimensions(resolutionStr, crop) {
+    let width = 1280;
+    let height = 720;
+    if (resolutionStr === '1080p') {
+        width = 1920;
+        height = 1080;
+    } else if (resolutionStr === '480p') {
+        width = 854;
+        height = 480;
+    }
+    return crop === 'vertical' ? `${height}:${width}` : `${width}:${height}`;
+}
+
+export async function getBackgroundPath(newBackground, videoNumber, len, crop, verseInfo, selectedImageUrls = null, resolutionStr = '720p') {
     if (!len || isNaN(len)) len = Math.ceil(len) || 0;
 
     if (selectedImageUrls && Array.isArray(selectedImageUrls) && selectedImageUrls.length > 0) {
-        return await processFoundImages(selectedImageUrls, len, crop);
+        return await processFoundImages(selectedImageUrls, len, crop, resolutionStr);
     }
 
     if (newBackground) {
@@ -97,9 +110,9 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
             console.log(`Using local uploaded file: ${videoNumber}`);
             const fileExtension = path.extname(videoNumber).toLowerCase();
             if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(fileExtension)) {
-                return await createBackgroundFromImage(videoNumber, len, crop);
+                return await createBackgroundFromImage(videoNumber, len, crop, resolutionStr);
             } else {
-                return await createBackgroundVideo(videoNumber, len, crop);
+                return await createBackgroundVideo(videoNumber, len, crop, resolutionStr);
             }
         }
 
@@ -108,7 +121,7 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
             console.log(`Manual Unsplash Request: ${query}`);
             const imageUrls = await searchImagesOnUnsplash([query], 8, crop, { isManual: true });
             if (imageUrls.length > 0) {
-                return await processFoundImages(imageUrls, len, crop);
+                return await processFoundImages(imageUrls, len, crop, resolutionStr);
             } else {
                 throw new Error("No Unsplash images found for query: " + query);
             }
@@ -127,7 +140,7 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
                     throw new Error("Failed to download custom background image URL.");
                 }
             }
-            const result = await createBackgroundFromImage(imagePath, len, crop);
+            const result = await createBackgroundFromImage(imagePath, len, crop, resolutionStr);
             if (isTemp) {
                 try { if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath); } catch (e) { }
             }
@@ -136,19 +149,19 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
         else {
             const url = videoNumber;
             try {
-                const downloadedPath = await createBackgroundFromYoutube(url, len, crop);
-                return await createBackgroundVideo(downloadedPath, len, crop);
+                const downloadedPath = await createBackgroundFromYoutube(url, len, crop, resolutionStr);
+                return await createBackgroundVideo(downloadedPath, len, crop, resolutionStr);
             } catch (error) {
                 console.error("Error downloading video:", error.message);
                 throw new Error("Failed to download and process custom background video. If you provided an image URL, ensure it is a direct link.");
             }
         }
     } else {
-        return await createAiBackground(verseInfo, len, crop);
+        return await createAiBackground(verseInfo, len, crop, resolutionStr);
     }
 }
 
-async function createAiBackground(verseInfo, len, crop) {
+async function createAiBackground(verseInfo, len, crop, resolutionStr = '720p') {
     if (!process.env.UNSPLASH_ACCESS_KEY) {
         throw new Error("UNSPLASH_ACCESS_KEY is not set. Cannot create AI background.");
     }
@@ -181,11 +194,11 @@ async function createAiBackground(verseInfo, len, crop) {
     if (!imageUrls || imageUrls.length === 0) {
         console.log("No relevant images found, falling back to default video.");
         const defaultVideo = path.resolve("Data/Background_Video/CarDrive.mp4");
-        if (fs.existsSync(defaultVideo)) return await createBackgroundVideo(defaultVideo, len, crop);
+        if (fs.existsSync(defaultVideo)) return await createBackgroundVideo(defaultVideo, len, crop, resolutionStr);
         throw new Error("No background images found and default video is missing.");
     }
 
-    return await processFoundImages(imageUrls, len, crop);
+    return await processFoundImages(imageUrls, len, crop, resolutionStr);
 }
 
 export function extractKeywords(text, surahNumber, count = 6) {
@@ -501,14 +514,14 @@ export async function searchVideosOnPexels(keywords, desiredCount = 6, crop = 'l
     }
 }
 
-async function processFoundImages(mediaUrls, len, crop) {
+async function processFoundImages(mediaUrls, len, crop, resolutionStr = '720p') {
     const tempImageDir = path.resolve("Data/temp_images");
     if (!fs.existsSync(tempImageDir))
         fs.mkdirSync(tempImageDir, { recursive: true });
 
     const downloadedPaths = await downloadMedia(mediaUrls, tempImageDir);
     if (downloadedPaths.length === 1 && downloadedPaths[0].endsWith('.mp4')) {
-        const finalVid = await createBackgroundVideo(downloadedPaths[0], len, crop);
+        const finalVid = await createBackgroundVideo(downloadedPaths[0], len, crop, resolutionStr);
         try {
             fs.unlinkSync(downloadedPaths[0]);
         } catch (e) {
@@ -518,7 +531,7 @@ async function processFoundImages(mediaUrls, len, crop) {
     }
 
     shuffleArray(downloadedPaths);
-    const slideshowPath = await createImageSlideshow(downloadedPaths, len, crop);
+    const slideshowPath = await createImageSlideshow(downloadedPaths, len, crop, resolutionStr);
     downloadedPaths.forEach(imgPath => {
         try { if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath); } catch (e) { }
     });
@@ -526,9 +539,9 @@ async function processFoundImages(mediaUrls, len, crop) {
     return slideshowPath;
 }
 
-async function createBackgroundFromImage(imagePath, len, crop) {
+async function createBackgroundFromImage(imagePath, len, crop, resolutionStr = '720p') {
     const outputPath = `Data/Background_Video/processed_image_${Date.now()}.mp4`;
-    const resolution = crop === 'vertical' ? '1080:1920' : '1920:1080';
+    const resolution = getResolutionDimensions(resolutionStr, crop);
     return new Promise((resolve, reject) => {
         ffmpeg()
             .input(imagePath)
@@ -536,24 +549,24 @@ async function createBackgroundFromImage(imagePath, len, crop) {
             .videoFilters([`scale=${resolution}:force_original_aspect_ratio=increase,crop=${resolution}`])
             .noAudio()
             .videoCodec("libx264")
-            .outputOptions(['-pix_fmt yuv420p', `-t ${Math.max(1, Math.ceil(len || 1))}`, '-preset ultrafast', '-threads auto'])
+            .outputOptions(['-pix_fmt yuv420p', `-t ${Math.max(1, Math.ceil(len || 1))}`, '-r 10', '-preset ultrafast', '-threads auto'])
             .on("end", () => resolve(outputPath))
             .on("error", (err) => reject(new Error("FFmpeg image process failed: " + err.message)))
             .save(outputPath);
     });
 }
 
-async function createBackgroundFromYoutube(url, length, crop) {
+async function createBackgroundFromYoutube(url, length, crop, resolutionStr = '720p') {
     const tempPath = `Data/Background_Video/youtube_temp_${Date.now()}.mp4`;
     await youtubedl(url, { output: tempPath, format: 'best[ext=mp4]/mp4' });
-    const finalPath = await createBackgroundVideo(tempPath, length, crop);
+    const finalPath = await createBackgroundVideo(tempPath, length, crop, resolutionStr);
     try { fs.unlinkSync(tempPath); } catch (e) { }
     return finalPath;
 }
 
-function createBackgroundVideo(videoPath, len, crop) {
+function createBackgroundVideo(videoPath, len, crop, resolutionStr = '720p') {
     const outputPath = `Data/Background_Video/processed_${Date.now()}.mp4`;
-    const resolution = crop === 'vertical' ? '1080:1920' : '1920:1080';
+    const resolution = getResolutionDimensions(resolutionStr, crop);
     return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
             .duration(Math.max(1, Math.ceil(len || 1)))
@@ -567,10 +580,10 @@ function createBackgroundVideo(videoPath, len, crop) {
     });
 }
 
-async function createImageSlideshow(imagePaths, len, crop) {
+async function createImageSlideshow(imagePaths, len, crop, resolutionStr = '720p') {
     const outputPath = path.join("Data/Background_Video", `ai_slideshow_${Date.now()}.mp4`);
-    const resolution = crop === 'vertical' ? '1080:1920' : '1920:1080';
-    const fps = 25;
+    const resolution = getResolutionDimensions(resolutionStr, crop);
+    const fps = 15;
     const targetDurationSeconds = Math.max(1, Math.ceil(len || 1));
     const fadeDur = 1.5;
     const MIN_IMAGE_DURATION = 5;

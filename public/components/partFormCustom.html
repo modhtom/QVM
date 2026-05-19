@@ -1,59 +1,83 @@
 <div id="partFormCustom" class="page">
-    <button class="back-btn" onclick="showPage('partOptions')"><span>←</span> رجوع</button>
-    <div class="container">
-      <div class="header">
-        <h1 class="logo">آيات (مخصص)</h1>
-      </div>
-      <div class="form-container">
-        <div class="form-grid">
-          <div class="form-section">
-            <h3>(اختياري) إعدادات الفيديو</h3>
-            <div class="form-group"><label for="fontColorPartCustom">لون النص</label><input type="color" id="fontColorPartCustom" value="#ffffff"></div>
-            <div class="form-group"><label for="fontSizePartCustom">حجم الخط</label><input type="range" id="fontSizePartCustom" min="1" max="72" value="10"><span id="fontSizeValuePartCustom">10px</span></div>
-            <div class="form-group"><label for="fontNamePartCustom">الخط</label><select id="fontNamePartCustom" class="form-control">
-                <option value="Tasees Regular">Tasees</option>
-                <option value="DTHULUTH-II-1">DTHULUTH II</option>
-              </select></div>
+  <button class="back-btn" onclick="showPage('partOptions')"><span>←</span> رجوع</button>
+  <div class="container">
+    <div class="header">
+      <h1 class="logo">آيات (مخصص)</h1>
+    </div>
+    <div class="form-container">
+      <div class="form-grid">
+        <div class="form-section">
+          <h3>(اختياري) إعدادات الفيديو</h3>
+          <div class="form-group"><label for="fontColorPartCustom">لون النص</label><input type="color"
+              id="fontColorPartCustom" value="#ffffff"></div>
+          <div class="form-group"><label for="fontSizePartCustom">حجم الخط</label><input type="range"
+              id="fontSizePartCustom" min="1" max="72" value="10"><span id="fontSizeValuePartCustom">10px</span></div>
+          <div class="form-group"><label for="fontNamePartCustom">الخط</label><select id="fontNamePartCustom"
+              class="form-control">
+              <option value="Tasees Regular">Tasees</option>
+              <option value="DecoType Thuluth II">DTHULUTH II</option>
+            </select></div>
 
-            <div class="form-group"><label for="subtitlePositionPartCustom">موقع النص</label><select id="subtitlePositionPartCustom" class="form-control">
-                <option value="bottom">أسفل</option>
-                <option value="middle">وسط</option>
-              </select></div>
-            <div class="checkbox-group"><input type="checkbox" id="showMetadataPartCustom"><label for="showMetadataPartCustom">عرض معلومات السورة</label></div>
+          <div class="form-group"><label for="subtitlePositionPartCustom">موقع النص</label><select
+              id="subtitlePositionPartCustom" class="form-control">
+              <option value="bottom">أسفل</option>
+              <option value="middle">وسط</option>
+            </select></div>
+          <div class="checkbox-group"><input type="checkbox" id="showMetadataPartCustom"><label
+              for="showMetadataPartCustom">عرض معلومات السورة</label></div>
 
-            <div class="form-group"><label for="translationEditionPartCustom">الترجمة</label><select id="translationEditionPartCustom" class="form-control">
-                <option value="">بدون</option>
-                <option value="en.sahih">English - Sahih</option>
-                <option value="es.cortes">Español - Cortes</option>
-              </select></div>
-            <div class="form-group"><label for="pexelsVideoPartCustom">البحث عن خلفية بالكلمات المفتاحية </label><input type="text" id="pexelsVideoPartCustom" placeholder="أدخل كلمة مفتاحية"></div>
-            <div class="form-group"><label for="imageLinkPartCustom">خلفية صورة</label><input type="text" id="imageLinkPartCustom" placeholder="أدخل رابط الصورة"></div>
-            <div class="form-group"><label for="youtubeLinkPartCustom">خلفية YouTube</label><input type="text" id="youtubeLinkPartCustom" placeholder="أدخل رابط YouTube"></div>
+          <div class="form-group"><label for="resolutionPartCustom">دقة الفيديو (Resolution)</label><select
+              id="resolutionPartCustom" class="form-control">
+              <option value="720p">720p (سريع - HD)</option>
+              <option value="480p">480p (فائق السرعة - SD)</option>
+              <option value="1080p">1080p (بطيء - FHD)</option>
+            </select></div>
+          <div class="form-group"><label for="translationEditionPartCustom">الترجمة</label><select
+              id="translationEditionPartCustom" class="form-control">
+              <option value="">بدون</option>
+              <option value="en.sahih">English - Sahih</option>
+              <option value="es.cortes">Español - Cortes</option>
+            </select></div>
+          <div class="form-group"><label for="pexelsVideoPartCustom">البحث عن خلفية بالكلمات المفتاحية </label><input
+              type="text" id="pexelsVideoPartCustom" placeholder="أدخل كلمة مفتاحية"></div>
+          <div class="form-group"><label for="imageLinkPartCustom">خلفية صورة</label><input type="text"
+              id="imageLinkPartCustom" placeholder="أدخل رابط الصورة"></div>
+          <div class="form-group"><label for="youtubeLinkPartCustom">خلفية YouTube</label><input type="text"
+              id="youtubeLinkPartCustom" placeholder="أدخل رابط YouTube"></div>
+        </div>
+        <div class="form-section">
+          <h3>إعدادات القرآن</h3>
+          <div class="form-group"><label for="surahNumberCustom">السورة</label><select id="surahNumberCustom"
+              class="form-control"></select></div>
+          <div class="arabic-input">
+            <div class="arabic-label">آية البداية</div><input type="number" min="1" id="startVerseCustom"
+              placeholder="رقم آية البداية">
           </div>
-          <div class="form-section">
-            <h3>إعدادات القرآن</h3>
-            <div class="form-group"><label for="surahNumberCustom">السورة</label><select id="surahNumberCustom" class="form-control"></select></div>
-            <div class="arabic-input">
-              <div class="arabic-label">آية البداية</div><input type="number" min="1" id="startVerseCustom" placeholder="رقم آية البداية">
-            </div>
-            <div class="arabic-input">
-              <div class="arabic-label">آية النهاية</div><input type="number" min="1" id="endVerseCustom" placeholder="رقم آية النهاية">
-            </div>
-            <div class="form-group"><label for="customAudioPart">رفع التلاوة</label><input type="file" id="customAudioPart" accept="audio/*"></div>
-            <div class="checkbox-group"><input type="checkbox" id="verticalVideoPartCustom"><label for="verticalVideoPartCustom">فيديو طولي للريلز (9:16) <i class="fas fa-info-circle tooltip-icon" style="color:#8b949e; cursor:pointer; margin-right:5px;" onclick="window.showTooltip(this, 'verticalVideo')"></i></label></div>
-            <div class="form-group" style="margin-top: 20px;">
-              <label>طريقة المزامنة <i class="fas fa-info-circle tooltip-icon" style="color:#8b949e; cursor:pointer; margin-right:5px;" onclick="window.showTooltip(this, 'syncMethod')"></i></label>
-              <div class="sync-method-buttons">
-                <button id="autoSyncBtnPart" class="action-btn" style="background: #2d7d5a;">
-                  <i class="fas fa-magic"></i> مزامنة تلقائية
-                </button>
-                <button class="action-btn create-btn" style="margin-top: 0;">
-                  <i class="fas fa-hand-pointer"></i> مزامنة يدوية
-                </button>
-              </div>
+          <div class="arabic-input">
+            <div class="arabic-label">آية النهاية</div><input type="number" min="1" id="endVerseCustom"
+              placeholder="رقم آية النهاية">
+          </div>
+          <div class="form-group"><label for="customAudioPart">رفع التلاوة</label><input type="file"
+              id="customAudioPart" accept="audio/*"></div>
+          <div class="checkbox-group"><input type="checkbox" id="verticalVideoPartCustom"><label
+              for="verticalVideoPartCustom">فيديو طولي للريلز (9:16) <i class="fas fa-info-circle tooltip-icon"
+                style="color:#8b949e; cursor:pointer; margin-right:5px;"
+                onclick="window.showTooltip(this, 'verticalVideo')"></i></label></div>
+          <div class="form-group" style="margin-top: 20px;">
+            <label>طريقة المزامنة <i class="fas fa-info-circle tooltip-icon"
+                style="color:#8b949e; cursor:pointer; margin-right:5px;"
+                onclick="window.showTooltip(this, 'syncMethod')"></i></label>
+            <div class="sync-method-buttons">
+              <button id="autoSyncBtnPart" class="action-btn" style="background: #2d7d5a;">
+                <i class="fas fa-magic"></i> مزامنة تلقائية
+              </button>
+              <button class="action-btn create-btn" style="margin-top: 0;">
+                <i class="fas fa-hand-pointer"></i> مزامنة يدوية
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+</div>
