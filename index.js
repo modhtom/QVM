@@ -15,11 +15,12 @@ import { getSurahDataRange } from './utility/data.js';
 import { extractKeywords, searchImagesWithMetadata, searchVideosOnPexels } from './utility/background.js';
 import authRoutes from './utility/authRoutes.js';
 import { authenticateToken } from './utility/auth.js';
-import { initDB, getUserVideos, deleteUserVideo, findVideoByKey, createAnalyticsJob } from './utility/db.js';
+import { initDB, getUserVideos, deleteUserVideo, findVideoByKey, createAnalyticsJob, addFeedback } from './utility/db.js';
 import { logger } from './utility/logger.js';
 import { recordRequest, recordError, getMetricsSummary } from './utility/metrics.js';
 import { sendWebhookNotification } from './utility/webhooks.js';
 import adminRoutes from './utility/adminRoutes.js';
+import { validateSafeUrl } from "./utility/validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -372,6 +373,11 @@ app.post('/api/unsplash-download', authenticateToken, async (req, res) => {
   if (!downloadLocation)
     return res.status(400).json({ error: 'Missing downloadLocation' });
 
+  const ssrfError = await validateSafeUrl(downloadLocation);
+  if (ssrfError) {
+    return res.status(400).json({ error: ssrfError });
+  }
+
   if (!process.env.UNSPLASH_ACCESS_KEY)
     return res.status(500).json({ error: 'Unsplash key not configured' });
 
@@ -467,35 +473,16 @@ app.post('/api/feedback', authenticateToken, async (req, res) => {
     return res.status(400).json({ error: 'Missing feedback type or content' });
   }
 
-  const feedbackDir = 'Data';
-  const feedbackFile = path.join(feedbackDir, 'feedback.json');
   try {
-    if (!fs.existsSync(feedbackDir)) {
-      fs.mkdirSync(feedbackDir, { recursive: true });
-    }
-
-    let feedbackData = [];
-    if (fs.existsSync(feedbackFile)) {
-      const fileContent = fs.readFileSync(feedbackFile, 'utf8');
-      try {
-        feedbackData = JSON.parse(fileContent);
-      } catch (e) {
-        feedbackData = [];
-      }
-    }
-
-    const newFeedback = {
-      id: Date.now(),
-      userId: req.user.id,
-      username: req.user.username,
-      type,
-      content,
+    const newFeedback = await addFeedback(req.user.id, req.user.username, type, content);
+    await sendWebhookNotification('USER_FEEDBACK', {
+      id: newFeedback.id,
+      userId: newFeedback.userId,
+      username: newFeedback.username,
+      type: newFeedback.type,
+      content: newFeedback.content,
       timestamp: new Date().toISOString()
-    };
-    feedbackData.push(newFeedback);
-    fs.writeFileSync(feedbackFile, JSON.stringify(feedbackData, null, 2));
-
-    await sendWebhookNotification('USER_FEEDBACK', newFeedback);
+    });
 
     res.json({ success: true });
   } catch (error) {

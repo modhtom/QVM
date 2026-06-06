@@ -190,15 +190,16 @@ export async function getSurahDataRange(
 }
 
 export async function partAudioAndText(
-    surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition
+    surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition,
+    customAudioDir = null, customTextDir = null
 ) {
     console.log(`Processing Data: S${surahNumber}:${startVerse}-${endVerse}`);
     const data = await getSurahDataRange(
         surahNumber, startVerse, endVerse, reciterEdition, textEdition, translationEdition, transliterationEdition
     );
 
-    const audioOutputDir = path.resolve("Data/audio");
-    const textOutputDir = path.resolve("Data/text");
+    const audioOutputDir = customAudioDir ? path.resolve(customAudioDir) : path.resolve("Data/audio");
+    const textOutputDir = customTextDir ? path.resolve(customTextDir) : path.resolve("Data/text");
     if (!fs.existsSync(audioOutputDir)) fs.mkdirSync(audioOutputDir, { recursive: true });
     if (!fs.existsSync(textOutputDir)) fs.mkdirSync(textOutputDir, { recursive: true });
 

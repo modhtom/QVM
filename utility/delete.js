@@ -51,7 +51,7 @@ export function deleteOldVideosAndTempFiles() {
   const videoFolder = "Output_Video/";
   const tempFolder = "Data/temp/";
   const videoThresholdMs = 24 * 60 * 60 * 1000; // 24 hours
-  const tempThresholdMs = 2000; // 2 seconds
+  const tempThresholdMs = 2 * 60 * 60 * 1000; // 2 hours
   const currentTime = Date.now();
 
   cleanDirectory(tempFolder, currentTime, tempThresholdMs);
@@ -67,8 +67,8 @@ function cleanDirectory(dirPath, currentTime, thresholdMs) {
         if (err) return console.log("Error getting file stats", err);
         const age = currentTime - stats.ctimeMs;
         if (age > thresholdMs) {
-          fs.unlink(filePath, (err) => {
-            if (err) console.log("Error deleting file", err);
+          fs.rm(filePath, { recursive: true, force: true }, (err) => {
+            if (err) console.log("Error deleting file/directory", err);
             else console.log(`Deleted: ${filePath}`);
           });
         }

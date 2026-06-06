@@ -12,7 +12,7 @@ FROM node:24-alpine
 
 ENV NODE_ENV=production
 ENV PYTHONUNBUFFERED=1
-ENV PORT=7860
+ENV PORT=3001
 
 # Install system dependencies
 RUN apk update && apk add --no-cache \
@@ -70,6 +70,6 @@ USER node
 EXPOSE 3001
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3001/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3001}/ || exit 1
 
 CMD ["pm2-runtime", "start", "ecosystem.config.cjs"]

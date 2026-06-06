@@ -67,6 +67,16 @@ export async function initDB() {
             details TEXT,
             createdAt TEXT DEFAULT (datetime('now'))
         );
+
+        CREATE TABLE IF NOT EXISTS feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            type TEXT NOT NULL,
+            content TEXT NOT NULL,
+            timestamp TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+        );
     `);
 
     try {
@@ -206,6 +216,14 @@ export async function recordEvent(eventType, details = {}) {
         sql: 'INSERT INTO analytics_events (eventType, details) VALUES (?, ?)',
         args: [eventType, JSON.stringify(details)],
     });
+}
+
+export async function addFeedback(userId, username, type, content) {
+    const result = await db.execute({
+        sql: 'INSERT INTO feedback (userId, username, type, content) VALUES (?, ?, ?, ?)',
+        args: [userId, username, type, content],
+    });
+    return { id: Number(result.lastInsertRowid), userId, username, type, content };
 }
 
 export async function getJobAggregations() {

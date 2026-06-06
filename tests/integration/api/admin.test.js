@@ -3,6 +3,7 @@ import request from 'supertest';
 import express from 'express';
 import bodyParser from 'body-parser';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 
 const { mockGetMetricsSummary } = vi.hoisted(() => ({ mockGetMetricsSummary: vi.fn() }));
 
@@ -42,10 +43,20 @@ describe('Admin API Integration Extended', () => {
 
   it('should return logs if available', async () => {
     vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-    vi.spyOn(fs, 'readFileSync').mockReturnValue('log content');
+    const mockFileHandle = {
+      stat: vi.fn().mockResolvedValue({ size: 25 }),
+      read: vi.fn().mockImplementation((buf, offset, length, pos) => {
+        const text = '{"message":"log content"}\n';
+        buf.write(text);
+        return { bytesRead: text.length };
+      }),
+      close: vi.fn().mockResolvedValue(undefined)
+    };
+    vi.spyOn(fsPromises, 'open').mockResolvedValue(mockFileHandle);
+
     const res = await request(app).get('/api/admin/logs');
     expect(res.status).toBe(200);
-    expect(res.body.logs).toBeDefined();
+    expect(res.body.logs).toEqual([{ message: 'log content' }]);
   });
 
   it('should handle missing log file', async () => {
@@ -57,7 +68,7 @@ describe('Admin API Integration Extended', () => {
 
   it('should handle log read error', async () => {
     vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-    vi.spyOn(fs, 'readFileSync').mockImplementation(() => { throw new Error('Read fail'); });
+    vi.spyOn(fsPromises, 'open').mockRejectedValue(new Error('Read fail'));
     const res = await request(app).get('/api/admin/logs');
     expect(res.status).toBe(500);
   });

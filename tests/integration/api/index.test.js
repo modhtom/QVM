@@ -36,6 +36,7 @@ vi.mock('../../../utility/db.js', () => ({
     findVideoByKey: vi.fn(),
     findUserById: vi.fn(),
     createAnalyticsJob: vi.fn(),
+    addFeedback: vi.fn(),
 }));
 
 vi.mock('../../../utility/storage.js', () => ({
@@ -284,6 +285,57 @@ describe('Index.js E2E API Tests', () => {
             const res = await request(app).get('/videos/file.mp4?download=true');
             expect(res.status).toBe(200);
             expect(res.header['content-disposition']).toContain('attachment; filename="file.mp4"');
+        });
+    });
+
+    describe('/api/unsplash-download', () => {
+        it('should download successfully for valid url', async () => {
+            process.env.UNSPLASH_ACCESS_KEY = 'mock_key';
+            axios.get.mockResolvedValue({ status: 200, data: {} });
+            const res = await request(app).post('/api/unsplash-download')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ downloadLocation: 'https://images.unsplash.com/photo-123' });
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+        });
+
+        it('should block ssrf attempt to loopback', async () => {
+            const res = await request(app).post('/api/unsplash-download')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ downloadLocation: 'http://127.0.0.1/admin' });
+            expect(res.status).toBe(400);
+            expect(res.body.error).toContain('Access to private or local network is forbidden');
+        });
+    });
+
+    describe('/api/feedback', () => {
+        it('should successfully save feedback', async () => {
+            const mockFeedback = { id: 123, userId: 1, username: 'testuser', type: 'suggestion', content: 'test content' };
+            vi.mocked(db.addFeedback).mockResolvedValue(mockFeedback);
+            
+            const res = await request(app).post('/api/feedback')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ type: 'suggestion', content: 'test content' });
+            
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(db.addFeedback).toHaveBeenCalledWith(1, 'testuser', 'suggestion', 'test content');
+        });
+
+        it('should return 400 for missing fields', async () => {
+            const res = await request(app).post('/api/feedback')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ type: 'suggestion' });
+            expect(res.status).toBe(400);
+            expect(res.body.error).toBe('Missing feedback type or content');
+        });
+
+        it('should return 500 on db insertion error', async () => {
+            vi.mocked(db.addFeedback).mockRejectedValue(new Error('DB insertion failed'));
+            const res = await request(app).post('/api/feedback')
+                .set('Authorization', `Bearer ${validToken}`)
+                .send({ type: 'suggestion', content: 'test content' });
+            expect(res.status).toBe(500);
         });
     });
 });

@@ -286,6 +286,11 @@ export async function generatePartialVideo(
   console.log("DEBUG ARGS:", { surahNumber, startVerse, edition, customAudioPath });
   progressCallback({ step: 'Starting video generation', percent: 0 });
 
+  const runId = `run_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const jobTempDir = path.resolve(`Data/temp/${runId}`);
+  if (!fs.existsSync(jobTempDir))
+    fs.mkdirSync(jobTempDir, { recursive: true });
+
   const limit = await getEndVerse(surahNumber);
   if (limit === -1) {
     throw new Error(`Could not get Surah data for S${surahNumber}.`);
@@ -301,7 +306,7 @@ export async function generatePartialVideo(
   if (audioSource === 'custom') {
     if (customAudioPath.startsWith('uploads/')) {
       progressCallback({ step: 'Downloading Audio from Cloud', percent: 5 });
-      const localTempAudio = path.resolve(`Data/temp/${path.basename(customAudioPath)}`);
+      const localTempAudio = path.join(jobTempDir, path.basename(customAudioPath));
       await downloadFromStorage(customAudioPath, localTempAudio);
       audioPath = localTempAudio;
       customAudioPath = localTempAudio;
@@ -311,7 +316,7 @@ export async function generatePartialVideo(
     }
 
     progressCallback({ step: 'Fetching text data', percent: 10 });
-    const result = await fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition);
+    const result = await fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition, jobTempDir);
     textPath = result.textPath;
     durationsFile = result.durationsFile;
 
@@ -332,7 +337,7 @@ export async function generatePartialVideo(
     }
   } else {
     progressCallback({ step: 'Fetching audio and text', percent: 10 });
-    const result = await fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition);
+    const result = await fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition, jobTempDir);
     audioPath = result.audioPath;
     textPath = result.textPath;
     durationsFile = result.durationsFile;
@@ -374,10 +379,10 @@ export async function generatePartialVideo(
 
   progressCallback({ step: 'Preparing background video', percent: 40 });
   const verseInfo = { surahNumber, startVerse, endVerse, translationEdition };
-  const backgroundPath = await getBackgroundPath(useCustomBackground, videoNumber || 1, audioLen, crop, verseInfo, selectedImageUrls, resolution);
+  const backgroundPath = await getBackgroundPath(useCustomBackground, videoNumber || 1, audioLen, crop, verseInfo, selectedImageUrls, resolution, jobTempDir);
 
   progressCallback({ step: 'Generating subtitles', percent: 50 });
-  const subPath = `Data/subtitles/Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`;
+  const subPath = path.join(jobTempDir, `Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`);
   const aColor = cssColorToASS(color);
   let metadata = null;
   if (showMetadata) {
@@ -387,7 +392,7 @@ export async function generatePartialVideo(
   await generateSubtitles(
     surahNumber, startVerse, endVerse, aColor, VIDEO_DEFAULTS.FONT_POSITION, fontName, size,
     audioLen, customAudioPath || audioPath, shiftedTimings || userVerseTimings,
-    subtitlePosition, metadata
+    subtitlePosition, metadata, 0, jobTempDir
   );
 
   const outputDir = path.resolve("Output_Video");
@@ -421,8 +426,17 @@ export async function generatePartialVideo(
     await new Promise(r => setTimeout(r, VIDEO_DEFAULTS.CLEANUP_DELAY_MS));
 
     try {
-      await deleteVidData(removeFiles, audioPath, textPath, null, durationsFile, subPath, customAudioPath);
+      await deleteVidData(removeFiles, audioPath, textPath, backgroundPath, durationsFile, subPath, customAudioPath);
     } catch (e) { console.warn('Cleanup warning:', e.message); }
+
+    if (removeFiles && fs.existsSync(jobTempDir)) {
+      try {
+        fs.rmSync(jobTempDir, { recursive: true, force: true });
+        console.log(`Deleted job temp directory: ${jobTempDir}`);
+      } catch (e) {
+        console.warn('Job temp directory cleanup warning:', e.message);
+      }
+    }
 
     deleteOldVideosAndTempFiles();
 
@@ -436,20 +450,20 @@ export async function generatePartialVideo(
   }
 }
 
-async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition) {
+async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, translationEdition, transliterationEdition, jobTempDir) {
   const isMp3Quran = edition && edition.startsWith('http');
   const pad3 = (n) => String(n).padStart(3, '0');
   let audioPath;
   let aiTimings = null;
   console.log(`[FetchAudio] Starting... Edition: ${edition}, MP3Quran: ${isMp3Quran}`);
-  const textResult = await fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition);
+  const textResult = await fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition, jobTempDir);
 
   if (isMp3Quran) {
     console.log(`[Audio] Detected MP3Quran URL: ${edition}`);
     const fileName = `${pad3(surahNumber)}.mp3`;
     const baseUrl = edition.endsWith('/') ? edition : `${edition}/`;
     const fullUrl = `${baseUrl}${fileName}`;
-    const tempFullAudio = path.resolve(`Data/temp/${Date.now()}_${fileName}`);
+    const tempFullAudio = path.join(jobTempDir, `${Date.now()}_${fileName}`);
     console.log(`[Audio] Downloading from: ${fullUrl}`);
 
     try {
@@ -470,9 +484,9 @@ async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, tra
     }
 
   } else {
-    const res = await partAudioAndText(surahNumber, startVerse, endVerse, edition, "quran-simple", translationEdition, transliterationEdition);
+    const res = await partAudioAndText(surahNumber, startVerse, endVerse, edition, "quran-simple", translationEdition, transliterationEdition, jobTempDir, jobTempDir);
     if (res === -1) throw new Error("API Fetch failed for Al-Quran Cloud");
-    audioPath = `Data/audio/Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`;
+    audioPath = path.join(jobTempDir, `Surah_${surahNumber}_Audio_from_${startVerse}_to_${endVerse}.mp3`);
   }
 
   if (!audioPath) {
@@ -486,26 +500,26 @@ async function fetchAudioAndText(surahNumber, startVerse, endVerse, edition, tra
   };
 }
 
-async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition) {
-  const textPath = `Data/text/Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`;
-  const durationsFile = `Data/text/Surah_${surahNumber}_Durations_from_${startVerse}_to_${endVerse}.json`;
+async function fetchTextOnly(surahNumber, startVerse, endVerse, translationEdition, transliterationEdition, jobTempDir) {
+  const textPath = path.join(jobTempDir, `Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`);
+  const durationsFile = path.join(jobTempDir, `Surah_${surahNumber}_Durations_from_${startVerse}_to_${endVerse}.json`);
   const transId = (!translationEdition || translationEdition === "null") ? null : translationEdition;
   const { combinedText, combinedTranslation, combinedTransliteration, durationPerAyah } = await getSurahDataRange(surahNumber, startVerse, endVerse, null, "quran-simple", transId, transliterationEdition, true);
 
   if (combinedText) {
-    const textOutputDir = path.resolve("Data/text");
+    const textOutputDir = jobTempDir;
     if (!fs.existsSync(textOutputDir)) fs.mkdirSync(textOutputDir, { recursive: true });
 
     fs.writeFileSync(textPath, combinedText, "utf-8");
 
-    const translationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
+    const translationOutputFile = path.join(textOutputDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
     if (combinedTranslation) {
       fs.writeFileSync(translationOutputFile, combinedTranslation, "utf-8");
     } else if (fs.existsSync(translationOutputFile)) {
       fs.unlinkSync(translationOutputFile);
     }
 
-    const transliterationOutputFile = path.resolve(textOutputDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`);
+    const transliterationOutputFile = path.join(textOutputDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`);
     if (combinedTransliteration) {
       fs.writeFileSync(transliterationOutputFile, combinedTransliteration, "utf-8");
     } else if (fs.existsSync(transliterationOutputFile)) {

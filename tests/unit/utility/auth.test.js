@@ -35,7 +35,7 @@ describe('auth.js unit tests', () => {
         expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' });
     });
 
-    it('should auto-refresh an expired token', () => {
+    it('should return 401 for an expired token', () => {
         const expiredToken = jwt.sign(
             { id: 1, username: 'test', iat: Math.floor(Date.now() / 1000) - 10000 },
             JWT_SECRET,
@@ -45,9 +45,9 @@ describe('auth.js unit tests', () => {
 
         authenticateToken(req, res, next);
 
-        expect(res.setHeader).toHaveBeenCalledWith('X-New-Token', expect.any(String));
-        expect(req.user.username).toBe('test');
-        expect(next).toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
+        expect(next).not.toHaveBeenCalled();
     });
 
     it('should return 401 for invalid tokens', () => {

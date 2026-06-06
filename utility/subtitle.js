@@ -53,18 +53,19 @@ export function formatTime(seconds) {
 export async function generateSubtitles(
     surahNumber, startVerse, endVerse, color, position, fontName, size,
     audioLen = null, audioPath = null, userVerseTimings = null,
-    subtitlePosition = 'bottom', metadata = null, startTimeOffset = 0
+    subtitlePosition = 'bottom', metadata = null, startTimeOffset = 0,
+    jobTempDir = null
 ) {
-    const textFilePath = path.resolve(`Data/text/Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`);
-    const subtitlesOutputDir = path.resolve("Data/subtitles");
+    const textFilePath = jobTempDir ? path.join(jobTempDir, `Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`) : path.resolve(`Data/text/Surah_${surahNumber}_Text_from_${startVerse}_to_${endVerse}.txt`);
+    const subtitlesOutputDir = jobTempDir || path.resolve("Data/subtitles");
     const subtitlesOutputFile = path.join(subtitlesOutputDir, `Surah_${surahNumber}_Subtitles_from_${startVerse}_to_${endVerse}.ass`);
 
     if (!fs.existsSync(textFilePath)) throw new Error(`Subtitle gen failed: Text file missing`);
 
     try {
         const textContent = fs.readFileSync(textFilePath, "utf-8").split("\n").filter(Boolean);
-        const transPath = path.resolve(`Data/text/Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
-        const translitPath = path.resolve(`Data/text/Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`);
+        const transPath = jobTempDir ? path.join(jobTempDir, `Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`) : path.resolve(`Data/text/Surah_${surahNumber}_Translation_from_${startVerse}_to_${endVerse}.txt`);
+        const translitPath = jobTempDir ? path.join(jobTempDir, `Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`) : path.resolve(`Data/text/Surah_${surahNumber}_Transliteration_from_${startVerse}_to_${endVerse}.txt`);
         
         const transContent = fs.existsSync(transPath) ? fs.readFileSync(transPath, "utf-8").split("\n").filter(Boolean) : [];
         const translitContent = fs.existsSync(translitPath) ? fs.readFileSync(translitPath, "utf-8").split("\n").filter(Boolean) : [];

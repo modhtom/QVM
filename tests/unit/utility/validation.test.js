@@ -34,4 +34,36 @@ describe('validation.js Unit Tests', () => {
             expect(validation.validatePassword('123')).toBe('Password must be at least 6 characters');
         });
     });
+
+    describe('validateSafeUrl', () => {
+        it('should return error for loopback address', async () => {
+            const res = await validation.validateSafeUrl('http://127.0.0.1/test');
+            expect(res).toContain('Access to private or local network is forbidden');
+        });
+
+        it('should return error for private class A network', async () => {
+            const res = await validation.validateSafeUrl('http://10.0.1.5/test');
+            expect(res).toContain('Access to private or local network is forbidden');
+        });
+
+        it('should return error for link-local address', async () => {
+            const res = await validation.validateSafeUrl('http://169.254.169.254/latest/meta-data');
+            expect(res).toContain('Access to private or local network is forbidden');
+        });
+
+        it('should return error for loopback domain localhost', async () => {
+            const res = await validation.validateSafeUrl('http://localhost:3000/info');
+            expect(res).toContain('Access to private or local network is forbidden');
+        });
+
+        it('should return null for valid public url', async () => {
+            const res = await validation.validateSafeUrl('https://unsplash.com/photos');
+            expect(res).toBeNull();
+        });
+
+        it('should return error for invalid protocols', async () => {
+            const res = await validation.validateSafeUrl('ftp://example.com/file');
+            expect(res).toBe('Only HTTP and HTTPS protocols are allowed');
+        });
+    });
 });

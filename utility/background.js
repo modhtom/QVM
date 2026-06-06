@@ -6,6 +6,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import { getSurahDataRange } from "./data.js";
 import { downloadFromStorage } from "./storage.js";
+import { validateSafeUrl } from "./validation.js";
 
 dotenv.config();
 
@@ -86,17 +87,29 @@ function getResolutionDimensions(resolutionStr, crop) {
     return crop === 'vertical' ? `${height}:${width}` : `${width}:${height}`;
 }
 
-export async function getBackgroundPath(newBackground, videoNumber, len, crop, verseInfo, selectedImageUrls = null, resolutionStr = '720p') {
+export async function getBackgroundPath(newBackground, videoNumber, len, crop, verseInfo, selectedImageUrls = null, resolutionStr = '720p', jobTempDir = null) {
     if (!len || isNaN(len)) len = Math.ceil(len) || 0;
 
     if (selectedImageUrls && Array.isArray(selectedImageUrls) && selectedImageUrls.length > 0) {
-        return await processFoundImages(selectedImageUrls, len, crop, resolutionStr);
+        for (const url of selectedImageUrls) {
+            if (url && (url.startsWith('http:') || url.startsWith('https:'))) {
+                const ssrfError = await validateSafeUrl(url);
+                if (ssrfError)
+                    throw new Error(ssrfError);
+            }
+        }
+        return await processFoundImages(selectedImageUrls, len, crop, resolutionStr, jobTempDir);
     }
 
     if (newBackground) {
+        if (typeof videoNumber === 'string' && (videoNumber.startsWith('http:') || videoNumber.startsWith('https:'))) {
+            const ssrfError = await validateSafeUrl(videoNumber);
+            if (ssrfError)
+                throw new Error(ssrfError);
+        }
         if (typeof videoNumber === 'string' && videoNumber.startsWith('uploads/')) {
             console.log(`Downloading cloud background: ${videoNumber}`);
-            const tempDir = path.resolve("Data/temp");
+            const tempDir = jobTempDir || path.resolve("Data/temp");
             if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
             const localFileName = path.basename(videoNumber);
@@ -110,9 +123,9 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
             console.log(`Using local uploaded file: ${videoNumber}`);
             const fileExtension = path.extname(videoNumber).toLowerCase();
             if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(fileExtension)) {
-                return await createBackgroundFromImage(videoNumber, len, crop, resolutionStr);
+                return await createBackgroundFromImage(videoNumber, len, crop, resolutionStr, jobTempDir);
             } else {
-                return await createBackgroundVideo(videoNumber, len, crop, resolutionStr);
+                return await createBackgroundVideo(videoNumber, len, crop, resolutionStr, jobTempDir);
             }
         }
 
@@ -121,7 +134,7 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
             console.log(`Manual Unsplash Request: ${query}`);
             const imageUrls = await searchImagesOnUnsplash([query], 8, crop, { isManual: true });
             if (imageUrls.length > 0) {
-                return await processFoundImages(imageUrls, len, crop, resolutionStr);
+                return await processFoundImages(imageUrls, len, crop, resolutionStr, jobTempDir);
             } else {
                 throw new Error("No Unsplash images found for query: " + query);
             }
@@ -133,14 +146,14 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
             if (videoNumber.startsWith('http')) {
                 console.log(`Downloading external image background: ${videoNumber}`);
                 try {
-                    imagePath = await downloadExternalImage(videoNumber);
+                    imagePath = await downloadExternalImage(videoNumber, jobTempDir);
                     isTemp = true;
                 } catch (err) {
                     console.error("Error downloading external image:", err.message);
                     throw new Error("Failed to download custom background image URL.");
                 }
             }
-            const result = await createBackgroundFromImage(imagePath, len, crop, resolutionStr);
+            const result = await createBackgroundFromImage(imagePath, len, crop, resolutionStr, jobTempDir);
             if (isTemp) {
                 try { if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath); } catch (e) { }
             }
@@ -149,19 +162,19 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
         else {
             const url = videoNumber;
             try {
-                const downloadedPath = await createBackgroundFromYoutube(url, len, crop, resolutionStr);
-                return await createBackgroundVideo(downloadedPath, len, crop, resolutionStr);
+                const downloadedPath = await createBackgroundFromYoutube(url, len, crop, resolutionStr, jobTempDir);
+                return await createBackgroundVideo(downloadedPath, len, crop, resolutionStr, jobTempDir);
             } catch (error) {
                 console.error("Error downloading video:", error.message);
                 throw new Error("Failed to download and process custom background video. If you provided an image URL, ensure it is a direct link.");
             }
         }
     } else {
-        return await createAiBackground(verseInfo, len, crop, resolutionStr);
+        return await createAiBackground(verseInfo, len, crop, resolutionStr, jobTempDir);
     }
 }
 
-async function createAiBackground(verseInfo, len, crop, resolutionStr = '720p') {
+async function createAiBackground(verseInfo, len, crop, resolutionStr = '720p', jobTempDir = null) {
     if (!process.env.UNSPLASH_ACCESS_KEY) {
         throw new Error("UNSPLASH_ACCESS_KEY is not set. Cannot create AI background.");
     }
@@ -194,11 +207,11 @@ async function createAiBackground(verseInfo, len, crop, resolutionStr = '720p') 
     if (!imageUrls || imageUrls.length === 0) {
         console.log("No relevant images found, falling back to default video.");
         const defaultVideo = path.resolve("Data/Background_Video/CarDrive.mp4");
-        if (fs.existsSync(defaultVideo)) return await createBackgroundVideo(defaultVideo, len, crop, resolutionStr);
+        if (fs.existsSync(defaultVideo)) return await createBackgroundVideo(defaultVideo, len, crop, resolutionStr, jobTempDir);
         throw new Error("No background images found and default video is missing.");
     }
 
-    return await processFoundImages(imageUrls, len, crop, resolutionStr);
+    return await processFoundImages(imageUrls, len, crop, resolutionStr, jobTempDir);
 }
 
 export function extractKeywords(text, surahNumber, count = 6) {
@@ -514,14 +527,14 @@ export async function searchVideosOnPexels(keywords, desiredCount = 6, crop = 'l
     }
 }
 
-async function processFoundImages(mediaUrls, len, crop, resolutionStr = '720p') {
-    const tempImageDir = path.resolve("Data/temp_images");
+async function processFoundImages(mediaUrls, len, crop, resolutionStr = '720p', jobTempDir = null) {
+    const tempImageDir = jobTempDir ? path.join(jobTempDir, "images") : path.resolve("Data/temp_images");
     if (!fs.existsSync(tempImageDir))
         fs.mkdirSync(tempImageDir, { recursive: true });
 
     const downloadedPaths = await downloadMedia(mediaUrls, tempImageDir);
     if (downloadedPaths.length === 1 && downloadedPaths[0].endsWith('.mp4')) {
-        const finalVid = await createBackgroundVideo(downloadedPaths[0], len, crop, resolutionStr);
+        const finalVid = await createBackgroundVideo(downloadedPaths[0], len, crop, resolutionStr, jobTempDir);
         try {
             fs.unlinkSync(downloadedPaths[0]);
         } catch (e) {
@@ -531,7 +544,7 @@ async function processFoundImages(mediaUrls, len, crop, resolutionStr = '720p') 
     }
 
     shuffleArray(downloadedPaths);
-    const slideshowPath = await createImageSlideshow(downloadedPaths, len, crop, resolutionStr);
+    const slideshowPath = await createImageSlideshow(downloadedPaths, len, crop, resolutionStr, jobTempDir);
     downloadedPaths.forEach(imgPath => {
         try { if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath); } catch (e) { }
     });
@@ -539,8 +552,11 @@ async function processFoundImages(mediaUrls, len, crop, resolutionStr = '720p') 
     return slideshowPath;
 }
 
-async function createBackgroundFromImage(imagePath, len, crop, resolutionStr = '720p') {
-    const outputPath = `Data/Background_Video/processed_image_${Date.now()}.mp4`;
+async function createBackgroundFromImage(imagePath, len, crop, resolutionStr = '720p', jobTempDir = null) {
+    const outputDir = jobTempDir || path.resolve("Data/Background_Video");
+    if (!fs.existsSync(outputDir))
+        fs.mkdirSync(outputDir, { recursive: true });
+    const outputPath = path.join(outputDir, `processed_image_${Date.now()}.mp4`);
     const resolution = getResolutionDimensions(resolutionStr, crop);
     return new Promise((resolve, reject) => {
         ffmpeg()
@@ -556,16 +572,22 @@ async function createBackgroundFromImage(imagePath, len, crop, resolutionStr = '
     });
 }
 
-async function createBackgroundFromYoutube(url, length, crop, resolutionStr = '720p') {
-    const tempPath = `Data/Background_Video/youtube_temp_${Date.now()}.mp4`;
+async function createBackgroundFromYoutube(url, length, crop, resolutionStr = '720p', jobTempDir = null) {
+    const outputDir = jobTempDir || path.resolve("Data/Background_Video");
+    if (!fs.existsSync(outputDir))
+        fs.mkdirSync(outputDir, { recursive: true });
+    const tempPath = path.join(outputDir, `youtube_temp_${Date.now()}.mp4`);
     await youtubedl(url, { output: tempPath, format: 'best[ext=mp4]/mp4' });
-    const finalPath = await createBackgroundVideo(tempPath, length, crop, resolutionStr);
+    const finalPath = await createBackgroundVideo(tempPath, length, crop, resolutionStr, jobTempDir);
     try { fs.unlinkSync(tempPath); } catch (e) { }
     return finalPath;
 }
 
-function createBackgroundVideo(videoPath, len, crop, resolutionStr = '720p') {
-    const outputPath = `Data/Background_Video/processed_${Date.now()}.mp4`;
+function createBackgroundVideo(videoPath, len, crop, resolutionStr = '720p', jobTempDir = null) {
+    const outputDir = jobTempDir || path.resolve("Data/Background_Video");
+    if (!fs.existsSync(outputDir))
+        fs.mkdirSync(outputDir, { recursive: true });
+    const outputPath = path.join(outputDir, `processed_${Date.now()}.mp4`);
     const resolution = getResolutionDimensions(resolutionStr, crop);
     return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
@@ -580,8 +602,11 @@ function createBackgroundVideo(videoPath, len, crop, resolutionStr = '720p') {
     });
 }
 
-async function createImageSlideshow(imagePaths, len, crop, resolutionStr = '720p') {
-    const outputPath = path.join("Data/Background_Video", `ai_slideshow_${Date.now()}.mp4`);
+async function createImageSlideshow(imagePaths, len, crop, resolutionStr = '720p', jobTempDir = null) {
+    const outputDir = jobTempDir || path.resolve("Data/Background_Video");
+    if (!fs.existsSync(outputDir))
+        fs.mkdirSync(outputDir, { recursive: true });
+    const outputPath = path.join(outputDir, `ai_slideshow_${Date.now()}.mp4`);
     const resolution = getResolutionDimensions(resolutionStr, crop);
     const fps = 15;
     const targetDurationSeconds = Math.max(1, Math.ceil(len || 1));
@@ -691,8 +716,8 @@ function isImageUrl(url) {
     return false;
 }
 
-async function downloadExternalImage(url) {
-    const tempDir = path.resolve("Data/temp");
+async function downloadExternalImage(url, jobTempDir = null) {
+    const tempDir = jobTempDir || path.resolve("Data/temp");
     if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
     const fileName = `ext_bg_${Date.now()}.jpg`;
@@ -714,8 +739,8 @@ async function downloadExternalImage(url) {
     });
 }
 
-async function downloadExternalVideo(url) {
-    const tempDir = path.resolve("Data/Background_Video");
+async function downloadExternalVideo(url, jobTempDir = null) {
+    const tempDir = jobTempDir || path.resolve("Data/Background_Video");
     if (!fs.existsSync(tempDir))
         fs.mkdirSync(tempDir, { recursive: true });
 
