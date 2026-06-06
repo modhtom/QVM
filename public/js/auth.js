@@ -40,6 +40,21 @@ window.fetch = async function (...args) {
         const user = getCurrentUser();
         saveAuth(newToken, user);
     }
+    if (response.status === 401) {
+        const url = args[0];
+        const isAuthRoute = typeof url === 'string' && (
+            url.includes('/api/auth/login') ||
+            url.includes('/api/auth/register') ||
+            url.includes('/api/auth/forgot-password') ||
+            url.includes('/api/auth/reset-password') ||
+            url.includes('/api/auth/verify-email')
+        );
+        if (!isAuthRoute && isLoggedIn()) {
+            console.warn('Session expired or unauthorized. Logging out.');
+            logout();
+            return new Promise(() => {});
+        }
+    }
     return response;
 };
 
@@ -138,7 +153,7 @@ export function initAuthUI() {
                 btn.disabled = true;
                 btn.textContent = 'جاري الدخول...';
                 await login(username, password);
-                updateAuthState();
+                window.location.hash = '/';
             } catch (err) {
                 errorEl.textContent = err.message;
             } finally {
@@ -169,7 +184,7 @@ export function initAuthUI() {
                 btn.disabled = true;
                 btn.textContent = 'جاري التسجيل...';
                 await register(username, email, password);
-                updateAuthState();
+                window.location.hash = '/';
             } catch (err) {
                 errorEl.textContent = err.message;
             } finally {

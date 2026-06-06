@@ -1,5 +1,6 @@
 import { initMain } from './main.js';
 import { initGlobals } from './globals.js';
+import { isLoggedIn } from './auth.js';
 
 const routes = {
   '/': { component: 'mainMenu', title: 'QVM - Home' },
@@ -54,6 +55,16 @@ class Router {
 
     if (!path || !routes[path])
       path = '/';
+    
+    const loggedIn = isLoggedIn();
+    if (!loggedIn && path !== '/auth') {
+      this.navigate('/auth');
+      return;
+    }
+    if (loggedIn && path === '/auth') {
+      this.navigate('/');
+      return;
+    }
     
     const route = routes[path];
     document.title = route.title;
