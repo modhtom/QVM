@@ -46,7 +46,7 @@ describe('data.js Incremental Test', () => {
             if (url.includes('/surah/2/')) return Promise.resolve({ data: { data: { ayahs: [{ text: 'Alif Lam Mim' }] } } });
             if (url.includes('/surah/1/')) return Promise.resolve({ data: { data: { ayahs: [{ text: 'Bismillah' }] } } });
             if (url.includes('/ayah/')) return Promise.resolve({ data: { data: { audio: 'http://cdn.mp3' } } });
-            return Promise.resolve({ data: { data: 'audio-buffer' } });
+            return Promise.resolve({ data: 'audio-buffer' });
         });
 
         const result = await data.getSurahDataRange(2, 1, 1, 'ar.alafasy', 'quran-simple');

@@ -1,5 +1,27 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import * as validation from '../../../utility/validation.js';
+
+vi.mock('dns', () => ({
+    default: {
+        promises: {
+            lookup: vi.fn(async (hostname) => {
+                if (hostname === 'localhost') {
+                    return [{ address: '127.0.0.1' }];
+                }
+                if (hostname === '10.0.1.5') {
+                    return [{ address: '10.0.1.5' }];
+                }
+                if (hostname === '169.254.169.254') {
+                    return [{ address: '169.254.169.254' }];
+                }
+                if (hostname === 'unsplash.com' || hostname === 'test.com' || hostname === 'youtube.com') {
+                    return [{ address: '197.50.115.89' }];
+                }
+                throw new Error('ENOTFOUND');
+            })
+        }
+    }
+}));
 
 describe('validation.js Unit Tests', () => {
     describe('validateUsername', () => {
@@ -10,7 +32,7 @@ describe('validation.js Unit Tests', () => {
             expect(validation.validateUsername('ab')).toBe('Username must be 3-30 characters');
         });
         it('should return error for invalid characters', () => {
-             expect(validation.validateUsername('u!er')).toBe('Username can only contain letters, numbers, and underscores');
+            expect(validation.validateUsername('u!er')).toBe('Username can only contain letters, numbers, and underscores');
         });
         it('should return null for valid username', () => {
             expect(validation.validateUsername('user_123')).toBeNull();

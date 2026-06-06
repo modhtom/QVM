@@ -140,7 +140,7 @@ function sanitizeFontName(fontName) {
   return name;
 }
 
-async function runFFmpegRender({
+export async function runFFmpegRender({
   backgroundPath,
   audioPath,
   outputPath,
@@ -150,6 +150,7 @@ async function runFFmpegRender({
   progressCallback,
   watermarkText = VIDEO_DEFAULTS.WATERMARK_TEXT,
   watermarkEnabled = VIDEO_DEFAULTS.WATERMARK_ENABLED,
+  ffmpegTimeoutMs = 300000,
 }) {
   const encoder = await detectBestEncoder();
   const encoderOptions = getEncoderSettings(encoder);
@@ -183,18 +184,50 @@ async function runFFmpegRender({
   };
 
   return new Promise((resolve, reject) => {
+    let activeCommand = null;
+    let timer = null;
+    
+    const clearWatchdog = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const startWatchdog = (cmd) => {
+      clearWatchdog();
+      activeCommand = cmd;
+      timer = setTimeout(() => {
+        console.error(`[Watchdog] FFmpeg render process timed out after ${ffmpegTimeoutMs}ms. Killing command.`);
+        if (activeCommand && typeof activeCommand.kill === 'function') {
+          try {
+            activeCommand.kill('SIGKILL');
+          } catch (e) {
+            console.error('[Watchdog] Failed to kill FFmpeg process:', e.message);
+          }
+        }
+        reject(new Error(`FFmpeg render process timed out after ${ffmpegTimeoutMs}ms`));
+      }, ffmpegTimeoutMs);
+    };
+
     const command = buildCommand(encoder, encoderOptions);
+    startWatchdog(command);
 
     command
       .on('progress', (progress) => {
+        startWatchdog(command);
         const mappedProgress = 60 + (progress.percent * 0.3);
         progressCallback({
           step: `Rendering: ${Math.round(progress.percent || 0)}%`,
           percent: Math.min(90, mappedProgress),
         });
       })
-      .on("end", () => resolve())
+      .on("end", () => {
+        clearWatchdog();
+        resolve();
+      })
       .on("error", (err, stdout, stderr) => {
+        clearWatchdog();
         console.error("FFmpeg error:", stderr);
 
         if (encoder !== 'libx264') {
@@ -202,17 +235,25 @@ async function runFFmpegRender({
           cachedEncoder = 'libx264';
           const cpuOptions = getEncoderSettings('libx264');
           const cpuCommand = buildCommand('libx264', cpuOptions);
+          startWatchdog(cpuCommand);
 
           cpuCommand
             .on('progress', (progress) => {
+              startWatchdog(cpuCommand);
               const mappedProgress = 60 + (progress.percent * 0.3);
               progressCallback({
                 step: `Rendering: ${Math.round(progress.percent || 0)}%`,
                 percent: Math.min(90, mappedProgress),
               });
             })
-            .on('end', resolve)
-            .on('error', (e) => reject(new Error(e)));
+            .on('end', () => {
+              clearWatchdog();
+              resolve();
+            })
+            .on('error', (e) => {
+              clearWatchdog();
+              reject(new Error(e));
+            });
           cpuCommand.run();
         } else {
           reject(new Error(stderr));
@@ -258,7 +299,8 @@ export async function generateFullVideo(
   autoSync = false,
   userId = null,
   selectedImageUrls = null,
-  resolution = '720p'
+  resolution = '720p',
+  ffmpegTimeoutMs = 300000
 ) {
   const endVerse = await getEndVerse(surahNumber);
   if (endVerse === -1) {
@@ -266,7 +308,7 @@ export async function generateFullVideo(
   }
   progressCallback({ step: 'Starting full video generation', percent: 0 });
   return generatePartialVideo(
-    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource, autoSync, userId, selectedImageUrls, resolution
+    surahNumber, 1, endVerse, removeFiles, color, useCustomBackground, videoNumber, edition, size, crop, customAudioPath, fontName, translationEdition, transliterationEdition, progressCallback, userVerseTimings, subtitlePosition, showMetadata, audioSource, autoSync, userId, selectedImageUrls, resolution, ffmpegTimeoutMs
   );
 }
 
@@ -280,7 +322,8 @@ export async function generatePartialVideo(
   autoSync = false,
   userId = null,
   selectedImageUrls = null,
-  resolution = '720p'
+  resolution = '720p',
+  ffmpegTimeoutMs = 300000
 ) {
   console.log("MAKING A VIDEO");
   console.log("DEBUG ARGS:", { surahNumber, startVerse, edition, customAudioPath });
@@ -412,6 +455,7 @@ export async function generatePartialVideo(
     audioLen,
     startTimeOffset,
     progressCallback,
+    ffmpegTimeoutMs
   });
 
   progressCallback({ step: 'Uploading to Cloud', percent: 95 });

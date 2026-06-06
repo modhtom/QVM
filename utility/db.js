@@ -11,6 +11,7 @@ export async function initDB() {
     try {
         await db.execute('PRAGMA journal_mode = WAL;');
         await db.execute('PRAGMA busy_timeout = 5000;');
+        await db.execute('PRAGMA foreign_keys = ON;');
     } catch (err) {
         console.warn('[DB] Could not set PRAGMAs (might be remote Turso):', err.message);
     }

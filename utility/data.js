@@ -101,6 +101,9 @@ export async function getSurahDataRange(
         let bsAudio = null;
         if (!textOnly && reciterEdition) {
             bsAudio = await getOrFetchAudio(1, 1, reciterEdition);
+            if (!bsAudio || !bsAudio.buffer) {
+                throw new Error(`Failed to download audio for Bismillah (1:1)`);
+            }
         }
 
         bismillahData = {
@@ -174,7 +177,7 @@ export async function getSurahDataRange(
                 audioBuffers.push({ verse: v, audio: verseAudio.buffer });
                 durationPerAyah.push(verseAudio.duration);
             } else {
-                durationPerAyah.push(0);
+                throw new Error(`Failed to download audio for verse ${surahNumber}:${v}`);
             }
         }
         console.log(`[Audio] All ${totalVerses} verses fetched.`);

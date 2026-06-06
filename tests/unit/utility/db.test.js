@@ -24,6 +24,7 @@ describe('db.js', () => {
     mockExecute.mockResolvedValue({});
     await db.initDB();
     expect(mockExecuteMultiple).toHaveBeenCalled();
+    expect(mockExecute).toHaveBeenCalledWith('PRAGMA foreign_keys = ON;');
   });
 
   it('should create a user', async () => {

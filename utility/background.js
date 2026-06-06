@@ -119,7 +119,20 @@ export async function getBackgroundPath(newBackground, videoNumber, len, crop, v
             videoNumber = localPath;
         }
 
-        if (typeof videoNumber === 'string' && fs.existsSync(videoNumber)) {
+        if (typeof videoNumber === 'string' && !videoNumber.startsWith('http:') && !videoNumber.startsWith('https:') && fs.existsSync(videoNumber)) {
+            const resolvedPath = path.resolve(videoNumber);
+            const allowedRoots = [
+                path.resolve('Data/Background_Video'),
+                path.resolve('Data/temp'),
+                jobTempDir ? path.resolve(jobTempDir) : null
+            ].filter(Boolean);
+            const isSimpleFilename = !videoNumber.includes('/') && !videoNumber.includes('\\');
+            const isInsideAllowed = allowedRoots.some(root => resolvedPath.startsWith(root + path.sep) || resolvedPath === root);
+            
+            if (!isSimpleFilename && !isInsideAllowed) {
+                throw new Error("Path traversal detected: Access to local file is forbidden");
+            }
+
             console.log(`Using local uploaded file: ${videoNumber}`);
             const fileExtension = path.extname(videoNumber).toLowerCase();
             if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(fileExtension)) {

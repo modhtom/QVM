@@ -15,6 +15,27 @@ vi.mock('youtube-dl-exec', () => ({
 vi.mock('axios');
 vi.mock('../../../utility/storage.js');
 vi.mock('../../../utility/data.js');
+vi.mock('dns', () => ({
+    default: {
+        promises: {
+            lookup: vi.fn(async (hostname) => {
+                if (hostname === 'localhost') {
+                    return [{ address: '127.0.0.1' }];
+                }
+                if (hostname === '10.0.1.5') {
+                    return [{ address: '10.0.1.5' }];
+                }
+                if (hostname === '169.254.169.254') {
+                    return [{ address: '169.254.169.254' }];
+                }
+                if (hostname === 'unsplash.com' || hostname === 'test.com' || hostname === 'youtube.com') {
+                    return [{ address: '197.50.115.89' }];
+                }
+                throw new Error('ENOTFOUND');
+            })
+        }
+    }
+}));
 
 describe('background.js', () => {
     const createMockFfmpeg = () => ({
@@ -94,5 +115,11 @@ describe('background.js', () => {
         vi.mocked(axios.get).mockRejectedValue(new Error('Unsplash down'));
         const result = await background.getBackgroundPath(false, null, 5, 'landscape', { surahNumber: 1 });
         expect(result).toContain('processed_');
+    });
+
+    it('should reject path traversal attempts for local files', async () => {
+        await expect(
+            background.getBackgroundPath(true, '../../etc/passwd', 5, 'landscape', {})
+        ).rejects.toThrow('Path traversal detected: Access to local file is forbidden');
     });
 });
