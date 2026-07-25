@@ -345,6 +345,66 @@
       font-weight: 500;
       display: none;
     }
+
+    /* User Management Styles */
+    .users-section {
+      background: var(--card-bg);
+      backdrop-filter: var(--glass-blur);
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+    
+    .admin-btn {
+      padding: 8px 12px;
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--accent);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    
+    .admin-btn:hover { background: rgba(59, 130, 246, 0.3); }
+    
+    .danger-btn {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+    .danger-btn:hover { background: rgba(239, 68, 68, 0.3); }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .admin-table th, .admin-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .admin-table th { color: var(--text-muted); font-weight: 500; }
+    
+    .ban-form {
+      display: flex; gap: 10px; margin-bottom: 15px;
+    }
+    .ban-form input {
+      flex: 1; padding: 8px; border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.2); color: white;
+    }
+    .ban-list {
+      list-style: none; padding: 0; margin: 0;
+      max-height: 200px; overflow-y: auto;
+    }
+    .ban-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px; border-bottom: 1px solid var(--card-border);
+      font-size: 14px;
+    }
   </style>
 </head>
 
@@ -414,6 +474,49 @@
           <div class="loading-overlay" id="load-chart2">Syncing...</div>
           <h3>Popular Surahs</h3>
           <canvas id="surahChart"></canvas>
+        </div>
+      </div>
+
+      <!-- User Management Section -->
+      <div class="users-section">
+        <div class="logs-header">
+          <h2>User Management & Blocklists</h2>
+          <div class="controls">
+            <button onclick="fetchUsers()" class="admin-btn">Refresh Users</button>
+            <button onclick="fetchBans()" class="admin-btn">Refresh Bans</button>
+          </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; padding: 20px;">
+          <div style="overflow-x: auto;">
+            <h3 style="margin-top:0;">Registered Users</h3>
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Username</th><th>Email</th><th>Status</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Bans Management -->
+          <div>
+            <h3 style="margin-top:0;">Email Blocklist</h3>
+            <div class="ban-form">
+              <input type="text" id="banEmailInput" placeholder="Enter email to block..." />
+              <button onclick="addBannedEmail()" class="admin-btn danger-btn">Block</button>
+            </div>
+            <ul id="bannedEmailsList" class="ban-list"></ul>
+            
+            <h3 style="margin-top: 20px;">IP Blocklist</h3>
+            <div class="ban-form">
+              <input type="text" id="banIpInput" placeholder="Enter IP to block..." />
+              <button onclick="addBannedIp()" class="admin-btn danger-btn">Block</button>
+            </div>
+            <ul id="bannedIpsList" class="ban-list"></ul>
+          </div>
         </div>
       </div>
 
@@ -506,6 +609,8 @@
         fetchCharts(),
         fetchLogs()
       ]);
+      fetchUsers();
+      fetchBans();
     }
 
     async function fetchMetrics() {
@@ -668,6 +773,117 @@
       } catch (e) {
         console.error('Logs Error:', e);
       }
+    }
+
+    async function fetchUsers() {
+      try {
+        const res = await fetch('/api/admin/users', { headers: { 'Authorization': authHeader } });
+        if (!res.ok)
+          return;
+
+        const data = await res.json();
+        const tbody = document.getElementById('usersTableBody');
+        tbody.innerHTML = '';
+        data.users.forEach(u => {
+          const status = u.isBanned ? '<span style="color:var(--danger)">Banned</span>' 
+                       : (u.isVerified ? '<span style="color:var(--success)">Verified</span>' : '<span style="color:var(--warning)">Unverified</span>');
+          
+          let actionBtn = u.isBanned 
+            ? `<button onclick="unbanUser(${u.id})" class="admin-btn">Unban</button>` 
+            : `<button onclick="banUser(${u.id})" class="admin-btn danger-btn">Ban</button>`;
+            
+          if (!u.isBanned && !u.isVerified) {
+              actionBtn += ` <button onclick="resendVerification(${u.id})" class="admin-btn" style="margin-left:5px;">Resend Verify</button>`;
+          }
+            
+          tbody.innerHTML += `
+            <tr>
+              <td>${u.id}</td>
+              <td>${u.username}</td>
+              <td>${u.email}</td>
+              <td>${status}</td>
+              <td>${actionBtn}</td>
+            </tr>
+          `;
+        });
+      } catch(e) { console.error('Fetch Users Error:', e); }
+    }
+
+    async function resendVerification(id) {
+        try {
+            const res = await fetch(`/api/admin/users/${id}/resend-verification`, { method: 'POST', headers: { 'Authorization': authHeader } });
+            const data = await res.json();
+            alert(data.message || data.error);
+        } catch(e) { console.error(e); }
+    }
+
+    async function banUser(id) {
+      if(!confirm('Are you sure you want to ban this user?'))
+        return;
+
+      await fetch(`/api/admin/users/${id}/ban`, { method: 'POST', headers: { 'Authorization': authHeader } });
+      fetchUsers();
+    }
+    
+    async function unbanUser(id) {
+      await fetch(`/api/admin/users/${id}/unban`, { method: 'POST', headers: { 'Authorization': authHeader } });
+      fetchUsers();
+    }
+
+    async function fetchBans() {
+      try {
+        const [emRes, ipRes] = await Promise.all([
+          fetch('/api/admin/bans/emails', { headers: { 'Authorization': authHeader } }),
+          fetch('/api/admin/bans/ips', { headers: { 'Authorization': authHeader } })
+        ]);
+        const emData = await emRes.json();
+        const ipData = await ipRes.json();
+        
+        const emList = document.getElementById('bannedEmailsList');
+        emList.innerHTML = emData.emails.map(e => `
+          <li>${e} <button onclick="removeBannedEmail('${e}')" class="admin-btn" style="padding:4px 8px;font-size:12px;">Unblock</button></li>
+        `).join('');
+        
+        const ipList = document.getElementById('bannedIpsList');
+        ipList.innerHTML = ipData.ips.map(ip => `
+          <li>${ip} <button onclick="removeBannedIp('${ip}')" class="admin-btn" style="padding:4px 8px;font-size:12px;">Unblock</button></li>
+        `).join('');
+      } catch(e) { console.error('Fetch Bans Error:', e); }
+    }
+
+    async function addBannedEmail() {
+      const email = document.getElementById('banEmailInput').value;
+      if(!email)
+        return;
+
+      await fetch('/api/admin/bans/emails', {
+        method: 'POST', headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      document.getElementById('banEmailInput').value = '';
+      fetchBans();
+    }
+
+    async function removeBannedEmail(email) {
+      await fetch(`/api/admin/bans/emails/${encodeURIComponent(email)}`, { method: 'DELETE', headers: { 'Authorization': authHeader } });
+      fetchBans();
+    }
+
+    async function addBannedIp() {
+      const ip = document.getElementById('banIpInput').value;
+      if(!ip)
+        return;
+      await fetch('/api/admin/bans/ips', {
+        method: 'POST', headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ip })
+      });
+      document.getElementById('banIpInput').value = '';
+      fetchBans();
+    }
+
+    async function removeBannedIp(ip) {
+      await fetch(`/api/admin/bans/ips/${encodeURIComponent(ip)}`, { method: 'DELETE', headers: { 'Authorization': authHeader } });
+      fetchBans();
     }
   </script>
 </body>

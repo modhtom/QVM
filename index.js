@@ -21,6 +21,7 @@ import { recordRequest, recordError, getMetricsSummary } from './utility/metrics
 import { sendWebhookNotification } from './utility/webhooks.js';
 import adminRoutes from './utility/adminRoutes.js';
 import { validateSafeUrl } from "./utility/validation.js";
+import { wafMiddleware } from './utility/waf.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -149,9 +150,11 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
+app.use(wafMiddleware);
+
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' }
@@ -159,19 +162,19 @@ const generalLimiter = rateLimit({
 
 const videoGenLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 30,
+  max: 20,
   message: { error: 'Too many video generation requests. Please try again later.' }
 });
 
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: 30,
   message: { error: 'Too many upload requests. Please try again later.' }
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'test' ? 1000 : 15,
+  max: process.env.NODE_ENV === 'test' ? 1000 : 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' }

@@ -78,11 +78,28 @@ export async function initDB() {
             timestamp TEXT DEFAULT (datetime('now')),
             FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
         );
+
+        CREATE TABLE IF NOT EXISTS banned_emails (
+            email TEXT PRIMARY KEY,
+            createdAt TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS banned_ips (
+            ip TEXT PRIMARY KEY,
+            createdAt TEXT DEFAULT (datetime('now'))
+        );
     `);
 
     try {
         await db.execute('ALTER TABLE users ADD COLUMN isVerified INTEGER DEFAULT 0;');
         console.log('[DB] Added isVerified column to users table.');
+    } catch (e) {
+        // Ignore if column already exists
+    }
+
+    try {
+        await db.execute('ALTER TABLE users ADD COLUMN isBanned INTEGER DEFAULT 0;');
+        console.log('[DB] Added isBanned column to users table.');
     } catch (e) {
         // Ignore if column already exists
     }
@@ -278,6 +295,46 @@ export async function getSystemEventsCount(eventType) {
 export async function getActiveUsersCount() {
     const result = await db.execute('SELECT COUNT(DISTINCT userId) as ucount FROM analytics_jobs WHERE createdAt >= datetime("now", "-1 day")');
     return result.rows[0].ucount;
+}
+
+export async function banUser(userId) {
+    await db.execute({ sql: 'UPDATE users SET isBanned = 1 WHERE id = ?', args: [userId] });
+    await db.execute({ sql: 'DELETE FROM auth_tokens WHERE userId = ?', args: [userId] }); // Invalidate current sessions
+}
+
+export async function unbanUser(userId) {
+    await db.execute({ sql: 'UPDATE users SET isBanned = 0 WHERE id = ?', args: [userId] });
+}
+
+export async function addBannedEmail(email) {
+    await db.execute({ sql: 'INSERT OR IGNORE INTO banned_emails (email) VALUES (?)', args: [email] });
+}
+
+export async function removeBannedEmail(email) {
+    await db.execute({ sql: 'DELETE FROM banned_emails WHERE email = ?', args: [email] });
+}
+
+export async function getBannedEmails() {
+    const result = await db.execute('SELECT email FROM banned_emails ORDER BY createdAt DESC');
+    return result.rows.map(row => row.email);
+}
+
+export async function addBannedIp(ip) {
+    await db.execute({ sql: 'INSERT OR IGNORE INTO banned_ips (ip) VALUES (?)', args: [ip] });
+}
+
+export async function removeBannedIp(ip) {
+    await db.execute({ sql: 'DELETE FROM banned_ips WHERE ip = ?', args: [ip] });
+}
+
+export async function getBannedIps() {
+    const result = await db.execute('SELECT ip FROM banned_ips ORDER BY createdAt DESC');
+    return result.rows.map(row => row.ip);
+}
+
+export async function getAllUsers() {
+    const result = await db.execute('SELECT id, username, email, isVerified, isBanned, createdAt FROM users ORDER BY createdAt DESC');
+    return result.rows;
 }
 
 export default db;
