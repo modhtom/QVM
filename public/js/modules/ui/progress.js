@@ -16,8 +16,8 @@ export function addProgressBar() {
   progressContainer.innerHTML = `
     <div class="progress-wrapper" style="text-align: center;">
       <h4 style="margin-bottom: 10px;">جاري إنشاء الفيديو...</h4>
-      <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden;margin:0 auto;">
-        <div class="progress-fill" style="height:100%;background:var(--accent-color);width:0%;transition:width 0.3s ease;"></div>
+      <div class="progress-bar" style="width:300px;height:20px;background:#eee;border-radius:10px;overflow:hidden;margin:0 auto;position:relative;">
+        <div class="progress-fill" style="height:100%;background:var(--accent-color);width:100%;transform:scaleX(0);transform-origin:right;transition:transform 0.3s ease;"></div>
       </div>
       <div class="progress-text" style="margin-top:10px; font-size: 14px; color: #555;">Starting...</div>
       <div class="waiting-text" style="margin-top:15px; font-size: 12px; color: #888;">
@@ -45,13 +45,13 @@ export function updateProgressBar(progress) {
   }
 
   const resetProgress = () => {
-    progressFill.style.width = '0%';
+    progressFill.style.transform = 'scaleX(0)';
     progressText.textContent = 'Starting... (0%)';
     progressContainer.style.display = 'none';
   };
 
   progressContainer.style.display = 'block';
-  progressFill.style.width = `${progress.percent}%`;
+  progressFill.style.transform = `scaleX(${progress.percent / 100})`;
   progressText.textContent = `${progress.step} (${Math.round(progress.percent)}%)`;
 
   if (progress.percent >= 100 || progress.error) {

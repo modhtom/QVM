@@ -1,81 +1,64 @@
 .back-btn {
-    position: fixed;
-    top: 30px;
-    left: 30px;
-    background: var(--bg-secondary);
-    border: 2px solid var(--border-color);
-    color: var(--text-primary);
-    padding: 12px 24px;
-    border-radius: 50px;
+    position: relative; /* Moved from fixed to relative to stay in document flow */
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 4px; /* More elegant, less pill-shaped */
     cursor: pointer;
     font-size: 0.95rem;
     font-weight: 500;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-light);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    transition: all 0.2s ease;
+    margin-bottom: 24px;
 }
 
 .back-btn:hover {
-    background: var(--primary-color);
-    color: var(--text-light);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
+    background: var(--bg-secondary);
+    color: var(--primary-color);
+    border-color: var(--primary-color);
 }
 
 /* Action Buttons */
 .action-btn {
-    background: var(--gradient-primary);
+    background: var(--primary-color);
     color: var(--text-light);
     border: none;
-    padding: 18px 40px;
+    padding: 16px 32px;
     font-size: 1.1rem;
-    font-weight: 600;
-    border-radius: 50px;
+    font-weight: 500;
+    font-family: inherit;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.4s ease;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: var(--shadow-medium);
-    position: relative;
-    overflow: hidden;
-}
-
-.action-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.6s;
-}
-
-.action-btn:hover::before {
-    left: 100%;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5px;
+    box-shadow: var(--shadow-light);
 }
 
 .action-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-heavy);
+    background: var(--secondary-color);
+    box-shadow: var(--shadow-medium);
 }
 
 .create-btn {
-    background: var(--gradient-accent);
-    color: var(--text-primary);
-    font-size: 1.3rem;
-    padding: 20px 50px;
+    background: var(--accent-color);
+    color: var(--text-light);
+    font-size: 1.2rem;
+    padding: 16px 40px;
     margin-top: 30px;
     width: 100%;
+}
+
+.create-btn:hover {
+    opacity: 0.9;
 }
 
 /* Sync Method Buttons */
 .sync-method-buttons {
     display: flex;
-    gap: 10px;
+    gap: 12px;
 }
 
 .sync-method-buttons .action-btn {
@@ -84,29 +67,38 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+}
+
+.sync-method-buttons .action-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: var(--bg-secondary);
 }
 
 /* Social Share */
 .social-share {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     justify-content: center;
     flex-wrap: wrap;
 }
 
 .social-btn {
-    padding: 6px 12px;
+    padding: 8px 16px;
     border: none;
-    border-radius: 15px;
+    border-radius: 4px;
     color: white;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
 }
 
 .social-btn.tiktok {
@@ -118,7 +110,7 @@
 }
 
 .social-btn.instagram {
-    background: linear-gradient(45deg, #405de6, #833ab4, #c13584, #e1306c);
+    background: #c13584; /* Simplified solid color instead of gradient */
 }
 
 .social-btn.whatsapp {
@@ -126,6 +118,6 @@
 }
 
 .social-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    opacity: 0.9;
+    transform: translateY(-1px);
 }

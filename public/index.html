@@ -4,6 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QVM</title>
+  
+  <meta property="og:title" content="QVM">
+  <meta property="og:description" content="QVM - Quran Video Maker">
+  <meta property="og:image" content="https://qvm.modhtom.com/preview.jpg">
+  <meta property="og:url" content="https://qvm.modhtom.com/">
+  
+  <script src="https://browser.sentry-cdn.com/7.100.0/bundle.min.js" crossorigin="anonymous"></script>
+  <script>
+    if (typeof Sentry !== 'undefined') {
+      Sentry.init({
+        dsn: "https://08512f8ac874b0a592ed6280544c054a@o4512182106259456.ingest.de.sentry.io/4512182109995088",
+        integrations: [
+          nodeProfilingIntegration(),
+        ],
+        tracesSampleRate: 1.0,
+        profileSessionSampleRate: 1.0,
+        profileLifecycle: 'trace',
+      });
+    }
+  </script>
+  
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="styles/main.css">

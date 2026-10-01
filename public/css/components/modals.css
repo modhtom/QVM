@@ -144,10 +144,12 @@
 
 #syncProgressBar {
     height: 100%;
-    width: 0%;
+    width: 100%;
     background-color: var(--accent-color);
     border-radius: 5px;
-    transition: width 0.1s linear;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.1s linear;
 }
 
 .share-modal-overlay {

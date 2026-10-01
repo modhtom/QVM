@@ -1,63 +1,61 @@
 <div id="fullForm" class="page">
-  <button class="back-btn" onclick="showPage('fullOptions')"><span>←</span> رجوع</button>
   <div class="container">
-    <div class="header">
-      <h1 class="logo">السورة الكاملة (مكتبة)</h1>
+    <!-- Back button is now relative inside the container for better flow -->
+    <button class="back-btn" onclick="showPage('fullOptions')">
+      <i class="fas fa-arrow-right"></i> رجوع
+    </button>
+    
+    <div class="header" style="margin-bottom: 24px; text-align: center;">
+      <h1 class="logo" style="font-size: 2.5rem; margin-bottom: 8px;">مكتبة السور الكاملة</h1>
+      <p style="color: var(--text-secondary);">اختر القارئ والسورة لإنشاء مقطعك</p>
     </div>
-    <div class="form-container">
-      <div class="form-grid">
-        <div class="form-section">
-          <h3>(اختياري) إعدادات الفيديو</h3>
-          <div class="form-group"><label for="fontColor">لون النص</label><input type="color" id="fontColor"
-              value="#ffffff"></div>
-          <div class="form-group"><label for="fontSize">حجم الخط</label><input type="range" id="fontSize" min="1"
-              max="72" value="10"><span id="fontSizeValue">10px</span></div>
-          <div class="form-group"><label for="fontNameFull">الخط</label><select id="fontNameFull" class="form-control">
-              <option value="Tasees Regular">Tasees</option>
-              <option value="DecoType Thuluth II">DTHULUTH II</option>
-            </select></div>
-          <div class="form-group"><label for="subtitlePositionFull">موقع النص</label><select id="subtitlePositionFull"
-              class="form-control">
-              <option value="bottom">أسفل</option>
-              <option value="middle">وسط</option>
-            </select></div>
-          <div class="checkbox-group"><input type="checkbox" id="showMetadataFull"><label for="showMetadataFull">عرض
-              معلومات السورة والقارئ</label></div>
-          <div class="form-group"><label for="resolutionFull">دقة الفيديو (Resolution)</label><select
-              id="resolutionFull" class="form-control">
-              <option value="720p">720p (سريع - HD)</option>
-              <option value="480p">480p (فائق السرعة - SD)</option>
-              <option value="1080p">1080p (بطيء - FHD)</option>
-            </select></div>
-          <div class="form-group"><label for="translationEditionFull">الترجمة</label><select id="translationEditionFull"
-              class="form-control">
-              <option value="">بدون</option>
-              <option value="en.sahih">English - Sahih</option>
-              <option value="es.cortes">Español - Cortes</option>
-            </select></div>
-          <div class="form-group"><label for="pexelsVideoFull">البحث عن خلفية بالكلمات المفتاحية </label><input
-              type="text" id="pexelsVideoFull" placeholder="أدخل كلمة مفتاحية"></div>
-          <div class="form-group"><label for="imageLinkFull">خلفية صورة</label><input type="text" id="imageLinkFull"
-              placeholder="أدخل رابط الصورة"></div>
-          <div class="form-group"><label for="youtubeLinkFull">خلفية YouTube</label><input type="text"
-              id="youtubeLinkFull" placeholder="أدخل رابط YouTube"></div>
-          <div class="form-group"><label for="backgroundUploadFull">رفع خلفية</label><input type="file"
-              id="backgroundUploadFull" class="form-control" accept="video/*,image/*"></div>
-        </div>
-        <div class="form-section">
-          <h3>إعدادات القرآن</h3>
-          <div class="form-group"><label>الرواية</label><select id="fullMushaf" class="form-control"></select></div>
-          <div class="form-group"><label for="fullEdition">القارئ</label><select id="fullEdition"
-              class="form-control"></select></div>
-          <div class="form-group"><label for="fullSurahNumber">السورة</label><select id="fullSurahNumber"
-              class="form-control"></select></div>
-          <div class="checkbox-group"><input type="checkbox" id="verticalVideoFull"><label for="verticalVideoFull">فيديو
-              طولي للريلز (9:16) <i class="fas fa-info-circle tooltip-icon"
-                style="color:#8b949e; cursor:pointer; margin-right:5px;"
-                onclick="window.showTooltip(this, 'verticalVideo')"></i></label></div>
-          <button class="action-btn create-btn">إنشاء الفيديو</button>
+    
+    <div class="form-container" style="max-width: 600px; margin: 0 auto;">
+      
+      <!-- Primary Core Settings -->
+      <div class="form-section primary-section">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">إعدادات التلاوة</h3>
+        <div class="form-group"><label>الرواية</label><select id="fullMushaf" class="form-control"></select></div>
+        <div class="form-group"><label for="fullEdition">القارئ</label><select id="fullEdition" class="form-control"></select></div>
+        <div class="form-group"><label for="fullSurahNumber">السورة</label><select id="fullSurahNumber" class="form-control"></select></div>
+        <div class="checkbox-group">
+          <input type="checkbox" id="verticalVideoFull">
+          <label for="verticalVideoFull">فيديو طولي للريلز (9:16) 
+            <i class="fas fa-info-circle tooltip-icon" style="color:var(--text-secondary); cursor:pointer; margin-right:5px;" onclick="window.showTooltip(this, 'verticalVideo')"></i>
+          </label>
         </div>
       </div>
+
+      <!-- Advanced / Optional Settings using Progressive Disclosure -->
+      <details class="advanced-settings-accordion" style="margin-top: 24px; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-secondary);">
+        <summary style="cursor: pointer; font-weight: 500; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between;">
+          <span><i class="fas fa-sliders-h" style="margin-left: 8px; color: var(--primary-color);"></i> إعدادات متقدمة (اختياري)</span>
+        </summary>
+        
+        <div style="margin-top: 20px; display: grid; gap: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group"><label for="fontColor">لون النص</label><input type="color" id="fontColor" value="#ffffff" style="width: 100%; height: 40px; padding: 0; border: none;"></div>
+            <div class="form-group"><label for="fontSize">حجم الخط</label><input type="range" id="fontSize" min="1" max="72" value="10"><span id="fontSizeValue" style="font-size: 14px; margin-right: 8px;">10px</span></div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group"><label for="fontNameFull">الخط</label><select id="fontNameFull" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DecoType Thuluth II">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="subtitlePositionFull">موقع النص</label><select id="subtitlePositionFull" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
+          </div>
+          
+          <div class="checkbox-group"><input type="checkbox" id="showMetadataFull"><label for="showMetadataFull">عرض معلومات السورة والقارئ</label></div>
+          <div class="form-group"><label for="resolutionFull">دقة الفيديو (Resolution)</label><select id="resolutionFull" class="form-control"><option value="720p">720p (سريع - HD)</option><option value="480p">480p (فائق السرعة - SD)</option><option value="1080p">1080p (بطيء - FHD)</option></select></div>
+          <div class="form-group"><label for="translationEditionFull">الترجمة</label><select id="translationEditionFull" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
+          
+          <h4 style="margin-top: 16px; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.95rem;">الخلفية</h4>
+          <div class="form-group"><label for="pexelsVideoFull">البحث بكلمات مفتاحية</label><input type="text" id="pexelsVideoFull" placeholder="أدخل كلمة مفتاحية" class="form-control"></div>
+          <div class="form-group"><label for="imageLinkFull">رابط صورة</label><input type="text" id="imageLinkFull" placeholder="أدخل رابط الصورة" class="form-control"></div>
+          <div class="form-group"><label for="youtubeLinkFull">رابط YouTube</label><input type="text" id="youtubeLinkFull" placeholder="أدخل رابط YouTube" class="form-control"></div>
+          <div class="form-group"><label for="backgroundUploadFull">رفع خلفية من الجهاز</label><input type="file" id="backgroundUploadFull" class="form-control" accept="video/*,image/*"></div>
+        </div>
+      </details>
+
+      <button class="action-btn create-btn" style="margin-top: 32px;"><i class="fas fa-magic" style="margin-left: 8px;"></i> إنشاء الفيديو</button>
     </div>
   </div>
 </div>

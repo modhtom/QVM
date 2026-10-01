@@ -5,7 +5,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QVM Analytics & Insights</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://browser.sentry-cdn.com/7.100.0/bundle.min.js" crossorigin="anonymous"></script>
+  <script>
+    if (typeof Sentry !== 'undefined') {
+      Sentry.init({
+        dsn: "https://08512f8ac874b0a592ed6280544c054a@o4512182106259456.ingest.de.sentry.io/4512182109995088",
+        integrations: [
+          nodeProfilingIntegration(),
+        ],
+        tracesSampleRate: 1.0,
+        profileSessionSampleRate: 1.0,
+        profileLifecycle: 'trace',
+      });
+    }
+  </script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -27,7 +43,7 @@
     }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'Outfit', sans-serif;
       margin: 0;
       padding: 0;
       background: radial-gradient(circle at top right, #111827, #0b0f19 70%);
@@ -139,9 +155,7 @@
       font-size: 22px;
       font-weight: 600;
       letter-spacing: -0.5px;
-      background: linear-gradient(90deg, #fff, #94a3b8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #ffffff;
     }
 
     .logout-btn {
@@ -178,7 +192,6 @@
       height: 10px;
       border-radius: 50%;
       background: var(--success);
-      box-shadow: 0 0 10px var(--success);
     }
 
     .metrics-grid {
@@ -549,7 +562,7 @@
     let surahChartInstance = null;
 
     Chart.defaults.color = '#94a3b8';
-    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.family = "'Outfit', sans-serif";
 
     const storedAuth = sessionStorage.getItem('adminAuth');
     if (storedAuth) {

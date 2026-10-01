@@ -1,73 +1,67 @@
 <div id="fullFormCustom" class="page">
-  <button class="back-btn" onclick="showPage('fullOptions')"><span>←</span> رجوع</button>
   <div class="container">
-    <div class="header">
-      <h1 class="logo">السورة الكاملة (مخصص)</h1>
+    <button class="back-btn" onclick="showPage('fullOptions')">
+      <i class="fas fa-arrow-right"></i> رجوع
+    </button>
+    
+    <div class="header" style="margin-bottom: 24px; text-align: center;">
+      <h1 class="logo" style="font-size: 2.5rem; margin-bottom: 8px;">مزامنة سورة كاملة (مخصص)</h1>
+      <p style="color: var(--text-secondary);">ارفع تلاوتك الخاصة وحدد السورة</p>
     </div>
-    <div class="form-container">
-      <div class="form-grid">
-        <div class="form-section">
-          <h3>(اختياري) إعدادات الفيديو</h3>
-          <div class="form-group"><label for="fontColorFullCustom">لون النص</label><input type="color"
-              id="fontColorFullCustom" value="#ffffff"></div>
-          <div class="form-group"><label for="fontSizeFullCustom">حجم الخط</label><input type="range"
-              id="fontSizeFullCustom" min="1" max="72" value="10"><span id="fontSizeValueFullCustom">10px</span></div>
-          <div class="form-group"><label for="fontNameFullCustom">الخط</label><select id="fontNameFullCustom"
-              class="form-control">
-              <option value="Tasees Regular">Tasees</option>
-              <option value="DecoType Thuluth II">DTHULUTH II</option>
-            </select></div>
-
-          <div class="form-group"><label for="subtitlePositionFullCustom">موقع النص</label><select
-              id="subtitlePositionFullCustom" class="form-control">
-              <option value="bottom">أسفل</option>
-              <option value="middle">وسط</option>
-            </select></div>
-          <div class="checkbox-group"><input type="checkbox" id="showMetadataFullCustom"><label
-              for="showMetadataFullCustom">عرض معلومات السورة</label></div>
-
-          <div class="form-group"><label for="resolutionFullCustom">دقة الفيديو (Resolution)</label><select
-              id="resolutionFullCustom" class="form-control">
-              <option value="720p">720p (سريع - HD)</option>
-              <option value="480p">480p (فائق السرعة - SD)</option>
-              <option value="1080p">1080p (بطيء - FHD)</option>
-            </select></div>
-          <div class="form-group"><label for="translationEditionFullCustom">الترجمة</label><select
-              id="translationEditionFullCustom" class="form-control">
-              <option value="">بدون</option>
-              <option value="en.sahih">English - Sahih</option>
-              <option value="es.cortes">Español - Cortes</option>
-            </select></div>
-          <div class="form-group"><label for="pexelsVideoFullCustom">البحث عن خلفية بالكلمات المفتاحية </label><input
-              type="text" id="pexelsVideoFullCustom" placeholder="أدخل كلمة مفتاحية"></div>
-          <div class="form-group"><label for="imageLinkFullCustom">خلفية صورة</label><input type="text"
-              id="imageLinkFullCustom" placeholder="أدخل رابط الصورة"></div>
-          <div class="form-group"><label for="youtubeLinkFullCustom">خلفية YouTube</label><input type="text"
-              id="youtubeLinkFullCustom" placeholder="أدخل رابط YouTube"></div>
+    
+    <div class="form-container" style="max-width: 600px; margin: 0 auto;">
+      
+      <div class="form-section primary-section">
+        <h3 style="margin-bottom: 20px; color: var(--primary-color);">إعدادات التلاوة الخاصة</h3>
+        <div class="form-group"><label for="fullSurahNumberCustom">السورة</label><select id="fullSurahNumberCustom" class="form-control"></select></div>
+        <div class="form-group"><label for="customAudioFull">رفع التلاوة الصوتية</label><input type="file" id="customAudioFull" accept="audio/*" class="form-control" style="padding: 10px;"></div>
+        
+        <div class="checkbox-group">
+          <input type="checkbox" id="verticalVideoFullCustom">
+          <label for="verticalVideoFullCustom">فيديو طولي للريلز (9:16) 
+            <i class="fas fa-info-circle tooltip-icon" style="color:var(--text-secondary); cursor:pointer; margin-right:5px;" onclick="window.showTooltip(this, 'verticalVideo')"></i>
+          </label>
         </div>
-        <div class="form-section">
-          <h3>إعدادات القرآن</h3>
-          <div class="form-group"><label for="fullSurahNumberCustom">السورة</label><select id="fullSurahNumberCustom"
-              class="form-control"></select></div>
-          <div class="form-group"><label for="customAudioFull">رفع التلاوة</label><input type="file"
-              id="customAudioFull" accept="audio/*"></div>
-          <div class="checkbox-group"><input type="checkbox" id="verticalVideoFullCustom"><label
-              for="verticalVideoFullCustom">فيديو طولي للريلز (9:16) <i class="fas fa-info-circle tooltip-icon"
-                style="color:#8b949e; cursor:pointer; margin-right:5px;"
-                onclick="window.showTooltip(this, 'verticalVideo')"></i></label></div>
-          <div class="form-group" style="margin-top: 20px;">
-            <label>طريقة المزامنة <i class="fas fa-info-circle tooltip-icon"
-                style="color:#8b949e; cursor:pointer; margin-right:5px;"
-                onclick="window.showTooltip(this, 'syncMethod')"></i></label>
-            <div class="sync-method-buttons">
-              <button id="autoSyncBtnFull" class="action-btn" style="background: #2d7d5a;">
-                <i class="fas fa-magic"></i> مزامنة تلقائية
-              </button>
-              <button class="action-btn create-btn" style="margin-top: 0;">
-                <i class="fas fa-hand-pointer"></i> مزامنة يدوية
-              </button>
-            </div>
+      </div>
+
+      <details class="advanced-settings-accordion" style="margin-top: 24px; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: var(--bg-secondary);">
+        <summary style="cursor: pointer; font-weight: 500; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between;">
+          <span><i class="fas fa-sliders-h" style="margin-left: 8px; color: var(--primary-color);"></i> إعدادات متقدمة (اختياري)</span>
+        </summary>
+        
+        <div style="margin-top: 20px; display: grid; gap: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group"><label for="fontColorFullCustom">لون النص</label><input type="color" id="fontColorFullCustom" value="#ffffff" style="width: 100%; height: 40px; padding: 0; border: none;"></div>
+            <div class="form-group"><label for="fontSizeFullCustom">حجم الخط</label><input type="range" id="fontSizeFullCustom" min="1" max="72" value="10"><span id="fontSizeValueFullCustom" style="font-size: 14px; margin-right: 8px;">10px</span></div>
           </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group"><label for="fontNameFullCustom">الخط</label><select id="fontNameFullCustom" class="form-control"><option value="Tasees Regular">Tasees</option><option value="DecoType Thuluth II">DTHULUTH II</option></select></div>
+            <div class="form-group"><label for="subtitlePositionFullCustom">موقع النص</label><select id="subtitlePositionFullCustom" class="form-control"><option value="bottom">أسفل</option><option value="middle">وسط</option></select></div>
+          </div>
+          
+          <div class="checkbox-group"><input type="checkbox" id="showMetadataFullCustom"><label for="showMetadataFullCustom">عرض معلومات السورة</label></div>
+          <div class="form-group"><label for="resolutionFullCustom">دقة الفيديو</label><select id="resolutionFullCustom" class="form-control"><option value="720p">720p (سريع - HD)</option><option value="480p">480p (فائق السرعة - SD)</option><option value="1080p">1080p (بطيء - FHD)</option></select></div>
+          <div class="form-group"><label for="translationEditionFullCustom">الترجمة</label><select id="translationEditionFullCustom" class="form-control"><option value="">بدون</option><option value="en.sahih">English - Sahih</option><option value="es.cortes">Español - Cortes</option></select></div>
+          
+          <h4 style="margin-top: 16px; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.95rem;">الخلفية</h4>
+          <div class="form-group"><label for="pexelsVideoFullCustom">البحث بكلمات مفتاحية</label><input type="text" id="pexelsVideoFullCustom" placeholder="أدخل كلمة مفتاحية" class="form-control"></div>
+          <div class="form-group"><label for="imageLinkFullCustom">رابط صورة</label><input type="text" id="imageLinkFullCustom" placeholder="أدخل رابط الصورة" class="form-control"></div>
+          <div class="form-group"><label for="youtubeLinkFullCustom">رابط YouTube</label><input type="text" id="youtubeLinkFullCustom" placeholder="أدخل رابط YouTube" class="form-control"></div>
+        </div>
+      </details>
+
+      <div class="form-group" style="margin-top: 32px;">
+        <label style="display: block; margin-bottom: 12px; font-weight: 500;">طريقة المزامنة 
+          <i class="fas fa-info-circle tooltip-icon" style="color:var(--text-secondary); cursor:pointer; margin-right:5px;" onclick="window.showTooltip(this, 'syncMethod')"></i>
+        </label>
+        <div class="sync-method-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <button id="autoSyncBtnFull" class="action-btn" style="background: var(--bg-secondary); color: var(--primary-color); border: 1px solid var(--primary-color);">
+            <i class="fas fa-magic" style="margin-left: 8px;"></i> مزامنة تلقائية
+          </button>
+          <button class="action-btn create-btn" style="margin-top: 0; background: var(--primary-color);">
+            <i class="fas fa-hand-pointer" style="margin-left: 8px;"></i> مزامنة يدوية
+          </button>
         </div>
       </div>
     </div>

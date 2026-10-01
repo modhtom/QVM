@@ -189,6 +189,14 @@ export function initMain() {
     document.getElementById('fontSizeValuePartCustom').textContent = e.target.value + 'px';
   });
 
+  document.getElementById('fontSize')?.addEventListener('input', e => {
+    document.getElementById('fontSizeValue').textContent = e.target.value + 'px';
+  });
+
+  document.getElementById('fontSizePart')?.addEventListener('input', e => {
+    document.getElementById('fontSizeValuePart').textContent = e.target.value + 'px';
+  });
+
   document.getElementById('markVerseBtn')?.addEventListener('click', markVerse);
   document.getElementById('resetSyncBtn')?.addEventListener('click', resetSync);
   document.getElementById('finishSyncBtn')?.addEventListener('click', finishSyncAndGenerateVideo);

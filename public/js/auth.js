@@ -137,7 +137,6 @@ export async function resetPassword(token, newPassword) {
 
 export function initAuthUI() {
     const authPage = document.getElementById('authPage');
-    if (!authPage) return;
 
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
